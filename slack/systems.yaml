@@ -1,0 +1,336 @@
+---
+systems:
+  # System: Essentials.Systems.slack
+  #
+  # Purpose:
+  #   Integrate with slack to post messages to using incoming webhook integration, interact with slack using slash command integration.
+  #
+  # Config:
+  #   url - the url given by slack for the incoming webhook integration
+  #   token - a token randomly generated for authenticate slash command web request. It should match the url parameter "token"
+  #   path - the path part of the uri where the webhook is listening for slash command, defaults to /slack/slashcommand
+  #
+  # Synopsis:
+  #   Below is an example config for the system
+  #     +----------------------------------------------------------------------+
+  #     | ---
+  #     | systems:
+  #     |   slack:
+  #     |     data:
+  #     |       url: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+  #     |       token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+  #     |       path: "/command"
+  #     |
+  #     +----------------------------------------------------------------------+
+  #
+  #   You can also extend this system.
+  #     +----------------------------------------------------------------------+
+  #     | ---
+  #     | systems:
+  #     |   dev_channel:
+  #     |     extends:
+  #     |       - slack
+  #     |     data:
+  #     |       url: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+  #     |
+  #     +----------------------------------------------------------------------+
+  #
+  # Notes:
+  #   Use encryption for your url and token value for security
+  slack:
+    data:
+      url: _place_holder_
+      token: _place_holder_
+    functions:
+      # Action: reply
+      #
+      # send reply message to received the slash command. Every slash command web request has an "response_url",
+      # this function will use that "response_url" to post messages.
+      #
+      # Parameters:
+      #
+      # content - the payload of the message, do not set "channel" field.
+      #
+      # See slack documents for detail on attachments and formatting.
+      #
+      # Example:
+      #
+      # === Code
+      # ---
+      # rules:
+      #   - when:
+      #       source:
+      #         system: slack
+      #         trigger: slashcommand
+      #     do:
+      #       target:
+      #         system: slack
+      #         function: reply
+      #       parameters:
+      #         content:
+      #           attachments:
+      #             - title: Honeydipper Message
+      #               color: good
+      #               text: Hello world
+      # ===
+      #
+      # Notes:
+      #
+      # It is recommended to use <notify : Workflows.notify> abstract workflow. It can have
+      # multiple recipients and it works for all chat systems that supports "reply" function.
+      #
+      reply:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: '{{ index .event.form.response_url 0 }}'
+          header:
+            Content-Type: application/json
+          method: POST
+      # Action: say
+      #
+      # post a message to slack using incoming webhook integration.
+      #
+      # Parameters:
+      #
+      # content - the payload of the message, "channel" field will be recipient.
+      #
+      # See slack documents for detail on attachments and formatting.
+      #
+      # Example:
+      #
+      # === Code
+      # ---
+      # rules:
+      #   - when:
+      #       ...
+      #     do:
+      #       target:
+      #         system: slack
+      #         function: say
+      #       parameters:
+      #         content:
+      #           attachments:
+      #             - title: Honeydipper Message
+      #               color: good
+      #               text: Hello world
+      #           channel: #public_channel
+      # ===
+      #
+      # Notes:
+      #
+      # It is recommended to use <notify : Workflows.notify> abstract workflow. It can have
+      # multiple recipients and it works for all chat systems that supports "say" function.
+      #
+      say:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: '{{ .sysData.url }}'
+          header:
+            Content-Type: application/json
+          method: POST
+          # content:
+          #   channel: '@_place_holder_'
+    triggers:
+      # Trigger: slashcommand
+      #   raised when receive a webhook from slack with a slashcommand, the payload will be in .event.form
+      #
+      #   Examples:
+      #     Below is an example that respond to a simple slash command
+      #       +----------------------------------------------------------------------+
+      #       | ---
+      #       | rules:
+      #       |   - when:
+      #       |       source:
+      #       |         system: slack
+      #       |         trigger: slashcommand
+      #       |   - do:
+      #       |       type: if
+      #       |       condition: '{{ eq (index .event.form.text 0) "testcommand" }}'
+      #       |       content:
+      #       |         - type: function
+      #       |           content:
+      #       |             target:
+      #       |               system: slack
+      #       |               function: reply
+      #       |             parameters:
+      #       |               content:
+      #       |                 text: '{{ (index .event.form.user_name 0) }}' hello
+      #       |
+      #       +----------------------------------------------------------------------+
+      slashcommand:
+        driver: webhook
+        conditions:
+          method: POST
+          form:
+            token: '{{ .sysData.token }}'
+          url: "/slack/slashcommand"
+
+  # System: Essentials.Systems.slack_bot
+  #
+  # Purpose:
+  #   Using slack_bot to post messages, receive slash command and receive interactions.
+  #
+  # Config:
+  #   url - the url given by slack for the incoming webhook integration
+  #   bot_token - used for chat.Postmessage to send message to any channel
+  #   interact_token - used for verify the received interaction request
+  #   slash_token - used for verify the received slash command request
+  #   path - the path part of the uri where the webhook is listening for slash command, defaults to /slack/slashcommand
+  #
+  # Synopsis:
+  #   Below is an example config for the system
+  #     +----------------------------------------------------------------------+
+  #     | ---
+  #     | systems:
+  #     |   slack_bot:
+  #     |     data:
+  #     |       url: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+  #     |       bot_token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+  #     |       interact_token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+  #     |       slash_token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+  #     |       path: "/command"
+  #     |
+  #     +----------------------------------------------------------------------+
+  #
+  #   You can also extend this system.
+  #     +----------------------------------------------------------------------+
+  #     | ---
+  #     | systems:
+  #     |   dev_channel:
+  #     |     extends:
+  #     |       - slack_bot
+  #     |     data:
+  #     |       url: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+  #     |
+  #     +----------------------------------------------------------------------+
+  #
+  # Notes:
+  #   Use encryption for your url and token value for security
+  slack_bot:
+    data:
+      url: https://slack.com/api/chat.postMessage
+      bot_token: _place_holder_
+      interact_token: _place_holder_
+      slash_token: _place_holder_
+    extends:
+      - slack
+    triggers:
+      # Trigger: interact
+      #   raised when user click on interactive buttons in the messages posted through slack integration. You don't use
+      #   this trigger directly, instead just use the `suspend` workflow and the builtin `interact rule` will `resume`
+      #   the the workflow with user input, when user click on some button.
+      #
+      #   Examples:
+      #     Below is an example that respond to a simple slash command
+      #       +----------------------------------------------------------------------+
+      #       | ---
+      #       | rules:
+      #       |   - when:
+      #       |       source:
+      #       |         system: slack_bot
+      #       |         trigger: slashcommand
+      #       |   - do:
+      #       |       type: if
+      #       |       condition: '{{ eq (index .event.form.text 0) "testcommand" }}'
+      #       |       content:
+      #       |         - type: pipe
+      #       |           content:
+      #       |             - content: notify:
+      #       |               data:
+      #       |                 chat_system: slack_bot
+      #       |                 message: ... some interactive message ...
+      #       |             - type: suspend
+      #       |               content: some_id
+      #       |             - content: notify
+      #       |               data:
+      #       |                 chat_system: slack_bot
+      #       |                 message: You clicked .....
+      #       |
+      #       +----------------------------------------------------------------------+
+      interact:
+        driver: webhook
+        conditions:
+          method: POST
+          url: "/slack/interact"
+          form:
+            token: '{{ .sysData.interact_token }}'
+
+      # Trigger: slashcommand
+      #   raised when receive a webhook from slack with a slashcommand, the payload will be in .event.form
+      #
+      #   Examples:
+      #     Below is an example that respond to a simple slash command
+      #       +----------------------------------------------------------------------+
+      #       | ---
+      #       | rules:
+      #       |   - when:
+      #       |       source:
+      #       |         system: slack_bot
+      #       |         trigger: slashcommand
+      #       |   - do:
+      #       |       type: if
+      #       |       condition: '{{ eq (index .event.form.text 0) "testcommand" }}'
+      #       |       content:
+      #       |         - type: function
+      #       |           content:
+      #       |             target:
+      #       |               system: slack_bot
+      #       |               function: reply
+      #       |             parameters:
+      #       |               content:
+      #       |                 text: '{{ (index .event.form.user_name 0) }}' hello
+      #       |
+      #       +----------------------------------------------------------------------+
+      slashcommand:
+        # due to a bug (to be fixed in v0.1.7)
+        # conditions are not able to merge with inheritted parent condition
+        # for now, specify full conditions here.
+        conditions:
+          method: POST
+          form:
+            token: '{{ .sysData.slash_token }}'
+          url: "/slack/slashcommand"
+    functions:
+      # Action: say
+      #
+      # post a message to slack using bot integration.
+      #
+      # Parameters:
+      #
+      # content - the payload of the message, "channel" field will be recipient.
+      #
+      # See slack documents for detail on attachments and formatting.
+      #
+      # Example:
+      #
+      # === Code
+      # ---
+      # rules:
+      #   - when:
+      #       ...
+      #     do:
+      #       target:
+      #         system: slack_bot
+      #         function: say
+      #       parameters:
+      #         content:
+      #           attachments:
+      #             - title: Honeydipper Message
+      #               color: good
+      #               text: Hello world
+      #           channel: #public_channel
+      # ===
+      #
+      # Notes:
+      #
+      # It is recommended to use <notify : Workflows.notify> abstract workflow. It can have
+      # multiple recipients and it works for all chat systems that supports "say" function.
+      #
+      say:
+        parameters:
+          header:
+            Authorization: 'Bearer {{ .sysData.bot_token }}'
+          content:
+            channel: '@_place_holder_'

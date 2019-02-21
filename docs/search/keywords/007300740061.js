@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("sta",["Section"],[["start_kube_job",,[["Essentials.Workflows",,,,0,"File:kubernetes/workflows.yaml:Essentials.Workflows.start_kube_job","HoneydipperConfigClass:Essentials.Workflows.start_kube_job"]]]]);

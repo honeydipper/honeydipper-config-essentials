@@ -1,0 +1,1 @@
+NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Essentials.Workflows.reload",{49:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">Signal Honeydipper daemon(s) to reload config from the git repos.</div></div>"});

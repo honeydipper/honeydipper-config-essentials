@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("hea",["Action"],[["heartbeat",,[["Essentials.Systems.opsgenie",,,,0,"File:opsgenie.yaml:Essentials.Systems.opsgenie.heartbeat","HoneydipperConfigClass:Essentials.Systems.opsgenie:heartbeat"]]]]);

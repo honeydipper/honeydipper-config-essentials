@@ -1,0 +1,1 @@
+NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Essentials.Workflows.notify_then_do",{79:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">Notifying through chat and then start doing something.</div></div>"});
