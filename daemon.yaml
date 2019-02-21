@@ -1,0 +1,103 @@
+---
+drivers:
+  daemon:
+    features:
+      global:
+        - name: "driver:redispubsub"
+    drivers:
+      redispubsub:
+        name: redispubsub
+        data:
+          Type: go
+          Package: github.com/honeydipper/honeydipper/drivers/cmd/redispubsub
+  # Driver: Essentials.Drivers.redisqueue
+  #
+  #   sending and receiving message between honeydipper nodes and services. Used as an event bus.
+  #
+  #   Integration:
+  #
+  #   * connection -- connection parameters
+  #     * Addr -- the ip addres and port (e.g. 10.0.0.1:6379)
+  #     * Password -- (optional) the password if authentication is enabled
+  #     * DB -- (optional) the DB number to issue commands to
+  #   * loglevel -- (optional) log verbosity level from DEBUG to ERROR, defaults to INFO
+  #   * topics -- the topic to receive and send messages
+  #     * event -- topics for sending/receiving events, defaults to honeydipper:events
+  #     * command -- topics for sending/receiving commands, defaults to honeydipper:commands
+  #     * return -- prefix topics for sending/receiving command returns, defaults to honeydipper:return:
+  #
+  #   Synopsis:
+  #
+  #   For example
+  #     +-------------------------
+  #     | ---
+  #     | drivers:
+  #     |   redisqueue:
+  #     |     connection:
+  #     |       Addr: 10.1.1.1:6379
+  #     |
+  #     +-------------------------
+  #
+  redisqueue:
+    connection:
+      Addr: 127.0.0.1:6379
+
+  # Driver: Essentials.Drivers.redispubsub
+  #
+  #   sending and receiving broadcast messages between honeydipper nodes and services
+  #
+  #   Integration:
+  #
+  #   * connection -- connection parameters
+  #     * Addr -- the ip addres and port (e.g. 10.0.0.1:6379)
+  #     * Password -- (optional) the password if authentication is enabled
+  #     * DB -- (optional) the DB number to issue commands to
+  #   * loglevel -- (optional) log verbosity level from DEBUG to ERROR, defaults to INFO
+  #   * topics -- the topic to receive and send messages
+  #     * broadcast -- topics for sending/receiving broadcast, defaults to honeydipper:broadcast
+  #
+  #   Synopsis:
+  #
+  #   For example
+  #     +-------------------------
+  #     | ---
+  #     | drivers:
+  #     |   redispubsub:
+  #     |     connection:
+  #     |       Addr: 10.1.1.1:6379
+  #     |
+  #     +-------------------------
+  #
+  redispubsub:
+    connection:
+      Addr: 127.0.0.1:6379
+
+      # RawAction: broadcast
+      #
+      #   sending a broadcast message to all nodes and services, for example, to trigger config reload
+      #
+      #   Parameters:
+      #
+      #   the data in parameters are passed to nodes and services "as is".
+      #
+      #   * broadcastSubject: will be used to signal the services to perform different operations such as
+      #     * reload: reload configuration, try use the helper workflow <Essentials.Workflows.reload>
+      #     * resume_session: resume a suspended workflow session, this is used in <Essentials.Rules.slack_interact>
+      #
+      #   Examples:
+      #   Trigger a config reload when a special webhook is hit
+      #     +-------------------------
+      #     | rules:
+      #     |   - when:
+      #     |       driver: webhook
+      #     |       conditions:
+      #     |         url: /reload/config
+      #     |   - do:
+      #     |       type: function
+      #     |       content:
+      #     |         driver: redispubsub
+      #     |         rawAction: broadcast
+      #     |         parameters:
+      #     |           broadcastSubject: reload
+      #     |
+      #     +-------------------------

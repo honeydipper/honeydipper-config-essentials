@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("kub",["Section","Section"],[["kubernetes",,[["Essentials.Drivers",,,,0,"File:kubernetes/driver.yaml:Essentials.Drivers.kubernetes","HoneydipperConfigClass:Essentials.Drivers.kubernetes"],["Essentials.Systems",,,,1,"File:kubernetes/system.yaml:Essentials.Systems.kubernetes","HoneydipperConfigClass:Essentials.Systems.kubernetes"]]]]);

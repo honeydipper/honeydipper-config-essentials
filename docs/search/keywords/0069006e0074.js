@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("int",["Trigger"],[["interact",,[["Essentials.Systems.slack_bot",,,,0,"File:slack/systems.yaml:Essentials.Systems.slack_bot.interact","HoneydipperConfigClass:Essentials.Systems.slack_bot:interact"]]]]);

@@ -1,0 +1,316 @@
+---
+workflows:
+  # Workflow: Essentials.Workflows.repeat
+  #
+  # This is a abstract workflow, meaning you define the work in the data. And, you can use
+  # this to repeat any work. Remember, some of the interpolation in the `work` needs to be
+  # escaped.
+  #
+  # Parameters:
+  #
+  # .wfdata.times - how many times to repeat
+  # .wfdata.work - what to do
+  #
+  # Notes:
+  #
+  # repeat the specified work for the specified number of times
+  # use (int wfdata.times) to access the remaining times in interpolation.
+  #
+  # Examples:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: repeat
+  #       data:
+  #         times: 3
+  #         work:
+  #           content: notify
+  #           data:
+  #             notify:
+  #               - "#my_channel"
+  #             message:
+  #               text: There are {{ `{{ int .wfdata.times }}` }} lines left
+  # ===
+  #
+  repeat:
+    type: if
+    condition: '{{ gt (int .wfdata.times) 0 }}'
+    content:
+      - type: pipe
+        content:
+          - :path:wfdata.work
+          - content: repeat
+            data:
+              times: '{{ sub (int .wfdata.times) 1 }}'
+              '*work': :path:wfdata.work
+
+  # Workflow: Essentials.Workflows.foreach_parallel
+  #
+  # This is a abstract workflow, meaning you define the work in the data, and you can use
+  # this to start multiple workflow at the same time with different parameters.
+  #
+  # Parameters:
+  #
+  # .wfdata.items - the list of items to iterate
+  # .wfdata.work - what to do
+  #
+  # Notes:
+  #
+  # iterate over the list of items to repeat the specified work in parallel
+  # use wfdata.current to access the current item
+  #
+  # Examples:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: foreach_parallel
+  #       data:
+  #         items:
+  #           - apple
+  #           - orange
+  #           - strawberry
+  #         work:
+  #           content: notify
+  #           data:
+  #             notify:
+  #               - "#my_channel"
+  #             message:
+  #               text: I like {{ `{{ .wfdata.current }}` }}.
+  # ===
+  #
+  foreach_parallel:
+    type: if
+    condition: '{{ gt (len .wfdata.items) 0 }}'
+    content:
+      - |
+          :yaml:---
+          type: parallel
+          content:
+            {{- range .wfdata.items }}
+            - type: pipe
+              content:
+                - :path:wfdata.work
+              data:
+                current: "{{ . }}"
+            {{- end }}
+
+  # Workflow: Essentials.Workflows.foreach
+  #
+  # This is a abstract workflow, meaning you define the work in the data, and you can use
+  # this to run the same workflow one by one for each item in the list. Use `wfdata.items` to
+  # access the remaining items in interpolation.
+  #
+  # Parameters:
+  #
+  # .wfdata.items - the list of items to iterate
+  # .wfdata.work - what to do
+  #
+  # Notes:
+  #
+  # iterate over the list of items to repeat the specified work
+  # use wfdata.items to access the remaining items
+  #
+  # Examples:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: foreach
+  #       data:
+  #         items:
+  #           - apple
+  #           - orange
+  #           - strawberry
+  #         work:
+  #           content: notify
+  #           data:
+  #             notify:
+  #               - "#my_channel"
+  #             message:
+  #               text: I like {{ `{{ .wfdata.items | first }}` }}.
+  # ===
+  #
+  foreach:
+    type: if
+    condition: '{{ gt (len .wfdata.items) 0 }}'
+    content:
+      - type: pipe
+        content:
+          - :path:wfdata.work
+          - :yaml:{{ (dict "content" "foreach" "data" (dict "items" (rest .wfdata.items) "work" ":path:wfdata.work")) | toJson }}
+
+  # Workflow: Essentials.Workflows.notify
+  #
+  # This abstract workflow simplifies how you send message to chat.
+  #
+  # Parameters:
+  #
+  # .wfdata.notify - the list of channel, "reply" means where this is triggered
+  # .wfdata.message - content to be send to chat
+  # .wfdata.chat_system - which chat system to use, default to `slack` system
+  #
+  # Note:
+  #
+  # abstract method notify through chat using slack, hipchat, etc.
+  #
+  # Examples:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: notify
+  #       data:
+  #         notify:
+  #           - "#my_channel"
+  #           - "@user_name"
+  #           - reply              # only works if triggered through slash command
+  #         message:
+  #           attachments:
+  #             - color: good
+  #               text: hello world
+  # ===
+  #
+  notify:
+    content: foreach_parallel
+    data:
+      items: :path:wfdata.notify
+      '*work':
+        type: if
+        condition: '{{ `{{ eq .wfdata.current "reply" }}` }}'
+        content:
+          - type: function
+            content:
+              target:
+                system: '{{ if .wfdata.chat_system }}{{ .wfdata.chat_system }}{{ else }}slack{{ end }}'
+                function: reply
+              parameters:
+                content: :path:wfdata.message
+          - type: function
+            content:
+              target:
+                system: '{{ if .wfdata.chat_system }}{{ .wfdata.chat_system }}{{ else }}slack{{ end }}'
+                function: say
+              parameters:
+                content: ':yaml:{{ set .wfdata.message "channel" ":path:wfdata.current" | toJson }}'
+
+  # Workflow: Essentials.Workflows.notify_then_do
+  #
+  # Notifying through chat and then start doing something.
+  #
+  # Parameters:
+  #
+  # .wfdata.notify - the list of channel, "reply" means where this is triggered
+  # .wfdata.work - what to do
+  # .wfdata.message - content to be send to chat
+  # .wfdata.chat_system - which chat system to use, default to slack system
+  #
+  # Examples:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: notify_then_do
+  #       data:
+  #         notify:
+  #           - "#my_channel"
+  #           - "@user_name"
+  #           - reply              # only works if triggered through slash command
+  #         message:
+  #           attachments:
+  #             - color: good
+  #               text: I am doing something ...
+  #         work:
+  #           ...
+  # ===
+  #
+  notify_then_do:
+    type: pipe
+    content:
+      - content: notify
+      - type: pipe
+        data:
+          "*message": {}
+        content:
+          - ':path:wfdata.work'
+
+  # Workflow: Essentials.Workflows.do_then_notify
+  #
+  # Perform an action then notify through chat
+  #
+  # Parameters:
+  #
+  # .wfdata.notify - the list of channel, "reply" means where this is triggered
+  # .wfdata.work - what to do
+  # .wfdata.message - content to be send to chat
+  # .wfdata.chat_system - which chat system to use, default to slack system
+  #
+  # Examples:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: do_then_notify
+  #       data:
+  #         notify:
+  #           - "#my_channel"
+  #           - "@user_name"
+  #           - reply              # only works if triggered through slash command
+  #         message:
+  #           attachments:
+  #             - color: good
+  #               text: Done something, and it is {{ `{{ .labels.status }}` }}
+  #         work:
+  #           ...
+  # ===
+  #
+  do_then_notify:
+    type: pipe
+    content:
+      - type: pipe
+        data:
+          "*message": {}
+        content:
+          - ':path:wfdata.work'
+      - content: notify
+
+  # Workflow: Essentials.Workflows.noop
+  #
+  # Do nothing.
+  #
+  noop:
+    type: if
+    condition: "false"
+    content:
+      - content: donothing
+
+  # Workflow: Essentials.Workflows.reload
+  #
+  # Signal Honeydipper daemon(s) to reload config from the git repos.
+  #
+  reload:
+    type: function
+    content:
+      driver: redispubsub
+      rawAction: send
+      parameters:
+        broadcastSubject: reload

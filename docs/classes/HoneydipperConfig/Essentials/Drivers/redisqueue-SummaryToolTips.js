@@ -1,0 +1,1 @@
+NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Essentials.Drivers.redisqueue",{73:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">sending and receiving message between honeydipper nodes and services. Used as an event bus.</div></div>"});

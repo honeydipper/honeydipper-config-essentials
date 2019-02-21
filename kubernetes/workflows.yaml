@@ -1,0 +1,571 @@
+---
+workflows:
+  # Workflow: Essentials.Workflows.recycle_deployment_and_notify
+  #
+  # Recycle a kubernetes deployment and send notification through chat system.
+  #
+  # Parameters:
+  #
+  # .event - assuming the working is hooked up with an opsgenie alert event
+  # .wfdata.system - in which system the kubernetes cluster is defined
+  # .wfdata.deployment - the name of the deployment
+  # .notify - a list of channels to notify in chat
+  # .chat_system - which chat system to use, defaults to slack
+  #
+  # Examples:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: recycle_deployment_and_notify
+  #       data:
+  #         system: my_kubernetes_system
+  #         deployment: run=deployment_name # this is a label selector
+  #         notify:
+  #           - "#some_public_channel"
+  #           - "@some_user"
+  #
+  # ===
+  #
+  recycle_deployment_and_notify:
+    type: pipe
+    content:
+      - content: notify_then_do
+        data:
+          message:
+            attachments:
+              - title: 'Honeydipper Workflow'
+                color: 'warning'
+                text: >-
+                  OpsGenie alert
+                  <https://opsg.in/a/i/{{ .event.json.alert.alertId }}|#{{ .event.json.alert.tinyId }}>
+                  on "{{ .event.json.alert.alias }}"
+                  recycling deployment "{{ .wfdata.deployment }}".
+          work:
+            type: function
+            content:
+              target:
+                system: '{{ .wfdata.system }}'
+                function: recycleDeployment
+              parameters:
+                deployment: '{{ .wfdata.deployment }}'
+      - type: if
+        condition: '{{ eq .labels.status "success" }}'
+        content:
+          - content: do_then_notify
+            data:
+              message:
+                attachments:
+                  - color: '{{ `{{ if (eq (substr 0 1 .data.status_code) "2") }}good{{ else }}danger{{ end }}` }}'
+                    text: '{{ `Snoozing the alert #{{ .event.json.alert.tinyId }} in OpsGenie: {{ .data.json.result }}` }}'
+              work:
+                type: function
+                content:
+                  target:
+                    system: opsgenie
+                    function: snooze
+                  parameters:
+                    alertIdPath: event.json.alert.alertId
+          - content: notify
+            data:
+              message:
+                attachments:
+                  - color: 'danger'
+                    text: '{{ `Recycling deployment "{{ .wfdata.deployment }}": {{ .labels.reason }}` }}'
+
+  # Workflow: Essentials.Workflows.start_kube_job
+  #
+  # This workflow is a wrapper for <createJob : Drivers.kubernetes.createJob> function. It uses the input data to build
+  # a job manifest with a builtin skeleton job manifest template. The job will be composed with multiple steps with each
+  # step runs as either an `initContainter` or a `container`.  Each step *type* determines what container image to use.
+  # The known types are listed below, but you can always add your own types using *.wfdata.scripts* parameter.
+  #
+  # * bash
+  # * python
+  # * python2
+  # * python3
+  # * node
+  # * tf
+  # * helm
+  # * gcloud
+  # * git
+  #
+  # Notes:
+  #
+  # The kubernetes job will mount an empty volume at */honeydipper* to use as working directory for all the steps. This
+  # makes it possible to process artifacts in that volume across multiple steps.
+  #
+  # It is recommended to use <run_kubernetes> workflow instead, since that workflow is a wrapper
+  # for this workflow and provides some *predefined steps* that you can take advantage of.
+  #
+  # You can also create your own wrapper workflows so you can add your predefined steps, environment variables and/or
+  # volumes.
+  #
+  # Parameters:
+  #
+  # .wfdata.system - which kubernetes system the to use to run this job
+  # .wfdata.steps - what steps the job will run through, each step is a separate `container` or `initContainer`.
+  #                 If the any of step is a string, it will be replaced with the named *predfined_step*
+  # .wfdata.env - a list of environment variable, follow the kuberentes pod spec for env definition
+  #               If the any of env is a string, it will be replaced with the named *predfined_env*
+  # .wfdata.volumes - a list of volume definitions describing volumes to be mounted
+  #                   If the any of volume is a string, it will be replaced with the named *predfined_volume*
+  #
+  # Following is an example two step kubernetes job to output a "hello world".
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: start_kube_job
+  #       data:
+  #         system: example_kube_cluster
+  #         steps:
+  #           prep:
+  #             type: bash
+  #             command: "echo hello world > testfile"
+  #           exec:
+  #             type: bash
+  #             command: "cat testfile"
+  # ===
+  #
+  # Predefined Parameters:
+  #
+  # Following parameters are used to create wrapper workflows. They won't be used by the job unless they
+  # are referred to in the above parameters.
+  #
+  # .wfdata.scripts - additional *type* definition in a map
+  # .wfdata.predefined_steps - predefined steps that can be used in *steps*
+  # .wfdata.predefined_env - predefined environment variables
+  # .wfdata.predefined_volumes - predefined volumes
+  #
+  # Following example creats a wrapper workflow with a step of sending a opsgenie heartbeat
+  #
+  # === Code
+  # ---
+  # workflows:
+  #   kube_wrapper:
+  #     content: start_kube_job
+  #     data:
+  #       predefined_steps:
+  #         send_heartbeat:
+  #           type: bash
+  #           command: >-
+  #             wget -O- -S --header "Authorization: GenieKey $GENIE_KEY"
+  #             https://api.opsgenie.com/v2/heartbeats/{{ `{{ .sysData.heartbeat }}` }}/ping
+  #           env:
+  #             - name: GENIE_KEY
+  #               valueFrom:
+  #                 secretRef:
+  #                   name: opsgenie-key-secret
+  #                   key: GENIE_KEY
+  # ===
+  #
+  # Script Type:
+  #
+  # Each script type definition has following fields
+  #
+  # image - the containter image to use for this type
+  # ext - the script file extension
+  # run_entry - use this list as *entrypoint* if running step as script file
+  # run_prefix - use this list as *argument prefixes* if running step as script file
+  # command_prefix - use this list as *argument prefixes* if running as command
+  #
+  # Following example creates a wrapper workflow adding a *gcc* type.
+  #
+  # === Code
+  # ---
+  # workflows:
+  #   kube_wrapper:
+  #     content: start_kube_job
+  #     data:
+  #       scripts:
+  #         gcc:
+  #           image: gcc:latest
+  # ===
+  #
+  # Step:
+  #
+  # Steps can be either a hashmap or a list.  The corresponding container for each step will be named
+  # step-<key of map> or step-<number>. Each step contains following fields.
+  #
+  # type - the type of the step, see above
+  # command - the command to be executed
+  # script - instead of using command, store the script content as file and run the file
+  # env - a list of environment variable, follow the kuberentes pod spec for env definition
+  # volumes - a list of volume definitions describing volumes to be mounted
+  # workingDir - the working directory the command or script is executed in
+  #
+  # Volumes:
+  #
+  # You can specify volumes to be mount at step level as well as at pod level. Each volume entry should have
+  # following fields
+  #
+  # mountPath - the mount point of the volume
+  # subPath - the sub path to mount as file
+  # volume - the definition of a volume same as defined in kubernetes pod spec
+  #
+  # Return:
+  #
+  # .data.metadata - the job information
+  # .data.status - the job status when it is created
+  #
+  start_kube_job:
+    type: pipe
+    data:
+      "*steps": |
+        :yaml:---
+        {{- $wfdata := .wfdata }}
+        {{- range .wfdata.steps }}
+        {{- if (typeIs "string" .) }}
+        - {{ index $wfdata.predefined_steps . | toJson }}
+        {{- else }}
+        - {{ toJson . }}
+        {{- end }}
+        {{- end }}
+      "*env": |
+        :yaml:---
+        {{- $wfdata := .wfdata }}
+        {{- range .wfdata.env }}
+        {{- if (typeIs "string" .) }}
+        - {{ index $wfdata.predefined_env . | toJson }}
+        {{- else }}
+        - {{ toJson . }}
+        {{- end }}
+        {{- else }}
+        []
+        {{- end }}
+      "*volumes": |
+        :yaml:---
+        {{- $wfdata := .wfdata }}
+        {{- range .wfdata.volumes }}
+        {{- if (typeIs "string" .) }}
+        - {{ index $wfdata.predefined_volumes . | toJson }}
+        {{- else }}
+        - {{ toJson . }}
+        {{- end }}
+        {{- else }}
+        []
+        {{- end }}
+      scripts:
+        python3:
+          ext: py
+          image: python:3
+          run_prefix: [ "python" ]
+          command_prefix: [ "python", "-c" ]
+        python2:
+          ext: py
+          image: python:2
+          run_prefix: [ "python" ]
+          command_prefix: [ "python", "-c" ]
+        python:
+          ext: py
+          image: python:latest
+          run_prefix: [ "python" ]
+          command_prefix: [ "python", "-c" ]
+        bash:
+          ext: sh
+          image: bash:latest
+          run_prefix: []
+          command_prefix: [ "-c" ]
+        node:
+          ext: js
+          image: node:latest
+          run_prefix: [ "node" ]
+          command_prefix: [ "node", "-e" ]
+        git:
+          ext: sh
+          image: alpine/git:latest
+          run_prefix: []
+          run_entry: [ "/bin/sh" ]
+          command_prefix: []
+        tf:
+          ext: sh
+          image: hashicorp/terraform:light
+          run_prefix: []
+          run_entry: [ "/bin/sh" ]
+          command_prefix: []
+        helm:
+          ext: sh
+          image: alpine/helm:latest
+          run_prefix: []
+          run_entry: [ "/bin/sh" ]
+          command_prefix: []
+        gcloud:
+          ext: sh
+          image: google/cloud-sdk:latest
+          run_prefix: []
+          command_prefix: [ "-c" ]
+    content:
+      - type: function
+        data:
+          jobTemplate:
+            ##
+            ## start of kubernetes manifest file
+            ##
+            apiVersion: batch/v1
+            kind: Job
+            metadata:
+              generateName: "honeydipper-job-"
+            spec:
+              template:
+                spec: |
+                  :yaml:---
+                  {{- $wfdata := .wfdata }}
+                  {{- $allVolumes := .wfdata.volumes }}
+                  {{- define "volumeMounts" }}
+                        {{- range . }}
+                        - mountPath: {{ .mountPath }}
+                          name: {{ .volume.name }}
+                          {{- if .subPath }}
+                          subPath: {{ .subPath }}
+                          {{- end }}
+                        {{- end }}
+                  {{- end }}
+                  {{- if (or (gt (len $wfdata.steps) 1) (empty (last $wfdata.steps).script | not)) }}
+                  initContainers:
+                    {{- $hasScript := false }}
+                    {{- range $wfdata.steps }}
+                    {{-   $hasScript = (or $hasScript (empty .script | not)) }}
+                    {{- end }}
+                    {{- if $hasScript }}
+                    - name: prepare
+                      image: bash:latest
+                      args:
+                        - "-c"
+                        - |
+                          {{- range $index, $v := $wfdata.steps }}
+                          {{-   if (empty .script | not) }}
+                          {{-     $processor := (index $wfdata.scripts (default "bash" .type)) }}
+                          {{-     $scriptName := (list "step-" (default $index .name)  "." $processor.ext | join "") }}
+                          echo "$script_content_{{ default $index .name }}" > {{ $scriptName }} && chmod +x {{ $scriptName }} &&
+                          {{-   end }}
+                          {{- end }}
+                          true
+                      env:
+                        {{- range $index, $v := .wfdata.steps }}
+                        {{-   if (empty .script | not) }}
+                        - name: script_content_{{ default $index .name }}
+                          value: |
+                            {{ .script | indent 10 | trim }}
+                        {{-   end }}
+                        {{- end }}
+                      volumeMounts:
+                        - mountPath: /honeydipper
+                          name: workdir
+                      workingDir: /honeydipper
+                    {{- end }}
+                    {{- range $index, $v := (initial $wfdata.steps) }}
+                    {{-   $processor := (index $wfdata.scripts (default "bash" .type)) }}
+                    {{-   $scriptName := (list "step-" (default $index .name) "." $processor.ext | join "") }}
+                    - name: step-{{ default $index .name }}
+                      image: {{ $processor.image }}
+                      workingDir: '{{ default "/honeydipper" .workingDir }}'
+                      env:
+                        {{- if (and (empty $wfdata.env) (empty .env)) }}
+                        []
+                        {{- else }}
+                        {{- range $wfdata.env }}
+                        - {{ toJson . }}
+                        {{- end }}
+                        {{- range .env }}
+                        - {{ toJson . }}
+                        {{- end }}
+                        {{- end }}
+                      volumeMounts:
+                        - mountPath: /honeydipper
+                          name: workdir
+                        {{ template "volumeMounts" $wfdata.volumes }}
+                        {{ template "volumeMounts" .volumes }}
+                        {{- range .volumes }}
+                        {{- $allVolumes = (append $allVolumes .) }}
+                        {{- end }}
+                      {{- if .script }}
+                      {{-   if $processor.run_entry }}
+                      command: {{ $processor.run_entry | toJson }}
+                      {{-   end }}
+                      args: {{ append $processor.run_prefix (list "/honeydipper/" $scriptName | join "") | toJson }}
+                      {{- else }}
+                      {{- if typeIs "string" .command }}
+                      args: {{ append $processor.command_prefix .command | toJson }}
+                      {{- else }}
+                      args:
+                        {{- range $processor.command_prefix }}
+                        - {{ . | toJson }}
+                        {{- end }}
+                        {{- range .command }}
+                        - {{ . | toJson }}
+                        {{- end }}
+                      {{- end }}
+                      {{- end }}
+                    {{- end }}
+                  {{- end }}
+                  containers:
+                    {{- with (last $wfdata.steps) }}
+                    {{-   $processor := (index $wfdata.scripts (default "bash" .type)) }}
+                    {{-   $scriptName := (list "step-" (default (sub (len $wfdata.steps) 1) .name) "." $processor.ext | join "") }}
+                    - name: step-{{ default (sub (len $wfdata.steps) 1) .name }}
+                      image: {{ $processor.image }}
+                      workingDir: '{{ default "/honeydipper" .workingDir }}'
+                      env:
+                        {{- if (and (empty $wfdata.env) (empty .env)) }}
+                        []
+                        {{- else }}
+                        {{- range $wfdata.env }}
+                        - {{ toJson . }}
+                        {{- end }}
+                        {{- range .env }}
+                        - {{ toJson . }}
+                        {{- end }}
+                        {{- end }}
+                      volumeMounts:
+                        - mountPath: /honeydipper
+                          name: workdir
+                        {{ template "volumeMounts" $wfdata.volumes }}
+                        {{ template "volumeMounts" .volumes }}
+                        {{- range .volumes }}
+                        {{- $allVolumes = (append $allVolumes .) }}
+                        {{- end }}
+                      {{- if .script }}
+                      {{-   if $processor.run_entry }}
+                      command: {{ $processor.run_entry | toJson }}
+                      {{-   end }}
+                      args: {{ append $processor.run_prefix (list "/honeydipper/" $scriptName | join "") | toJson }}
+                      {{- else }}
+                      {{- if typeIs "string" .command }}
+                      args: {{ append $processor.command_prefix .command | toJson }}
+                      {{- else }}
+                      args:
+                        {{- range $processor.command_prefix }}
+                        - {{ . | toJson }}
+                        {{- end }}
+                        {{- range .command }}
+                        - {{ . | toJson }}
+                        {{- end }}
+                      {{- end }}
+                      {{- end }}
+                    {{- end }}
+                  restartPolicy: Never
+                  volumes:
+                    - name: workdir
+                      emptyDir: {}
+                    {{- range $allVolumes }}
+                    - {{ toJson .volume }}
+                    {{- end }}
+              backoffLimit: 1
+        content:
+          target:
+            system: :path:wfdata.system
+            function: createJob
+          parameters:
+            job: ':yaml:{{ merge .wfdata.job .wfdata.jobTemplate | toJson }}'
+
+  # Workflow: Essentials.Workflows.run_kubernetes
+  #
+  # This workflow is a wrapper for <start_kube_job> workflow. It provides several most frequently used
+  # predefined steps.  It also waits for the job to complete/terminate and return the container logs.
+  #
+  # Parameters:
+  #
+  # Since is a wrapper for <start_kube_job>, it inherits all parameters from that workflow.
+  #
+  # Predefined Steps:
+  #
+  # git-clone - clone a git repo into the shared empty volume /honeydipper, requires the system to have .sysData.git_url and .sysData.git_key_secret.
+  #             The .sysData.git_url is the url of the git repo.  The .sysData.git_key_secret should points to a kubernetes secret existing in the
+  #             kubernetes cluster
+  #
+  # Return:
+  #
+  # .data.log - a map from pod name to a map from container name to log
+  #
+  # Example:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       type: pipe
+  #       data:
+  #         timeout: 300
+  #         project: '{{ (splitn " " 2 .wfdata.params)._0 }}'
+  #         branch: '{{ default "" (splitn " " 2 .wfdata.params)._1 }}'
+  #       content:
+  #         - content: run_kubernetes
+  #           data:
+  #             system: terraform
+  #             steps:
+  #               - git-clone
+  #               - script: |
+  #                   terraform init -no-color
+  #                   terraform plan -no-color
+  #                 type: tf
+  #                 workingDir: /honeydipper/git/projects/{{ .wfdata.project }}
+  #                 env:
+  #                   - name: GOOGLE_CREDENTIALS
+  #                     valueFrom:
+  #                       secretKeyRef:
+  #                         name: tf-sa
+  #                         key: tf_sa
+  #         - content: notify
+  #           data:
+  #             "*notify":
+  #               - reply
+  #             message:
+  #               text: '{{ if eq .labels.status "success" }}{{ values (index (values .data.log) 0) | join "\n" }}{{ else }}{{ .labels.reason }}{{ end }}'
+  # ===
+  #
+  run_kubernetes:
+    type: pipe
+    content:
+      - content: start_kube_job
+        data:
+          predefined_steps:
+            git-clone:
+              type: git
+              script: |
+                mkdir -p ~/.ssh &&
+                chmod 700 ~/.ssh &&
+                echo $'Host *\n\tStrictHostKeyChecking\tno\n\tUserKnownHostsFile\t/dev/null\n\tIdentityFile\t'/root/id_rsa > ~/.ssh/config &&
+                git clone "{{ `{{ .sysData.git_url }}` }}" git
+                {{- if (empty .wfdata.branch | not) }}
+                cd git
+                git checkout {{ .wfdata.branch }}
+                {{- end }}
+              volumes:
+                - mountPath: /root/id_rsa
+                  subPath: id_rsa
+                  volume:
+                    name: git-deploy-key
+                    secret:
+                      defaultMode: 384
+                      secretName: "{{ `{{ .sysData.git_key_secret }}` }}"
+      - type: if
+        condition: '{{ eq .labels.status "success" }}'
+        content:
+          - type: pipe
+            data:
+              jobid: :path:data.metadata.name
+            content:
+              - type: function
+                content:
+                  target:
+                    system: :path:wfdata.system
+                    function: waitForJob
+                  parameters:
+                    job: :path:wfdata.jobid
+                    timeout: '{{ default "60" .wfdata.timeout }}'
+              - type: function
+                content:
+                  target:
+                    system: :path:wfdata.system
+                    function: getJobLog
+                  parameters:
+                    job: :path:wfdata.jobid

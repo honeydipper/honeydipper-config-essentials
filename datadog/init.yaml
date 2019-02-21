@@ -1,0 +1,54 @@
+---
+# Bundle: Datadog.01-Installation
+#   This bundle comes with a driver to emit internal telemetry metircs to datadog.
+#
+# Installation:
+#   Include this repo as follows in your bootstrap repo init.yaml
+#     +---------------------------
+#     | ---
+#     | repos:
+#     |   - repo: git@github.com:honeydipper/honeydipper-config-essentials.git
+#     |     path: /datadog
+#     +---------------------------
+#
+
+# Driver: Datadog.Drivers.datadog-emitter
+#
+#   collecting and sending telemetry metrics to datadog for monitoring, graphing and analyzing.
+#
+#   Prereq:
+#     * include the datadog bundle from this repo
+#
+#   Integration:
+#     Config the driver in the `drivers` section with following parameters.
+#
+#     * statsdHost: the statsd access IP of the datadog agent, ignored if "useHostPort" is true
+#     * statsdPort: the statsd access port of the datadog agent
+#     * useHostPort: if set to true, will get the statsd host IP from environment variable "DOGSTATSD_HOST_IP"
+#
+#   Example:
+#     +---------------------------
+#     | ---
+#     | drivers:
+#     |   datadog-emitter:
+#     |     useHostPort: true
+#     |     statsdPort: "8125"
+#     +---------------------------
+#
+drivers:
+  daemon:
+    featureMap:
+      global:
+        emitter: "datadog-emitter"
+    features:
+      global:
+        - name: "emitter"
+    drivers:
+      datadog-emitter:
+        name: datadog-emitter
+        data:
+          Type: go
+          Package: github.com/honeydipper/honeydipper/drivers/cmd/datadog-emitter
+  datadog-emitter:
+    useHostPort: true
+    statsdPort: "8125"

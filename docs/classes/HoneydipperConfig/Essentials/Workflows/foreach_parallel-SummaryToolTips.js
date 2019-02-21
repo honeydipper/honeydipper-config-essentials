@@ -1,0 +1,1 @@
+NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Essentials.Workflows.foreach_parallel",{44:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">This is a abstract workflow, meaning you define the work in the data, and you can use this to start multiple workflow at the same time with different parameters.</div></div>"});

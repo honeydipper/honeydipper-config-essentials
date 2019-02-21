@@ -1,0 +1,15 @@
+---
+workflows:
+  version: 2
+  main:
+    jobs:
+      - lint
+
+jobs:
+  lint:
+    docker:
+      - image: singapore/lint-condo
+    steps:
+      - checkout
+      - run:
+          'yamllint .'

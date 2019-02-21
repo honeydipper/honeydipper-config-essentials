@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("sno",["Action"],[["snooze",,[["Essentials.Systems.opsgenie",,,,0,"File:opsgenie.yaml:Essentials.Systems.opsgenie.snooze","HoneydipperConfigClass:Essentials.Systems.opsgenie:snooze"]]]]);

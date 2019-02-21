@@ -1,0 +1,1 @@
+NDFramePage.OnPageTitleLoaded("HoneydipperConfigClass:Essentials.Workflows.start_kube_job","start_kube_job");NDSummary.OnSummaryLoaded("HoneydipperConfigClass:Essentials.Workflows.start_kube_job",[["Honeydipper Config","HoneydipperConfig"]],[["Workflows","Section"]],[[10,0,0,"<span class=\"Qualifier\">Essentials.&#8203;Workflows.</span>&#8203;start_kube_job"]]);
