@@ -1,10 +1,12 @@
 # Honeydipper Essential Config
 
-This repo is hosting the essential configurations for [Honeydipper system](https://github.com/honeydipper/honeydipper).
+<img src="https://github.com/honeydipper/honeydipper/raw/master/logo/logo_medium.png" width="100">
+
+This repo hosts essential configurations (and documentation) for [Honeydipper](https://github.com/honeydipper/honeydipper).
 
 ## Synopsis
 
-To load the essential assets defined in this repo, put the below in the `init.yaml` in your own repo.
+To load the configurations defined in this repo, put the below in the `init.yaml` in your own control repo.
 
 ```yaml
 ---
