@@ -562,10 +562,18 @@ workflows:
                   parameters:
                     job: :path:wfdata.jobid
                     timeout: '{{ default "60" .wfdata.timeout }}'
-              - type: function
+              - type: pipe
+                data:
+                  kube_job_status: '{{ and (eq .labels.status "success") (eq (int .data.status.failed) 0) }}'
                 content:
-                  target:
-                    system: :path:wfdata.system
-                    function: getJobLog
-                  parameters:
-                    job: :path:wfdata.jobid
+                  - type: function
+                    content:
+                      target:
+                        system: :path:wfdata.system
+                        function: getJobLog
+                      parameters:
+                        job: :path:wfdata.jobid
+                  - type: data
+                    content:
+                      kube_job_status: :path:wfdata.kube_job_status
+                      log: :path:data.log
