@@ -1,6 +1,6 @@
 # Honeydipper Essential Config
 
-<img src="https://github.com/honeydipper/honeydipper/raw/master/logo/logo_medium.png" width="100">
+<img src="https://raw.githubusercontent.com/honeydipper/honeydipper/master/logo/log_medium.png" width="100">
 
 This repo hosts essential configurations (and documentation) for [Honeydipper](https://github.com/honeydipper/honeydipper).
 
