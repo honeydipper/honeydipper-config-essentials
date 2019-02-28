@@ -27,9 +27,9 @@ drivers:
     drivers:
       web:
         name: web
-        data:
-          Type: go
-          Package: github.com/honeydipper/honeydipper/drivers/cmd/web
+        type: builtin
+        handlerData:
+          shortName: web
 
 # RawAction: request
 #

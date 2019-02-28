@@ -1,15 +1,25 @@
 ---
 drivers:
   daemon:
+    featureMap:
+      global:
+        eventbus: redisqueue
     features:
       global:
+        - name: "eventbus"
+          required: true
         - name: "driver:redispubsub"
     drivers:
+      redisqueue:
+        name: redisqueue
+        type: builtin
+        handlerData:
+          shortName: redisqueue
       redispubsub:
         name: redispubsub
-        data:
-          Type: go
-          Package: github.com/honeydipper/honeydipper/drivers/cmd/redispubsub
+        type: builtin
+        handlerData:
+          shortName: redispubsub
   # Driver: Essentials.Drivers.redisqueue
   #
   #   sending and receiving message between honeydipper nodes and services. Used as an event bus.

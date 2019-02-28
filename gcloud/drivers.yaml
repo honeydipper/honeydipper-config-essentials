@@ -31,9 +31,9 @@ drivers:
       #
       gcloud-gke:
         name: gcloud-gke
-        data:
-          Type: go
-          Package: github.com/honeydipper/honeydipper/drivers/cmd/gcloud-gke
+        type: builtin
+        handlerData:
+          shortName: gcloud-gke
           # RPC: getKubeConfig
           #
           # This RPC is used internally by kubernetes driver to fetch cluster endpoint and auth info.
@@ -87,9 +87,9 @@ drivers:
       #
       gcloud-kms:
         name: gcloud-kms
-        data:
-          Type: go
-          Package: github.com/honeydipper/honeydipper/drivers/cmd/gcloud-kms
+        type: builtin
+        handlerData:
+          shortName: gcloud-kms
           # RPC: decrypt
           #
           # This RPC is used internally by Honeydipper and other drivers to decrypt content.
@@ -120,9 +120,9 @@ drivers:
       #
       gcloud-dataflow:
         name: gcloud-dataflow
-        data:
-          Type: go
-          Package: github.com/honeydipper/honeydipper/drivers/cmd/gcloud-dataflow
+        type: builtin
+        handlerData:
+          shortName: gcloud-dataflow
           # RawAction: createJob
           #
           # create dataflow job with a template.

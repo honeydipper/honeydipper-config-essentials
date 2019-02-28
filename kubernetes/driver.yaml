@@ -24,9 +24,9 @@ drivers:
     drivers:
       kubernetes:
         name: kubernetes
-        data:
-          Type: go
-          Package: github.com/honeydipper/honeydipper/drivers/cmd/kubernetes
+        type: builtin
+        handlerData:
+          shortName: kubernetes
     features:
       operator:
         - name: "driver:kubernetes"

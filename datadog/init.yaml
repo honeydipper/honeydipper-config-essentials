@@ -46,9 +46,9 @@ drivers:
     drivers:
       datadog-emitter:
         name: datadog-emitter
-        data:
-          Type: go
-          Package: github.com/honeydipper/honeydipper/drivers/cmd/datadog-emitter
+        type: builtin
+        handlerData:
+          shortName: datadog-emitter
   datadog-emitter:
     useHostPort: true
     statsdPort: "8125"

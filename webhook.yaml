@@ -26,9 +26,9 @@ drivers:
     drivers:
       webhook:
         name: webhook
-        data:
-          Type: go
-          Package: github.com/honeydipper/honeydipper/drivers/cmd/webhook
+        type: builtin
+        handlerData:
+          shortName: webhook
   webhook:
     Addr: ":8080"
 
