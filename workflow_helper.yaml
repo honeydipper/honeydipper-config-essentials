@@ -148,7 +148,103 @@ workflows:
       - type: pipe
         content:
           - :path:wfdata.work
-          - :yaml:{{ (dict "content" "foreach" "data" (dict "items" (rest .wfdata.items) "work" ":path:wfdata.work")) | toJson }}
+          - :yaml:{{ (dict "content" "foreach" "data" (dict "*items" (rest .wfdata.items) "*work" ":path:wfdata.work")) | toJson }}
+
+  # Workflow: Essentials.Workflows.pipe
+  #
+  # This is an enhanced version of `pipe` workflow. Similar to the native `pipe` type workflow, it iterates through the
+  # the steps one at a time.  Unlike the native `pipe` workflow, the named `pipe` workflow will stop when any
+  # of the steps return failure status in `.labels.status`. It also preserves the name of the step, if specified, in
+  # `.data.step` as an ouput value. This is useful when you have many steps for a workflow and don't want to check
+  # the status for each step.
+  #
+  # Parameters:
+  #
+  # .wfdata.on_error - possible values are "continue", "exit" and "final", default to "final", meaning to execute the last
+  #        step before exiting, useful for cleaning up or sending notification
+  # .wfdata.steps - a list of steps
+  #
+  # Fields in step:
+  #
+  # name - optional, used for error reporting
+  # work - a workflow data structure describing the work to be performed in this step
+  #
+  # Return:
+  #
+  # .data.work_status - status of the last step performed
+  # .data.work_data - the payload of the last action
+  # .data.reason - specify the reason for the failed step
+  # .data.step - the name of the step that is failing
+  #
+  # Example:
+  #
+  # === Code
+  # ---
+  # rules:
+  #   - when:
+  #       ...
+  #     do:
+  #       content: pipe
+  #       data:
+  #         steps:
+  #           - name: getting chat ID
+  #             work:
+  #               target:
+  #                 system: slack_bot
+  #                 function: getChatID
+  #               parameters:
+  #                 username: somebody
+  #           - name: getting notes
+  #             work:
+  #               target:
+  #                 system: notes
+  #                 function: fetch
+  #               parameters:
+  #                 username: somebody
+  #
+  #             ...
+  #
+  #           - name: final notification
+  #             work:
+  #               content: notify
+  #               data:
+  #                 message:
+  #                   text: job status {{ `{{ .labels.status }}` at step `{{ index .wfdata "steps" 0 "name" }}` }}
+  #
+  pipe:
+    type: if
+    condition: '{{ gt (len .wfdata.steps) 0 }}'
+    content:
+      - type: pipe
+        data:
+          on_error: '{{ default "final" .wfdata.on_error }}'
+        content:
+          - ':yaml:{{ index .wfdata "steps" 0 "work" | toJson }}'
+          - type: if
+            condition: '{{ or (eq .wfdata.on_error "continue") (eq .labels.status "success") }}'
+            content:
+              - ':yaml:{{ (dict "content" "pipe" "data" (dict "*steps" (rest .wfdata.steps) "on_error" .wfdata.on_error)) | toJson }}'
+              - type: pipe
+                data:
+                  work_data: :yaml:{{ default (dict) .data | toJson }}
+                  work_status: :path:labels.status
+                  reason: '{{ default "" .labels.reason }}'
+                  step: '{{ default "" (index .wfdata "steps" 0 "name") }}'
+                content:
+                  - type: if
+                    condition: '{{ and (eq .wfdata.on_error "last") (gt (len .wfdata.steps) 1) }}'
+                    content:
+                      - ':yaml:{{ index (.wfdata.steps | last) "work" | toJson }}'
+                  - type: data
+                    content:
+                      work_data: :path:wfdata.work_data
+                      work_status: :path:wfdata.work_status
+                      reason: :path:wfdata.reason
+                      step: :path:wfdata.step
+      - type: data
+        content:
+          work_data: :yaml:{{ default (dict) .data | toJson }}
+          work_status: 'success'
 
   # Workflow: Essentials.Workflows.notify
   #
@@ -187,7 +283,7 @@ workflows:
   notify:
     content: foreach_parallel
     data:
-      items: :path:wfdata.notify
+      '*items': :path:wfdata.notify
       '*work':
         type: if
         condition: '{{ `{{ eq .wfdata.current "reply" }}` }}'
@@ -257,9 +353,16 @@ workflows:
   # Parameters:
   #
   # .wfdata.notify - the list of channel, "reply" means where this is triggered
+  # .wfdata.notify_on_error - a channel to report error addition to the normal notify list
   # .wfdata.work - what to do
   # .wfdata.message - content to be send to chat
   # .wfdata.chat_system - which chat system to use, default to slack system
+  #
+  # Return:
+  #
+  # .data.work_data - the return data from the work
+  # .data.work_status - the status from the work
+  # .data.reason - if work_status is not success, what is the reason of failure
   #
   # Examples:
   #
@@ -289,9 +392,24 @@ workflows:
       - type: pipe
         data:
           "*message": {}
+          "*notify": []
         content:
           - ':path:wfdata.work'
-      - content: notify
+      - type: pipe
+        data:
+          work_data: :yaml:{{ default (dict) .data | toJson }}
+          work_status: :path:labels.status
+          reason: '{{ default "" .labels.reason }}'
+          error_notify_list: ':yaml:{{ append (default (list) .wfdata.notify) (default "#honeydipper_notify" .wfdata.notify_on_error) | uniq | toJson }}'
+        content:
+          - content: notify
+            data:
+              "*notify": ':yaml:{{ eq .labels.status "success" | ternary (default (list) .wfdata.notify) .wfdata.error_notify_list | toJson }}'
+          - type: data
+            content:
+              work_data: :path:wfdata.work_data
+              work_status: :path:wfdata.work_status
+              reason: :path:wfdata.reason
 
   # Workflow: Essentials.Workflows.noop
   #
