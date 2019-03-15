@@ -221,18 +221,21 @@ workflows:
         content:
           - ':yaml:{{ index .wfdata "steps" 0 "work" | toJson }}'
           - type: if
-            condition: '{{ or (eq .wfdata.on_error "continue") (eq .labels.status "success") }}'
+            condition: '{{ or (eq .wfdata.on_error "continue") (ne (coalesce .data.work_status .labels.status) "failure") }}'
             content:
-              - ':yaml:{{ (dict "content" "pipe" "data" (dict "*steps" (rest .wfdata.steps) "on_error" .wfdata.on_error)) | toJson }}'
+              - content: pipe
+                data:
+                  on_error: :path:wfdata.on_error
+                  "*steps": :yaml:{{ rest .wfdata.steps | toJson }}
               - type: pipe
                 data:
                   work_data: :yaml:{{ default (dict) .data | toJson }}
-                  work_status: :path:labels.status
-                  reason: '{{ default "" .labels.reason }}'
+                  work_status: '{{ coalesce .data.work_status .labels.status }}'
+                  reason: '{{ default "" (coalesce .data.reason .labels.reason) }}'
                   step: '{{ default "" (index .wfdata "steps" 0 "name") }}'
                 content:
                   - type: if
-                    condition: '{{ and (eq .wfdata.on_error "last") (gt (len .wfdata.steps) 1) }}'
+                    condition: '{{ and (eq .wfdata.on_error "final") (gt (len .wfdata.steps) 1) }}'
                     content:
                       - ':yaml:{{ index (.wfdata.steps | last) "work" | toJson }}'
                   - type: data
