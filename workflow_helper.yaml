@@ -219,7 +219,11 @@ workflows:
         data:
           on_error: '{{ default "final" .wfdata.on_error }}'
         content:
-          - ':yaml:{{ index .wfdata "steps" 0 "work" | toJson }}'
+          - type: pipe
+            data:
+              "*steps": clear
+            content:
+              - ':yaml:{{ index .wfdata "steps" 0 "work" | toJson }}'
           - type: if
             condition: '{{ or (eq .wfdata.on_error "continue") (ne (coalesce .data.work_status .labels.status) "failure") }}'
             content:
@@ -236,6 +240,8 @@ workflows:
                 content:
                   - type: if
                     condition: '{{ and (eq .wfdata.on_error "final") (gt (len .wfdata.steps) 1) }}'
+                    data:
+                      "*steps": clear
                     content:
                       - ':yaml:{{ index (.wfdata.steps | last) "work" | toJson }}'
                   - type: data
