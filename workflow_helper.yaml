@@ -225,7 +225,7 @@ workflows:
             content:
               - ':yaml:{{ index .wfdata "steps" 0 "work" | toJson }}'
           - type: if
-            condition: '{{ or (eq .wfdata.on_error "continue") (ne (coalesce .data.work_status .labels.status) "failure") }}'
+            condition: '{{ or (eq .wfdata.on_error "continue") (eq (coalesce .data.work_status .labels.status) "success") }}'
             content:
               - content: pipe
                 data:
