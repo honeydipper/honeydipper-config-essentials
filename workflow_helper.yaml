@@ -262,8 +262,10 @@ workflows:
   # Parameters:
   #
   # .wfdata.notify - the list of channel, "reply" means where this is triggered
+  # .wfdata.notify_on_error - a list of additional channels to receive message if error happens (when is_error is true)
   # .wfdata.message - content to be send to chat
   # .wfdata.chat_system - which chat system to use, default to `slack` system
+  # .wfdata.is_error - if true, will also send to notify_on_error
   #
   # Note:
   #
@@ -292,7 +294,19 @@ workflows:
   notify:
     content: foreach_parallel
     data:
-      '*items': :path:wfdata.notify
+      '*items': >-
+         :yaml:
+         {{ list
+         (default (list) .wfdata.notify | join " ")
+         (empty .wfdata.is_error | ternary
+         (list)
+         (default (list "#honeydipper-notify") .wfdata.notify_on_error)
+         | join " ")
+         | join " "
+         | trim
+         | splitList " "
+         | uniq
+         | toJson }}
       '*work':
         type: if
         condition: '{{ `{{ eq .wfdata.current "reply" }}` }}'
@@ -401,7 +415,6 @@ workflows:
       - type: pipe
         data:
           "*message": {}
-          "*notify": []
         content:
           - ':path:wfdata.work'
       - type: pipe
@@ -409,11 +422,10 @@ workflows:
           work_data: :yaml:{{ default (dict) .data | toJson }}
           work_status: :path:labels.status
           reason: '{{ default "" .labels.reason }}'
-          error_notify_list: ':yaml:{{ append (default (list) .wfdata.notify) (default "#honeydipper_notify" .wfdata.notify_on_error) | uniq | toJson }}'
         content:
           - content: notify
             data:
-              "*notify": ':yaml:{{ eq .labels.status "success" | ternary (default (list) .wfdata.notify) .wfdata.error_notify_list | toJson }}'
+              is_error: ':yaml:{{ ne .wfdata.work_status "success" }}'
           - type: data
             content:
               work_data: :path:wfdata.work_data
