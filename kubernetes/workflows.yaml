@@ -31,19 +31,24 @@ workflows:
   # ===
   #
   recycle_deployment_and_notify:
-    type: pipe
-    content:
-      - content: notify_then_do
-        data:
-          message:
-            attachments:
-              - title: 'Honeydipper Workflow'
-                color: 'warning'
-                text: >-
-                  OpsGenie alert
-                  <https://opsg.in/a/i/{{ .event.json.alert.alertId }}|#{{ .event.json.alert.tinyId }}>
-                  on "{{ .event.json.alert.alias }}"
-                  recycling deployment "{{ .wfdata.deployment }}".
+    content: pipe
+    data:
+      on_error: final
+      steps:
+        - name: announcing
+          work:
+            content: notify
+            data:
+              is_error: false
+              message:
+                attachments:
+                  - title: 'Honeydipper Workflow'
+                    color: 'warning'
+                    text: >-
+                      OpsGenie alert <https://opsg.in/a/i/{{ .event.json.alert.alertId }}|#{{ .event.json.alert.tinyId }}>
+                      on "{{ .event.json.alert.alias }}"
+                      recycling deployment "{{ .wfdata.deployment }}".
+        - name: recycling deployment
           work:
             type: function
             content:
@@ -52,29 +57,29 @@ workflows:
                 function: recycleDeployment
               parameters:
                 deployment: '{{ .wfdata.deployment }}'
-      - type: if
-        condition: '{{ eq .labels.status "success" }}'
-        content:
-          - content: do_then_notify
+        - name: snoozing alert
+          work:
+            type: function
+            content:
+              target:
+                system: opsgenie
+                function: snooze
+              parameters:
+                alertIdPath: event.json.alert.alertId
+        - name: announcing result
+          work:
+            content: notify
             data:
+              is_error: ':yaml:{{ empty .wfdata.step | not }}'
               message:
                 attachments:
-                  - color: '{{ `{{ if (eq (substr 0 1 .data.status_code) "2") }}good{{ else }}danger{{ end }}` }}'
-                    text: '{{ `Snoozing the alert #{{ .event.json.alert.tinyId }} in OpsGenie: {{ .data.json.result }}` }}'
-              work:
-                type: function
-                content:
-                  target:
-                    system: opsgenie
-                    function: snooze
-                  parameters:
-                    alertIdPath: event.json.alert.alertId
-          - content: notify
-            data:
-              message:
-                attachments:
-                  - color: 'danger'
-                    text: '{{ `Recycling deployment "{{ .wfdata.deployment }}": {{ .labels.reason }}` }}'
+                  - color: '{{ `{{ empty .wfdata.step | ternary "good" "danger" }}` }}'
+                    text: >-
+                      OpsGenie alert <https://opsg.in/a/i/{{ .event.json.alert.alertId }}|#{{ .event.json.alert.tinyId }}>
+                      {{ `{{ empty .wfdata.step | ternary
+                      "snoozed after recycling the deployment."
+                      (list "handling failed at" .wfdata.step "due to"  .wfdata.reason | join " ")
+                      }}` }}
 
   # Workflow: Essentials.Workflows.start_kube_job
   #
