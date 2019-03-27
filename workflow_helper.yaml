@@ -311,7 +311,7 @@ workflows:
          :yaml:
          {{ list
          (default (list) .wfdata.notify | join " ")
-         (or (empty .wfdata.is_error) (eq .wfdata.is_error "false") | ternary
+         (or (empty .wfdata.is_error) (eq (toString .wfdata.is_error) "false") | ternary
          (list)
          (default (list "#honeydipper-notify") .wfdata.notify_on_error)
          | join " ")
