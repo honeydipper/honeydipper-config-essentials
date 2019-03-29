@@ -305,39 +305,46 @@ workflows:
   # ===
   #
   notify:
-    content: foreach_parallel
-    data:
-      '*items': >-
-         :yaml:
-         {{ list
-         (default (list) .wfdata.notify | join " ")
-         (or (empty .wfdata.is_error) (eq (toString .wfdata.is_error) "false") | ternary
-         (list)
-         (default (list "#honeydipper-notify") .wfdata.notify_on_error)
-         | join " ")
-         | join " "
-         | trim
-         | splitList " "
-         | uniq
-         | toJson }}
-      '*work':
-        type: if
-        condition: '{{ `{{ eq .wfdata.current "reply" }}` }}'
+    type: pipe
+    content:
+      - content: foreach_parallel
+        data:
+          '*items': >-
+             :yaml:
+             {{ without (list
+             (default (list) .wfdata.notify | join " ")
+             (or (empty .wfdata.is_error) (eq (toString .wfdata.is_error) "false") | ternary
+             (list)
+             (default (list "#honeydipper-notify") .wfdata.notify_on_error)
+             | join " ")
+             | join " "
+             | trim
+             | splitList " "
+             | uniq) "" " "
+             | toJson }}
+          '*work':
+            type: if
+            condition: '{{ `{{ eq .wfdata.current "reply" }}` }}'
+            content:
+              - type: function
+                content:
+                  target:
+                    system: '{{ if .wfdata.chat_system }}{{ .wfdata.chat_system }}{{ else }}slack{{ end }}'
+                    function: reply
+                  parameters:
+                    content: :path:wfdata.message
+              - type: function
+                content:
+                  target:
+                    system: '{{ if .wfdata.chat_system }}{{ .wfdata.chat_system }}{{ else }}slack{{ end }}'
+                    function: say
+                  parameters:
+                    content: ':yaml:{{ set .wfdata.message "channel" ":path:wfdata.current" | toJson }}'
+      - type: data
         content:
-          - type: function
-            content:
-              target:
-                system: '{{ if .wfdata.chat_system }}{{ .wfdata.chat_system }}{{ else }}slack{{ end }}'
-                function: reply
-              parameters:
-                content: :path:wfdata.message
-          - type: function
-            content:
-              target:
-                system: '{{ if .wfdata.chat_system }}{{ .wfdata.chat_system }}{{ else }}slack{{ end }}'
-                function: say
-              parameters:
-                content: ':yaml:{{ set .wfdata.message "channel" ":path:wfdata.current" | toJson }}'
+          work_data: :path:data
+          work_status: '{{ .labels.status | replace "skip" "success" }}'
+          reason: '{{ .labels.reason }}'
 
   # Workflow: Essentials.Workflows.notify_then_do
   #
