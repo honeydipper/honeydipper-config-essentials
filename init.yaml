@@ -19,3 +19,4 @@ includes:
   - slack/init.yaml
   - kubernetes/init.yaml
   - workflow_helper.yaml
+  - jira.yaml

@@ -1,0 +1,110 @@
+---
+# System: Essentials.Systems.jira
+#
+# Purpose:
+#   Integrate with Jirato receive new alert events through webhook.
+#   If provided with a API key, can make alert API calls to Jira to perform actions such as creating tickets and adding comments.
+#
+# Config:
+#   API_KEY - key used to make API calls to OpsGenie
+#   token - a token randomly generated for authenticate webhook requests coming from OpsGenie. It should match the url parameter "token"
+#   path - the path part of the uri where the <Essentials.Drivers.webhook> is listening, defaults to /jira
+#   jira_domain - your group's jira domain name
+# Synopsis:
+#   Below is an example config for the system
+#     +----------------------------------------------------------------------+
+#     | ---
+#     | systems:
+#     |   jira:
+#     |     data:
+#     |       API_KEY: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+#     |       token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+#     |       path: "/commenting"
+#     |
+#     +----------------------------------------------------------------------+
+#
+#   You can also extend this system.
+#     +----------------------------------------------------------------------+
+#     | ---
+#     | systems:
+#     |   commenting:
+#     |     extends:
+#     |       - jira
+#     |     data:
+#     |       API_KEY: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+#     |       token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
+#     |       path: "/commenting"
+#     |
+#     +----------------------------------------------------------------------+
+#
+# Notes:
+#   Use encryption for your API_KEY and token value for security
+systems:
+  jira:
+    data:
+      API_KEY: _place_holder_
+      token: _place_holder_
+      path: "/jira"
+      jira_domain: _place_holder_
+      jira_credentials: _place_holder_
+    functions:
+      # Action: createTicket
+      #
+      # Create a jira ticket.
+      #
+      # Parameters:
+      #
+      #  .wfdata.jira_project - the project the ticket should be made for;
+      #  .wfdata.ticket_title – the title of the ticket;
+      #  .wfdata.ticket_des – the description of the ticket;
+      #  .wfdata.ticket_type – the type of ticket you are creating in your project;
+    functions:
+      createTicket:
+        driver: web
+        rawAction: request
+        parameters:
+          method: POST
+          URL: https://{{ .sysData.jira_domain }}.atlassian.net/rest/api/2/issue/
+          header:
+            Authorization: Basic {{ .sysData.jira_credentials }}
+            Accept: application/json
+            Content-Type: application/json
+          content:
+            fields:
+              project:
+                key: "{{ .wfdata.jira_project }}"
+              summary: "{{ .wfdata.ticket_title }}"
+              description: "{{ .wfdata.ticket_des }}"
+              issuetype:
+                name: '{{ .wfdata.ticket_type | default "Task" }}'
+      # Action: createComment
+      #
+      # Create a comment for a ticket
+      #
+      # Parameters:
+      #
+      #  .wfdata.ticket_key - the ticket's key or id that you want to make a comment on;
+      #  .wfdata.comment_body – the message of the comment;
+      addComment:
+        driver: web
+        rawAction: request
+        parameters:
+          method: POST
+          URL: https://{{ .sysData.jira_domain }}.atlassian.net/rest/api/2/issue/{{ .wfdata.ticket_key | default .data.json.key }}/comment
+          header:
+            Authorization: Basic {{ .sysData.jira_credentials }}
+            Accept: application/json
+            Content-Type: application/json
+          content:
+            body: "{{ .wfdata.comment_body }}"
+    triggers:
+      # Trigger: hit
+      #   raised when receive a webhook from jira, the payload will be in .event.json. See jira
+      #   Document for detail on what is available in the payload.
+      hit:
+        driver: webhook
+        conditions:
+          method: POST
+          form:
+            token: '{{ .sysData.token }}'
+          url: '{{ .sysData.path }}'
