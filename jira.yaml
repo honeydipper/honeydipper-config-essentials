@@ -6,7 +6,7 @@
 #   If provided with a API key, can make alert API calls to Jira to perform actions such as creating tickets and adding comments.
 #
 # Config:
-#   API_KEY - key used to make API calls to OpsGenie
+#   API_KEY - key used to make API calls to Jira
 #   token - a token randomly generated for authenticate webhook requests coming from OpsGenie. It should match the url parameter "token"
 #   path - the path part of the uri where the <Essentials.Drivers.webhook> is listening, defaults to /jira
 #   jira_domain - your group's jira domain name
