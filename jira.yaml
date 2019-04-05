@@ -2,7 +2,7 @@
 # System: Essentials.Systems.jira
 #
 # Purpose:
-#   Integrate with Jirato receive new alert events through webhook.
+#   Integrate with Jira to receive new alert events through webhook.
 #   If provided with a API key, can make alert API calls to Jira to perform actions such as creating tickets and adding comments.
 #
 # Config:
