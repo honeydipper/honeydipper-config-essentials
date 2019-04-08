@@ -8,50 +8,50 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Topic62"></a><div class="CTopic TSection LHoneydipperConfig first">
+<a name="Topic76"></a><div class="CTopic TSection LHoneydipperConfig first">
  <div class="CTitle"><span class="Qualifier">Essentials.&#8203;Systems.</span>&#8203;github</div>
- <div class="CBody"><div class="CHeading">Purpose</div><p>Integrate with github to receive push events through webhook and if provided with a API key, can make api calls to github to perform actions such as posting comments to PR, creating status for commits, etc.</p><div class="CHeading">Config</div><table class="CDefinitionList"><tr><td class="CDLEntry">oauth_token</td><td class="CDLDefinition"><p>token used to make API calls to github</p></td></tr><tr><td class="CDLEntry">token</td><td class="CDLDefinition"><p>a token randomly generated for authenticate webhook requests coming from OpsGenie. It should match the url parameter &quot;token&quot;</p></td></tr><tr><td class="CDLEntry">path</td><td class="CDLDefinition"><p>the path part of the uri where the <a href="../../../../index.html#HoneydipperConfigClass:Essentials.Drivers.webhook" target="_top" onmouseover="NDContentPage.OnLinkMouseOver(event,50);" onmouseout="NDContentPage.OnLinkMouseOut(event);" >Essentials.Drivers.webhook</a> is listening, defaults to /github/push</p></td></tr><tr><td class="CDLEntry">context</td><td class="CDLDefinition"><p>used for distinguish from status message posted by other systems, defaults to 'Honeydipper'</p></td></tr></table><div class="CHeading">Synopsis</div><p>Below is an example config for the system</p><pre>---<br />systems:<br />  github:<br />    data:<br />      oauth_token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]</pre><p>You can also extend this system.</p><pre>---<br />systems:<br />  mygithub:<br />    extends:<br />      - github<br />    data:<br />      oauth_token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      path: &quot;/github&quot;</pre><div class="CHeading">Notes</div><p>Use encryption for your API_KEY and token value for security</p></div>
+ <div class="CBody"><div class="CHeading">Purpose</div><p>Integrate with github to receive push events through webhook and if provided with a API key, can make api calls to github to perform actions such as posting comments to PR, creating status for commits, etc.</p><div class="CHeading">Config</div><table class="CDefinitionList"><tr><td class="CDLEntry">oauth_token</td><td class="CDLDefinition"><p>token used to make API calls to github</p></td></tr><tr><td class="CDLEntry">token</td><td class="CDLDefinition"><p>a token randomly generated for authenticate webhook requests coming from OpsGenie. It should match the url parameter &quot;token&quot;</p></td></tr><tr><td class="CDLEntry">path</td><td class="CDLDefinition"><p>the path part of the uri where the <a href="../../../../index.html#HoneydipperConfigClass:Essentials.Drivers.webhook" target="_top" onmouseover="NDContentPage.OnLinkMouseOver(event,38);" onmouseout="NDContentPage.OnLinkMouseOut(event);" >Essentials.Drivers.webhook</a> is listening, defaults to /github/push</p></td></tr><tr><td class="CDLEntry">context</td><td class="CDLDefinition"><p>used for distinguish from status message posted by other systems, defaults to 'Honeydipper'</p></td></tr></table><div class="CHeading">Synopsis</div><p>Below is an example config for the system</p><pre>---<br />systems:<br />  github:<br />    data:<br />      oauth_token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]</pre><p>You can also extend this system.</p><pre>---<br />systems:<br />  mygithub:<br />    extends:<br />      - github<br />    data:<br />      oauth_token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      path: &quot;/github&quot;</pre><div class="CHeading">Notes</div><p>Use encryption for your API_KEY and token value for security</p></div>
 </div>
 
-<a name="Actions"></a><a name="Topic63"></a><div class="CTopic TGroup LHoneydipperConfig">
+<a name="Actions"></a><a name="Topic77"></a><div class="CTopic TGroup LHoneydipperConfig">
  <div class="CTitle">Actions</div>
 </div>
 
-<a name="api"></a><a name="Topic64"></a><div class="CTopic TAction LHoneydipperConfig">
+<a name="api"></a><a name="Topic78"></a><div class="CTopic TAction LHoneydipperConfig">
  <div class="CTitle">api</div>
  <div class="CBody"><p>Making an API call to github. This is a base function for all other api call functions. Don't use this one unless the function you are calling doesn't have a wrapper defined in the system.</p></div>
 </div>
 
-<a name="createStatus"></a><a name="Topic65"></a><div class="CTopic TAction LHoneydipperConfig">
+<a name="createStatus"></a><a name="Topic79"></a><div class="CTopic TAction LHoneydipperConfig">
  <div class="CTitle">createStatus</div>
  <div class="CBody"><p>Create a status for a commit, usually used for indicating that the commit is go through some kind of process.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">.wfdata.repo</td><td class="CDLDefinition"><p>the repo that PR belongs to, if omitted, will try to get the info from PR event data;</p></td></tr><tr><td class="CDLEntry">.wfdata.sha</td><td class="CDLDefinition"><p>the commit hash the status is for, if omitted, will try to get the info from PR event data;</p></td></tr><tr><td class="CDLEntry">.wfdata.status</td><td class="CDLDefinition"><p>the status object</p></td></tr><tr><td class="CDLEntry">state</td><td class="CDLDefinition"><p>one of pending, success, error or failure, required</p></td></tr><tr><td class="CDLEntry">target_url</td><td class="CDLDefinition"><p>optional, an informational url</p></td></tr><tr><td class="CDLEntry">description</td><td class="CDLDefinition"><p>optional, text describing the status</p></td></tr><tr><td class="CDLEntry">.wfdata.context</td><td class="CDLDefinition"><p>distinguish the status from other systems, defaults to 'Honeydipper'</p></td></tr></table><div class="CHeading">Examples</div><p>Below is an example that create a status when a PR is open</p><pre>---<br />rules:<br />  - when:<br />      source:<br />        system: github<br />        trigger: pull_request<br />  - do:<br />      type: if<br />      condition: '{{ eq .event.json.repository.name &quot;example&quot; }}'<br />      content:<br />        - type: function<br />          content:<br />            target:<br />              system: github<br />              function: createStatus<br />          data:<br />            status:<br />              state: success<br />              description: Honeydipper is able to post status to this commit</pre></div>
 </div>
 
-<a name="createComment"></a><a name="Topic66"></a><div class="CTopic TAction LHoneydipperConfig">
+<a name="createComment"></a><a name="Topic80"></a><div class="CTopic TAction LHoneydipperConfig">
  <div class="CTitle">createComment</div>
  <div class="CBody"><p>Create a comment for a PR or issue</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">.wfdata.repo</td><td class="CDLDefinition"><p>the repo that PR belongs to, if omitted, will try to get the info from PR event data;</p></td></tr><tr><td class="CDLEntry">.wfdata.number</td><td class="CDLDefinition"><p>the issue number that the comment is for, if omitted, will try to get the info from PR event data;</p></td></tr><tr><td class="CDLEntry">.wfdata.message</td><td class="CDLDefinition"><p>the message of the comment</p></td></tr></table><div class="CHeading">Examples</div><p>Below is an example that creates a comment when a PR is open</p><pre>---<br />rules:<br />  - when:<br />      source:<br />        system: github<br />        trigger: pull_request<br />  - do:<br />      type: if<br />      condition: '{{ eq .event.json.repository.name &quot;example&quot; }}'<br />      content:<br />        - type: function<br />          content:<br />            target:<br />              system: github<br />              function: createComment<br />          data:<br />            message: Honeydipper can react to your PR in many ways.</pre></div>
 </div>
 
-<a name="Triggers"></a><a name="Topic67"></a><div class="CTopic TGroup LHoneydipperConfig">
+<a name="Triggers"></a><a name="Topic81"></a><div class="CTopic TGroup LHoneydipperConfig">
  <div class="CTitle">Triggers</div>
 </div>
 
-<a name="hit"></a><a name="Topic68"></a><div class="CTopic TTrigger LHoneydipperConfig">
+<a name="hit"></a><a name="Topic82"></a><div class="CTopic TTrigger LHoneydipperConfig">
  <div class="CTitle">hit</div>
  <div class="CBody"><p>raised when receive a webhook from github, the payload will be in .event.json. See github Document for detail on what is available in the payload.</p></div>
 </div>
 
-<a name="push"></a><a name="Topic69"></a><div class="CTopic TTrigger LHoneydipperConfig">
+<a name="push"></a><a name="Topic83"></a><div class="CTopic TTrigger LHoneydipperConfig">
  <div class="CTitle">push</div>
  <div class="CBody"><p>raised when receive a push event from github, the payload will be in .event.json. See github Document for detail on what is available in the payload.</p></div>
 </div>
 
-<a name="pullrequest"></a><a name="Topic70"></a><div class="CTopic TTrigger LHoneydipperConfig">
+<a name="pullrequest"></a><a name="Topic84"></a><div class="CTopic TTrigger LHoneydipperConfig">
  <div class="CTitle">pullrequest</div>
  <div class="CBody"><p>raised when a new pull request is open, the payload will be in .event.json. See github Document for detail on what is available in the payload.</p></div>
 </div>
 
-<a name="pr_commented"></a><a name="Topic71"></a><div class="CTopic TTrigger LHoneydipperConfig last">
+<a name="pr_commented"></a><a name="Topic85"></a><div class="CTopic TTrigger LHoneydipperConfig last">
  <div class="CTitle">pr_commented</div>
  <div class="CBody"><p>raised when a open pull request is commented on, the payload will be in .event.json. See github Document for detail on what is available in the payload.</p></div>
 </div>

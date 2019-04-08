@@ -8,7 +8,7 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Topic44"></a><div class="CTopic TSection LHoneydipperConfig first">
+<a name="Topic52"></a><div class="CTopic TSection LHoneydipperConfig first">
  <div class="CTitle"><span class="Qualifier">Essentials.&#8203;Workflows.</span>&#8203;foreach_parallel</div>
  <div class="CBody"><p>This is a abstract workflow, meaning you define the work in the data, and you can use this to start multiple workflow at the same time with different parameters.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">.wfdata.items</td><td class="CDLDefinition"><p>the list of items to iterate</p></td></tr><tr><td class="CDLEntry">.wfdata.work</td><td class="CDLDefinition"><p>what to do</p></td></tr></table><div class="CHeading">Notes</div><p>iterate over the list of items to repeat the specified work in parallel use wfdata.current to access the current item</p><div class="CHeading">Examples</div><pre>---<br />rules:<br />  - when:<br />      ...<br />    <span class="SHKeyword">do</span>:<br />      content: foreach_parallel<br />      data:<br />        items:<br />          - apple<br />          - orange<br />          - strawberry<br />        work:<br />          content: notify<br />          data:<br />            notify:<br />              - <span class="SHString">&quot;#my_channel&quot;</span><br />            message:<br />              text: I like {{ `{{ .wfdata.current }}` }}.</pre></div>
 </div>

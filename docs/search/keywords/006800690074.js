@@ -1,1 +1,1 @@
-NDSearch.OnPrefixDataLoaded("hit",["Trigger"],[["hit",,[["Essentials.Systems.github",,,,0,"File:github.yaml:Essentials.Systems.github.hit","HoneydipperConfigClass:Essentials.Systems.github:hit"]]]]);
+NDSearch.OnPrefixDataLoaded("hit",["Trigger"],[["hit",,[["Essentials.Systems.github",,,,0,"File:github.yaml:Essentials.Systems.github.hit","HoneydipperConfigClass:Essentials.Systems.github:hit"],["Essentials.Systems.jira",,,,0,"File:jira.yaml:Essentials.Systems.jira.hit","HoneydipperConfigClass:Essentials.Systems.jira:hit"]]]]);

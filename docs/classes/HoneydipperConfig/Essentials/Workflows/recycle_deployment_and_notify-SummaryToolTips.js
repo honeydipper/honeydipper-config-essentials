@@ -1,1 +1,1 @@
-NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Essentials.Workflows.recycle_deployment_and_notify",{45:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">Recycle a kubernetes deployment and send notification through chat system.</div></div>"});
+NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Essentials.Workflows.recycle_deployment_and_notify",{2:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">Recycle a kubernetes deployment and send notification through chat system.</div></div>"});

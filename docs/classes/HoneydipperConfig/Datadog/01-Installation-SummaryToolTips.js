@@ -1,1 +1,1 @@
-NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Datadog.01-Installation",{1:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">This bundle comes with a driver to emit internal telemetry metircs to datadog.</div></div>"});
+NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Datadog.01-Installation",{5:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">This bundle comes with a driver to emit internal telemetry metircs to datadog.</div></div>"});

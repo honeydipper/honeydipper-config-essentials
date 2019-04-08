@@ -8,7 +8,7 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Topic43"></a><div class="CTopic TSection LHoneydipperConfig first">
+<a name="Topic51"></a><div class="CTopic TSection LHoneydipperConfig first">
  <div class="CTitle"><span class="Qualifier">Essentials.&#8203;Workflows.</span>&#8203;repeat</div>
  <div class="CBody"><p>This is a abstract workflow, meaning you define the work in the data. And, you can use this to repeat any work. Remember, some of the interpolation in the `work` needs to be escaped.</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">.wfdata.times</td><td class="CDLDefinition"><p>how many times to repeat</p></td></tr><tr><td class="CDLEntry">.wfdata.work</td><td class="CDLDefinition"><p>what to do</p></td></tr></table><div class="CHeading">Notes</div><p>repeat the specified work for the specified number of times use (int wfdata.times) to access the remaining times in interpolation.</p><div class="CHeading">Examples</div><pre>---<br />rules:<br />  - when:<br />      ...<br />    <span class="SHKeyword">do</span>:<br />      content: repeat<br />      data:<br />        times: <span class="SHNumber">3</span><br />        work:<br />          content: notify<br />          data:<br />            notify:<br />              - <span class="SHString">&quot;#my_channel&quot;</span><br />            message:<br />              text: There are {{ `{{ <span class="SHKeyword">int</span> .wfdata.times }}` }} lines left</pre></div>
 </div>
