@@ -8,30 +8,30 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Essentials.Systems.opsgenie"></a><a name="Topic57"></a><div class="CTopic TSection LHoneydipperConfig first">
+<a name="Essentials.Systems.opsgenie"></a><a name="Topic66"></a><div class="CTopic TSection LHoneydipperConfig first">
  <div class="CTitle"><span class="Qualifier">Essentials.&#8203;Systems.</span>&#8203;opsgenie</div>
- <div class="CBody"><div class="CHeading">Purpose</div><p>Integrate with OpsGenie to receive new alert events through webhook.&nbsp; If provided with a API key, can make alert API calls to OpsGenie to perform actions such as suspending alerts, closing alerts, etc.</p><div class="CHeading">Config</div><table class="CDefinitionList"><tr><td class="CDLEntry">API_KEY</td><td class="CDLDefinition"><p>key used to make API calls to OpsGenie</p></td></tr><tr><td class="CDLEntry">token</td><td class="CDLDefinition"><p>a token randomly generated for authenticate webhook requests coming from OpsGenie. It should match the url parameter &quot;token&quot;</p></td></tr><tr><td class="CDLEntry">path</td><td class="CDLDefinition"><p>the path part of the uri where the <a href="../index.html#File:webhook.yaml:Essentials.Drivers.webhook" target="_top" onmouseover="NDContentPage.OnLinkMouseOver(event,50);" onmouseout="NDContentPage.OnLinkMouseOut(event);" >Essentials.Drivers.webhook</a> is listening, defaults to /opsgenie</p></td></tr></table><div class="CHeading">Synopsis</div><p>Below is an example config for the system</p><pre>---<br />systems:<br />  opsgenie:<br />    data:<br />      API_KEY: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      path: &quot;/alerting&quot;</pre><p>You can also extend this system.</p><pre>---<br />systems:<br />  alerting:<br />    extends:<br />      - opsgenie<br />    data:<br />      API_KEY: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      path: &quot;/alerting&quot;</pre><div class="CHeading">Notes</div><p>Use encryption for your API_KEY and token value for security</p></div>
+ <div class="CBody"><div class="CHeading">Purpose</div><p>Integrate with OpsGenie to receive new alert events through webhook.&nbsp; If provided with a API key, can make alert API calls to OpsGenie to perform actions such as suspending alerts, closing alerts, etc.</p><div class="CHeading">Config</div><table class="CDefinitionList"><tr><td class="CDLEntry">API_KEY</td><td class="CDLDefinition"><p>key used to make API calls to OpsGenie</p></td></tr><tr><td class="CDLEntry">token</td><td class="CDLDefinition"><p>a token randomly generated for authenticate webhook requests coming from OpsGenie. It should match the url parameter &quot;token&quot;</p></td></tr><tr><td class="CDLEntry">path</td><td class="CDLDefinition"><p>the path part of the uri where the <a href="../index.html#File:webhook.yaml:Essentials.Drivers.webhook" target="_top" onmouseover="NDContentPage.OnLinkMouseOver(event,38);" onmouseout="NDContentPage.OnLinkMouseOut(event);" >Essentials.Drivers.webhook</a> is listening, defaults to /opsgenie</p></td></tr></table><div class="CHeading">Synopsis</div><p>Below is an example config for the system</p><pre>---<br />systems:<br />  opsgenie:<br />    data:<br />      API_KEY: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      path: &quot;/alerting&quot;</pre><p>You can also extend this system.</p><pre>---<br />systems:<br />  alerting:<br />    extends:<br />      - opsgenie<br />    data:<br />      API_KEY: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      token: ENC[&lt;decryption_driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />      path: &quot;/alerting&quot;</pre><div class="CHeading">Notes</div><p>Use encryption for your API_KEY and token value for security</p></div>
 </div>
 
-<a name="Essentials.Systems.opsgenie.Actions"></a><a name="Topic58"></a><div class="CTopic TGroup LHoneydipperConfig">
+<a name="Essentials.Systems.opsgenie.Actions"></a><a name="Topic67"></a><div class="CTopic TGroup LHoneydipperConfig">
  <div class="CTitle">Actions</div>
 </div>
 
-<a name="Essentials.Systems.opsgenie.snooze"></a><a name="Topic59"></a><div class="CTopic TAction LHoneydipperConfig">
+<a name="Essentials.Systems.opsgenie.snooze"></a><a name="Topic68"></a><div class="CTopic TAction LHoneydipperConfig">
  <div class="CTitle">snooze</div>
  <div class="CBody"><p>snooze an alert with the given alertId, by default the alertId is taken from the triggering event &quot;.event.json.alert.alertId&quot;. To override, specify the path to the alertId in &quot;alertIdPath&quot; parameter</p><div class="CHeading">Examples</div><p>Below is an example that snooze an alert from OpsGenie.</p><pre>---<br />rules:<br />  - when:<br />      source:<br />        system: opsgenie<br />        trigger: alert<br />  - do:<br />      type: if<br />      condition: '{{ eq .event.json.alert.message &quot;test alert&quot; }}'<br />      content:<br />        - type: function<br />          content:<br />            target:<br />              system: opsgenie<br />              function: snooze</pre></div>
 </div>
 
-<a name="Essentials.Systems.opsgenie.heartbeat"></a><a name="Topic42"></a><div class="CTopic TAction LHoneydipperConfig">
+<a name="Essentials.Systems.opsgenie.heartbeat"></a><a name="Topic69"></a><div class="CTopic TAction LHoneydipperConfig">
  <div class="CTitle">heartbeat</div>
  <div class="CBody"><p>Sending a heartbeat ping to OpsGenie</p><div class="CHeading">Parameters</div><table class="CDefinitionList"><tr><td class="CDLEntry">.wfdata.heartbeat</td><td class="CDLDefinition"><p>required, the name of the heartbeat configured in OpsGenie</p></td></tr></table><div class="CHeading">Examples</div><p>Below is an example that snooze an alert from OpsGenie.</p><pre>---<br />rules:<br />  - when:<br />      ...<br />  - do:<br />      type: function<br />      data:<br />         heartbeat: my_system_heartbeat<br />      content:<br />        target:<br />          system: opsgenie<br />          function: heartbeat</pre></div>
 </div>
 
-<a name="Essentials.Systems.opsgenie.Triggers"></a><a name="Topic60"></a><div class="CTopic TGroup LHoneydipperConfig">
+<a name="Essentials.Systems.opsgenie.Triggers"></a><a name="Topic70"></a><div class="CTopic TGroup LHoneydipperConfig">
  <div class="CTitle">Triggers</div>
 </div>
 
-<a name="Essentials.Systems.opsgenie.alert"></a><a name="Topic61"></a><div class="CTopic TTrigger LHoneydipperConfig last">
+<a name="Essentials.Systems.opsgenie.alert"></a><a name="Topic71"></a><div class="CTopic TTrigger LHoneydipperConfig last">
  <div class="CTitle">alert</div>
  <div class="CBody"><p>raised when receive a webhook from OpsGenie, the payload will be in .event.json. See Opsgenie Document for detail on what is available in the payload.</p></div>
 </div>

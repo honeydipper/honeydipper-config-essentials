@@ -8,31 +8,31 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Topic2"></a><div class="CTopic TSection LHoneydipperConfig first">
+<a name="Topic7"></a><div class="CTopic TSection LHoneydipperConfig first">
  <div class="CTitle"><span class="Qualifier">Essentials.&#8203;Systems.</span>&#8203;kubernetes</div>
  <div class="CBody"><p>This system wraps around kubernetes driver and interact with kubernetes cluster to receive events and perform actions</p><div class="CHeading">Integration</div><p>This system is intended to be used as a base system for your own kuberentes systems. For each system, provide all or part of below configuration, then you can invoke the function of the system without specify the every parameters required by the raw actions.</p><ul><li><p>source -- where to get the kubernetes endpoint or credential</p><ul><li><p>type -- the driver name to make RPC call (getKubeConfig) to retrieve the kubernetes endpoint and credential, 'local' means using default InCluster configuration when Honeydipper is running inside a kubernetes cluster</p></li><li><p>... -- parameters needed for the RPC call</p></li></ul></li><li><p>namespace -- default namespace the commands apply to, defaults to &quot;default&quot;</p></li></ul><p>An example of kubernetes cluster config</p><pre>---<br />systems:<br />  my_kube_cluster:<br />    extends:<br />      - kubernetes<br />    data:<br />      source:<br />        type: gcloud-gke<br />        service_account: ENC[&lt;decryption driver&gt;,&lt;base64 encoded ciphertext&gt;]<br />        project: my-gcp-project<br />        location: us-central1-x<br />        cluster: cluster1</pre><div class="CHeading">Notes</div><p>Use encryption for sensitive data</p></div>
 </div>
 
-<a name="Actions"></a><a name="Topic3"></a><div class="CTopic TGroup LHoneydipperConfig">
+<a name="Actions"></a><a name="Topic8"></a><div class="CTopic TGroup LHoneydipperConfig">
  <div class="CTitle">Actions</div>
 </div>
 
-<a name="recycleDeployment"></a><a name="Topic4"></a><div class="CTopic TAction LHoneydipperConfig">
+<a name="recycleDeployment"></a><a name="Topic9"></a><div class="CTopic TAction LHoneydipperConfig">
  <div class="CTitle">recycleDeployment</div>
  <div class="CBody"><p>Recycle a deployment in the cluster with a label selector specified through &quot;deployment&quot; parameter</p><div class="CHeading">Parameters</div><ul><li><p>deployment: the label selector of the deployment (required)</p></li></ul><p>For example</p><pre>---<br />rules:<br />  - when:<br />    ...<br />  - do:<br />      type: function<br />      content:<br />        target:<br />          system: my_kube_cluster<br />          function: recycleDeployment<br />        parameters:<br />          deployment: app=busybox</pre></div>
 </div>
 
-<a name="createJob"></a><a name="Topic5"></a><div class="CTopic TAction LHoneydipperConfig">
+<a name="createJob"></a><a name="Topic10"></a><div class="CTopic TAction LHoneydipperConfig">
  <div class="CTitle">createJob</div>
  <div class="CBody"><p>Create a run to complete job in the cluster. The parameter &quot;job&quot; should have the manifest. The job meta and status will return in .data data structure.</p><p>For example</p><pre>---<br />rules:<br />  - when:<br />    ...<br />  - do:<br />      type: pipe<br />      content:<br />        - type: function<br />          content:<br />            target:<br />              system: my_kube_cluster<br />              function: createJob<br />            parameters:<br />              job: ... the job manifest ...<br />        - content: notify<br />          data:<br />            notify:<br />              - &quot;@user1&quot;<br />            message:<br />              text: the job name is {{ .data.metadata.name }}</pre></div>
 </div>
 
-<a name="waitForJob"></a><a name="Topic6"></a><div class="CTopic TAction LHoneydipperConfig">
+<a name="waitForJob"></a><a name="Topic11"></a><div class="CTopic TAction LHoneydipperConfig">
  <div class="CTitle">waitForJob</div>
  <div class="CBody"><p>Wait for a job to complete or fail. The 'job' parameter should match the metadata.name.&nbsp; The 'timeout' parameter specify how long before timing out, defaults to 60 seconds.</p><p>For example</p><pre>---<br />rules:<br />  - when:<br />    ...<br />  - do:<br />      type: pipe<br />      content:<br />        - type: function<br />          content:<br />            target:<br />              system: my_kube_cluster<br />              function: waitForJob<br />            parameters:<br />              job: '{{ .data.metadata.name }}' # from previous createJob<br />        - content: notify<br />          data:<br />            notify:<br />              - &quot;@user1&quot;<br />            message:<br />              text: the job is {{ .data.status }}</pre></div>
 </div>
 
-<a name="getJobLog"></a><a name="Topic7"></a><div class="CTopic TAction LHoneydipperConfig last">
+<a name="getJobLog"></a><a name="Topic12"></a><div class="CTopic TAction LHoneydipperConfig last">
  <div class="CTitle">getJobLog</div>
  <div class="CBody"><p>Fetch the logs for a kubernetes job. The 'job' parameter should match the metadata.name. The logs will be returned in .data.log as a map from pod names to maps of container names to logs.</p><p>For example</p><pre>---<br />rules:<br />  - when:<br />    ...<br />  - do:<br />      type: pipe<br />      content:<br />        - type: function<br />          content:<br />            target:<br />              system: my_kube_cluster<br />              function: waitForJob<br />            parameters:<br />              job: '{{ .data.metadata.name }}' # from previous createJob<br />        - content: notify<br />          data:<br />            notify:<br />              - &quot;@user1&quot;<br />            message:<br />              text: '{{ values (index (values .data.log) 0) | join &quot;\n&quot; }}'</pre></div>
 </div>

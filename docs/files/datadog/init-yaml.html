@@ -8,12 +8,12 @@
 
 <body onload="NDLoader.OnLoad('Content');" class="NDPage NDContentPage">
 
-<a name="Datadog.01-Installation"></a><a name="Topic1"></a><div class="CTopic TSection LHoneydipperConfig first">
+<a name="Datadog.01-Installation"></a><a name="Topic5"></a><div class="CTopic TSection LHoneydipperConfig first">
  <div class="CTitle"><span class="Qualifier">Datadog.</span>&#8203;01-Installation</div>
  <div class="CBody"><p>This bundle comes with a driver to emit internal telemetry metircs to datadog.</p><div class="CHeading">Installation</div><p>Include this repo as follows in your bootstrap repo init.yaml</p><pre>---<br />repos:<br />  - repo: git@github.com:honeydipper/honeydipper-config-essentials.git<br />    path: /datadog</pre></div>
 </div>
 
-<a name="Datadog.Drivers.datadog-emitter"></a><a name="Topic9"></a><div class="CTopic TSection LHoneydipperConfig last">
+<a name="Datadog.Drivers.datadog-emitter"></a><a name="Topic6"></a><div class="CTopic TSection LHoneydipperConfig last">
  <div class="CTitle"><span class="Qualifier">Datadog.&#8203;Drivers.</span>&#8203;datadog-emitter</div>
  <div class="CBody"><p>collecting and sending telemetry metrics to datadog for monitoring, graphing and analyzing.</p><div class="CHeading">Prereq</div><ul><li><p>include the datadog bundle from this repo</p></li></ul><div class="CHeading">Integration</div><p>Config the driver in the `drivers` section with following parameters.</p><ul><li><p>statsdHost: the statsd access IP of the datadog agent, ignored if &quot;useHostPort&quot; is true</p></li><li><p>statsdPort: the statsd access port of the datadog agent</p></li><li><p>useHostPort: if set to true, will get the statsd host IP from environment variable &quot;DOGSTATSD_HOST_IP&quot;</p></li></ul><div class="CHeading">Example</div><pre>---<br />drivers:<br />  datadog-emitter:<br />    useHostPort: true<br />    statsdPort: &quot;8125&quot;</pre></div>
 </div>

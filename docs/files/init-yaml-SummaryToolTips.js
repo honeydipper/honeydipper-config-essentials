@@ -1,1 +1,1 @@
-NDSummary.OnToolTipsLoaded("File:init.yaml",{8:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">This bundle comes with some essential drivers, their wrapper systems, basic helper workflows and rules.</div></div>"});
+NDSummary.OnToolTipsLoaded("File:init.yaml",{50:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">This bundle comes with some essential drivers, their wrapper systems, basic helper workflows and rules.</div></div>"});

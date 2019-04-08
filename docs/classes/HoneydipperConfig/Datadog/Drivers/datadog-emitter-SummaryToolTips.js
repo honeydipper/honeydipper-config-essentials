@@ -1,1 +1,1 @@
-NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Datadog.Drivers.datadog-emitter",{9:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">collecting and sending telemetry metrics to datadog for monitoring, graphing and analyzing.</div></div>"});
+NDSummary.OnToolTipsLoaded("HoneydipperConfigClass:Datadog.Drivers.datadog-emitter",{6:"<div class=\"NDToolTip TSection LHoneydipperConfig\"><div class=\"TTSummary\">collecting and sending telemetry metrics to datadog for monitoring, graphing and analyzing.</div></div>"});
