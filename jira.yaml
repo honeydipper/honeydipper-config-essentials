@@ -58,7 +58,6 @@ systems:
       #  .wfdata.ticket_title – the title of the ticket;
       #  .wfdata.ticket_des – the description of the ticket;
       #  .wfdata.ticket_type – the type of ticket you are creating in your project;
-    functions:
       createTicket:
         driver: web
         rawAction: request
