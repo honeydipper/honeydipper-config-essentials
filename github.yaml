@@ -144,7 +144,7 @@ systems:
           system: github
           function: api
         parameters:
-          URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/issues/{{ coalesce .wfdata.number .event.json.number .event.json.issue.number }}'
+          URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/issues/{{ coalesce .wfdata.number .event.json.number .event.json.issue.number }}/comments'
           method: POST
           content: '{{ dict "body" .wfdata.message | toJson }}'
     triggers:
