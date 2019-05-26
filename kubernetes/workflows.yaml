@@ -470,6 +470,9 @@ workflows:
               {{- with .ctx.timeout }}
               activeDeadlineSeconds: {{ . }}
               {{- end }}
+              {{- with .ctx.cleanupAfter }}
+              ttlSecondsAfterFinished: {{ . }}
+              {{- end }}
         content:
           target:
             system: :path:wfdata.system
