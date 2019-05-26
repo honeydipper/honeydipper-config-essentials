@@ -348,14 +348,16 @@ workflows:
                           {{-   if (empty .script | not) }}
                           {{-     $processor := (index $wfdata.scripts (default "bash" .type)) }}
                           {{-     $scriptName := (list "step-" (default $index .name)  "." $processor.ext | join "") }}
-                          echo "$script_content_{{ default $index .name }}" > {{ $scriptName }} && chmod +x {{ $scriptName }} &&
+                          {{-     $scriptEnvVar := (default $index .name | toString | replace "-" "_" | printf "$script_content_%s") }}
+                          echo "{{ $scriptEnvVar }}" > {{ $scriptName }} && chmod +x {{ $scriptName }} &&
                           {{-   end }}
                           {{- end }}
                           true
                       env:
                         {{- range $index, $v := .wfdata.steps }}
                         {{-   if (empty .script | not) }}
-                        - name: script_content_{{ default $index .name }}
+                        {{-     $scriptEnvVar := (default $index .name | toString | replace "-" "_" | printf "script_content_%s") }}
+                        - name: {{ $scriptEnvVar }}
                           value: |
                             {{ .script | indent 14 | trim }}
                         {{-   end }}
@@ -544,6 +546,7 @@ workflows:
         data:
           predefined_steps:
             git-clone:
+              name: git-clone
               type: git
               script: |
                 mkdir -p ~/.ssh &&
