@@ -317,10 +317,10 @@ workflows:
             kind: Job
             metadata:
               generateName: "honeydipper-job-"
-            spec:
+            spec: |
+              :yaml:---
               template:
-                spec: |
-                  :yaml:---
+                spec:
                   {{- $wfdata := .wfdata }}
                   {{- $allVolumes := .wfdata.volumes }}
                   {{- define "volumeMounts" }}
@@ -357,7 +357,7 @@ workflows:
                         {{-   if (empty .script | not) }}
                         - name: script_content_{{ default $index .name }}
                           value: |
-                            {{ .script | indent 10 | trim }}
+                            {{ .script | indent 14 | trim }}
                         {{-   end }}
                         {{- end }}
                       volumeMounts:
@@ -462,7 +462,14 @@ workflows:
                     {{- range $allVolumes }}
                     - {{ toJson .volume }}
                     {{- end }}
+                  {{- with .ctx.nodeSelector }}
+                  nodeSelector:
+                    {{ . | toJson }}
+                  {{- end }}
               backoffLimit: 1
+              {{- with .ctx.timeout }}
+              activeDeadlineSeconds: {{ . }}
+              {{- end }}
         content:
           target:
             system: :path:wfdata.system
