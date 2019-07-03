@@ -147,6 +147,21 @@ systems:
           URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/issues/{{ coalesce .wfdata.number .event.json.number .event.json.issue.number }}/comments'
           method: POST
           content: '{{ dict "body" .wfdata.message | toJson }}'
+      # Action: getContent
+      #
+      # Get content from a repo
+      #
+      # Parameters:
+      #
+      #  .wfdata.repo - the repo that PR belongs to, if omitted, will try to get the info from PR event data;
+      #  .wfdata.path - the path to the content we want within the repo;
+      getContent:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/contents/{{ .wfdata.path }}'
+          method: GET
     triggers:
       # Trigger: hit
       #   raised when receive a webhook from github, the payload will be in .event.json. See github
