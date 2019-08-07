@@ -1,15 +1,4 @@
 ---
-# Bundle: Essentials.01-Installation
-#   This bundle comes with some essential drivers, their wrapper systems, basic helper workflows and rules.
-#
-# Installation:
-#   Include this repo as follows in your bootstrap repo init.yaml
-#     +---------------------------
-#     | ---
-#     | repos:
-#     |   - repo: git@github.com:honeydipper/honeydipper-config-essentials.git
-#     +---------------------------
-#
 includes:
   - daemon.yaml
   - web.yaml
@@ -20,3 +9,4 @@ includes:
   - kubernetes/init.yaml
   - workflow_helper.yaml
   - jira.yaml
+  - contexts.yaml

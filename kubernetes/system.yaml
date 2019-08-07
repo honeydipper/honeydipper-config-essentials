@@ -1,185 +1,45 @@
 ---
-# System: Essentials.Systems.kubernetes
-#
-#   This system wraps around kubernetes driver and interact with kubernetes cluster to receive events and perform actions
-#
-#   Integration:
-#
-#   This system is intended to be used as a base system for your own kuberentes systems. For each system, provide all or
-#   part of below configuration, then you can invoke the function of the system without specify the every parameters required
-#   by the raw actions.
-#
-#   * source -- where to get the kubernetes endpoint or credential
-#     * type -- the driver name to make RPC call (getKubeConfig) to retrieve the kubernetes endpoint and credential,
-#               'local' means using default InCluster configuration when Honeydipper is running inside a kubernetes cluster
-#     * ... -- parameters needed for the RPC call
-#   * namespace -- default namespace the commands apply to, defaults to "default"
-#
-#   An example of kubernetes cluster config
-#    +------------------------------------------------------
-#    | ---
-#    | systems:
-#    |   my_kube_cluster:
-#    |     extends:
-#    |       - kubernetes
-#    |     data:
-#    |       source:
-#    |         type: gcloud-gke
-#    |         service_account: ENC[<decryption driver>,<base64 encoded ciphertext>]
-#    |         project: my-gcp-project
-#    |         location: us-central1-x
-#    |         cluster: cluster1
-#    |
-#    +------------------------------------------------------
-#
-#   Notes:
-#   Use encryption for sensitive data
-#
 systems:
   kubernetes:
     data:
       kubernetes:
         namespace: default
+
     functions:
-      # Action: recycleDeployment
-      #
-      #   Recycle a deployment in the cluster with a label selector specified through "deployment" parameter
-      #
-      #   Parameters:
-      #
-      #     * deployment: the label selector of the deployment (required)
-      #
-      #   For example
-      #   +---------------------------------------------------
-      #   | ---
-      #   | rules:
-      #   |   - when:
-      #   |     ...
-      #   |   - do:
-      #   |       type: function
-      #   |       content:
-      #   |         target:
-      #   |           system: my_kube_cluster
-      #   |           function: recycleDeployment
-      #   |         parameters:
-      #   |           deployment: app=busybox
-      #   |
-      #   +---------------------------------------------------
-      #
       recycleDeployment:
         driver: kubernetes
         rawaction: recycleDeployment
         parameters:
-          source: :path:sysData.kubernetes.source
-          namespace: '{{ .sysData.kubernetes.namespace }}'
+          source: $sysData.kubernetes.source
+          namespace: $?sysData.kubernetes.namespace
 
-      # Action: createJob
-      #
-      #   Create a run to complete job in the cluster. The parameter "job" should have the manifest. The job meta and status will return
-      #   in .data data structure.
-      #
-      #   For example
-      #   +---------------------------------------------------
-      #   | ---
-      #   | rules:
-      #   |   - when:
-      #   |     ...
-      #   |   - do:
-      #   |       type: pipe
-      #   |       content:
-      #   |         - type: function
-      #   |           content:
-      #   |             target:
-      #   |               system: my_kube_cluster
-      #   |               function: createJob
-      #   |             parameters:
-      #   |               job: ... the job manifest ...
-      #   |         - content: notify
-      #   |           data:
-      #   |             notify:
-      #   |               - "@user1"
-      #   |             message:
-      #   |               text: the job name is {{ .data.metadata.name }}
-      #   |
-      #   +---------------------------------------------------
-      #
       createJob:
         driver: kubernetes
         rawAction: createJob
         parameters:
-          source: :path:sysData.kubernetes.source
-          namespace: '{{ .sysData.kubernetes.namespace }}'
+          source: $sysData.kubernetes.source
+          namespace: $?sysData.kubernetes.namespace
+          job: $ctx.job
+        export:
+          jobid: $data.metadata.name
 
-      # Action: waitForJob
-      #
-      #   Wait for a job to complete or fail. The 'job' parameter should match the metadata.name.  The 'timeout' parameter specify how long
-      #   before timing out, defaults to 60 seconds.
-      #
-      #   For example
-      #   +---------------------------------------------------
-      #   | ---
-      #   | rules:
-      #   |   - when:
-      #   |     ...
-      #   |   - do:
-      #   |       type: pipe
-      #   |       content:
-      #   |         - type: function
-      #   |           content:
-      #   |             target:
-      #   |               system: my_kube_cluster
-      #   |               function: waitForJob
-      #   |             parameters:
-      #   |               job: '{{ .data.metadata.name }}' # from previous createJob
-      #   |         - content: notify
-      #   |           data:
-      #   |             notify:
-      #   |               - "@user1"
-      #   |             message:
-      #   |               text: the job is {{ .data.status }}
-      #   |
-      #   +---------------------------------------------------
-      #
       waitForJob:
         driver: kubernetes
         rawAction: waitForJob
         parameters:
-          source: :path:sysData.kubernetes.source
-          namespace: '{{ .sysData.kubernetes.namespace }}'
+          source: $sysData.kubernetes.source
+          namespace: $?sysData.kubernetes.namespace
+          job: $ctx.jobid
+          timeout: '{{ default "60" .ctx.timeout }}'
+        export:
+          job_status: '{{ and (eq .labels.status "success") (eq (int .data.status.failed) 0) | ternary "success" "failure" }}'
 
-      # Action: getJobLog
-      #
-      #   Fetch the logs for a kubernetes job. The 'job' parameter should match the metadata.name. The logs will be
-      #   returned in .data.log as a map from pod names to maps of container names to logs.
-      #
-      #   For example
-      #   +---------------------------------------------------
-      #   | ---
-      #   | rules:
-      #   |   - when:
-      #   |     ...
-      #   |   - do:
-      #   |       type: pipe
-      #   |       content:
-      #   |         - type: function
-      #   |           content:
-      #   |             target:
-      #   |               system: my_kube_cluster
-      #   |               function: waitForJob
-      #   |             parameters:
-      #   |               job: '{{ .data.metadata.name }}' # from previous createJob
-      #   |         - content: notify
-      #   |           data:
-      #   |             notify:
-      #   |               - "@user1"
-      #   |             message:
-      #   |               text: '{{ values (index (values .data.log) 0) | join "\n" }}'
-      #   |
-      #   +---------------------------------------------------
-      #
       getJobLog:
         driver: kubernetes
         rawAction: getJobLog
         parameters:
-          source: :path:sysData.kubernetes.source
-          namespace: '{{ .sysData.kubernetes.namespace }}'
+          source: $sysData.kubernetes.source
+          namespace: $?sysData.kubernetes.namespace
+          job: $ctx.jobid
+        export:
+          log: $data.log

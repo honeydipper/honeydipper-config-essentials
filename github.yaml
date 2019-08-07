@@ -1,56 +1,12 @@
 ---
 systems:
-  # System: Essentials.Systems.github
-  #
-  # Purpose:
-  #   Integrate with github to receive push events through webhook and
-  #   if provided with a API key, can make api calls to github to perform actions such as posting comments to PR, creating status for commits, etc.
-  #
-  # Config:
-  #   oauth_token - token used to make API calls to github
-  #   token - a token randomly generated for authenticate webhook requests coming from OpsGenie. It should match the url parameter "token"
-  #   path - the path part of the uri where the <Essentials.Drivers.webhook> is listening, defaults to /github/push
-  #   context - used for distinguish from status message posted by other systems, defaults to 'Honeydipper'
-  #
-  # Synopsis:
-  #   Below is an example config for the system
-  #     +----------------------------------------------------------------------+
-  #     | ---
-  #     | systems:
-  #     |   github:
-  #     |     data:
-  #     |       oauth_token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |
-  #     +----------------------------------------------------------------------+
-  #
-  #   You can also extend this system.
-  #     +----------------------------------------------------------------------+
-  #     | ---
-  #     | systems:
-  #     |   mygithub:
-  #     |     extends:
-  #     |       - github
-  #     |     data:
-  #     |       oauth_token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       path: "/github"
-  #     |
-  #     +----------------------------------------------------------------------+
-  #
-  # Notes:
-  #   Use encryption for your API_KEY and token value for security
   github:
     data:
       oauth_token: _place_holder_
       token: _place_holder_
       path: "/github/push"
+
     functions:
-      # Action: api
-      #
-      # Making an API call to github. This is a base function for all other api call functions. Don't
-      # use this one unless the function you are calling doesn't have a wrapper defined in the system.
-      #
       api:
         driver: web
         rawAction: request
@@ -60,153 +16,77 @@ systems:
             Authorization: token {{ .sysData.oauth_token }}
             Accept: application/vnd.github.v3+json
             Content-Type: application/json; charset=utf-8
-      # Action: createStatus
-      #
-      # Create a status for a commit, usually used for indicating that the commit is go through some kind
-      # of process.
-      #
-      # Parameters:
-      #
-      #  .wfdata.repo - the repo that PR belongs to, if omitted, will try to get the info from PR event data;
-      #  .wfdata.sha - the commit hash the status is for, if omitted, will try to get the info from PR event data;
-      #  .wfdata.status - the status object
-      #    state - one of pending, success, error or failure, required
-      #    target_url - optional, an informational url
-      #    description - optional, text describing the status
-      #  .wfdata.context - distinguish the status from other systems, defaults to 'Honeydipper'
-      #
-      #   Examples:
-      #     Below is an example that create a status when a PR is open
-      #       +----------------------------------------------------------------------+
-      #       | ---
-      #       | rules:
-      #       |   - when:
-      #       |       source:
-      #       |         system: github
-      #       |         trigger: pull_request
-      #       |   - do:
-      #       |       type: if
-      #       |       condition: '{{ eq .event.json.repository.name "example" }}'
-      #       |       content:
-      #       |         - type: function
-      #       |           content:
-      #       |             target:
-      #       |               system: github
-      #       |               function: createStatus
-      #       |           data:
-      #       |             status:
-      #       |               state: success
-      #       |               description: Honeydipper is able to post status to this commit
-      #       |
-      #       +----------------------------------------------------------------------+
+
       createStatus:
         target:
           system: github
           function: api
         parameters:
-          URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/statuses/{{ default .wfdata.sha .event.json.pull_request.head.sha }}'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/statuses/{{ .ctx.git_commit }}'
           method: POST
-          content: '{{ set .wfdata.status "context" (coalesce .wfdata.context .sysData.context "Honeydipper") | toJson }}'
-      # Action: createComment
-      #
-      # Create a comment for a PR or issue
-      #
-      # Parameters:
-      #
-      #  .wfdata.repo - the repo that PR belongs to, if omitted, will try to get the info from PR event data;
-      #  .wfdata.number - the issue number that the comment is for, if omitted, will try to get the info from PR event data;
-      #  .wfdata.message - the message of the comment
-      #
-      #   Examples:
-      #     Below is an example that creates a comment when a PR is open
-      #       +----------------------------------------------------------------------+
-      #       | ---
-      #       | rules:
-      #       |   - when:
-      #       |       source:
-      #       |         system: github
-      #       |         trigger: pull_request
-      #       |   - do:
-      #       |       type: if
-      #       |       condition: '{{ eq .event.json.repository.name "example" }}'
-      #       |       content:
-      #       |         - type: function
-      #       |           content:
-      #       |             target:
-      #       |               system: github
-      #       |               function: createComment
-      #       |           data:
-      #       |             message: Honeydipper can react to your PR in many ways.
-      #       |
-      #       +----------------------------------------------------------------------+
+          content: '{{ set .ctx.status "context" (coalesce .ctx.context .sysData.context "Honeydipper") | toJson }}'
+
       createComment:
         target:
           system: github
           function: api
         parameters:
-          URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/issues/{{ coalesce .wfdata.number .event.json.number .event.json.issue.number }}/comments'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/issues/{{ .ctx.git_issue }}/comments'
           method: POST
-          content: '{{ dict "body" .wfdata.message | toJson }}'
-      # Action: getContent
-      #
-      # Get content from a repo
-      #
-      # Parameters:
-      #
-      #  .wfdata.repo - the repo that PR belongs to, if omitted, will try to get the info from PR event data;
-      #  .wfdata.path - the path to the content we want within the repo;
+          content: '{{ dict "body" .ctx.message | toJson }}'
+
       getContent:
         target:
           system: github
           function: api
         parameters:
-          URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/contents/{{ .wfdata.path }}'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/contents/{{ .ctx.path }}'
           method: GET
+
     triggers:
-      # Trigger: hit
-      #   raised when receive a webhook from github, the payload will be in .event.json. See github
-      #   Document for detail on what is available in the payload.
-      #
       hit:
         driver: webhook
-        conditions:
+        if_match:
           method: POST
           form:
             token: '{{ .sysData.token }}'
           url: '{{ .sysData.path }}'
-      # Trigger: push
-      #   raised when receive a push event from github, the payload will be in .event.json. See github
-      #   Document for detail on what is available in the payload.
-      #
+
       push:
         source:
           system: github
           trigger: hit
-        conditions:
+        if_match:
           headers:
             X-Github-Event: push
-      # Trigger: pullrequest
-      #   raised when a new pull request is open, the payload will be in .event.json. See github
-      #   Document for detail on what is available in the payload.
-      #
-      pullrequest:
+        export:
+          git_repo: $event.json.repository.full_name
+          git_ref: $event.json.ref
+          git_commit: $event.json.head
+          commits: $event.json.commits
+
+      pull_request:
         source:
           system: github
           trigger: hit
-        conditions:
+        if_match:
           headers:
             X-Github-Event: pull_request
           json:
             action: opened
-      # Trigger: pr_commented
-      #   raised when a open pull request is commented on, the payload will be in .event.json. See github
-      #   Document for detail on what is available in the payload.
-      #
-      pr_commented:
+        export:
+          git_issue: $event.json.number
+          git_repo: $event.json.repository.full_name
+          git_ref: $event.json.pull_request.base.ref
+          git_commit: $event.json.pull_request.head.sha
+          git_title: $event.json.pull_request.title
+          git_user: $event.json.pull_request.user
+
+      pr_comment:
         source:
           system: github
           trigger: hit
-        conditions:
+        if_match:
           headers:
             X-Github-Event: issue_comment
           json:
@@ -214,16 +94,15 @@ systems:
             issue:
               pull_request:
                 url: :regex:.+
+        export:
+          git_issue: $event.json.issue.number
+          git_repo: $event.json.repository.full_name
+          git_message: $event.json.comment.body
+          git_user: $event.json.comment.user
 
 rules:
-  # Rule: Essentials.Rules.github_webhook_ready
-  #
-  # This rule is automatically enabled when Essential bundle is installed. It makes
-  # sure that when github sends a webhook request, it will alwasy return HTTP 200.
-  #
   - when:
       source:
         system: github
         trigger: hit
-    do:
-      content: noop
+    do: {}
