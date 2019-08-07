@@ -1,0 +1,63 @@
+---
+contexts:
+  _default:
+    start_kube_job:
+      script_types:
+        python3:
+          image: python:3
+          command_prefix: [ "python", "-c" ]
+          shell_prefix: []
+        python2:
+          image: python:2
+          command_prefix: [ "python", "-c" ]
+          shell_prefix: []
+        python:
+          image: python:latest
+          command_prefix: [ "python", "-c" ]
+          shell_prefix: []
+        bash:
+          image: bash:latest
+          shell_prefix: [ "-c" ]
+        node:
+          image: node:latest
+          command_prefix: [ "node", "-e" ]
+          shell_prefix: [ "bash", "-c" ]
+        git:
+          image: alpine/git:latest
+          command_prefix: []
+          shell_entry: [ "/bin/sh", "-c" ]
+        tf:
+          image: hashicorp/terraform:light
+          command_prefix: []
+          shell_entry: [ "/bin/sh", "-c" ]
+        helm:
+          image: alpine/helm:latest
+          command_prefix: []
+          shell_entry: [ "/bin/sh", "-c" ]
+        gcloud:
+          image: google/cloud-sdk:latest
+          shell_entry: [ "/bin/bash", "-c" ]
+
+      predefined_steps:
+        git-clone:
+          name: git-clone
+          type: git
+          shell: "@resources/git-clone.sh"
+          volumes:
+            - mountPath: /root/id_rsa
+              subPath: id_rsa
+              volume:
+                name: git-deploy-key
+                secret:
+                  defaultMode: 384
+                  secretName: "{{ `{{ .sysData.git_key_secret }}` }}"
+          env:
+            - name: REPO
+              value: '{{ `{{ .sysData.git_url }}` }}'
+            - name: NAME
+              value: '{{ `{{ .sysData.git_url | split "/" | last | replace ".git" "" }}` }}'
+            - name: BRANCH
+              value: '{{ default "" .ctx.git_ref }}'
+
+      predefined_env: {}
+      predefined_volumes: {}

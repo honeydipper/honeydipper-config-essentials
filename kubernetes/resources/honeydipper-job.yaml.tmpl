@@ -1,0 +1,105 @@
+:yaml:---
+{{- $ctx := .ctx }}
+{{- $allVolumes := .ctx.volumes }}
+{{- $finalStepNum := sub (len $ctx.steps) 1 }}
+{{- define "volumeMounts" }}
+          {{- range . }}
+            - mountPath: {{ .mountPath }}
+              name: {{ .volume.name }}
+              {{- if .subPath }}
+              subPath: {{ .subPath }}
+              {{- end }}
+          {{- end }}
+{{- end }}
+{{- define "container" }}
+        {{- $useShell := not (empty .shell) }}
+        {{- $processor := index $ctx.script_types (default "bash" .type) }}
+        - name: {{ .stepName }}
+          image: {{ $processor.image }}
+          workingDir: '{{ default "/honeydipper" .workingDir }}'
+          env:
+            {{- if (and (empty $ctx.env) (empty .env)) }}
+            []
+            {{- else }}
+            {{- range $ctx.env }}
+            - {{ toJson . }}
+            {{- end }}
+            {{- range .env }}
+            - {{ toJson . }}
+            {{- end }}
+            {{- end }}
+          volumeMounts:
+            - mountPath: /honeydipper
+              name: workdir
+            {{ template "volumeMounts" $ctx.volumes }}
+            {{ template "volumeMounts" .volumes }}
+            {{- range .volumes }}
+            {{- $allVolumes = (append $allVolumes .) }}
+            {{- end }}
+          {{- if $userShell }}
+          {{-   if $processor.shell_entry }}
+          command: {{ $processor.shell_entry | toJson }}
+          {{-   end }}
+          {{-   if typeIs "string" .shell }}
+          args: {{ append $processor.shell_prefix .shell | toJson }}
+          {{-   else }}
+          args:
+            {{-   range $processor.shell_prefix }}
+            - {{    . | toJson }}
+            {{-   end }}
+            {{-   range .shell }}
+            - {{    . | toJson }}
+            {{-   end }}
+          {{-   end }}
+          {{- else }}
+          {{-   if $processor.command_entry }}
+          command: {{ $processor.command_entry | toJson }}
+          {{-   end }}
+          {{-   if typeIs "string" .command }}
+          args: {{ append $processor.command_prefix .command | toJson }}
+          {{-   else }}
+          args:
+            {{-   range $processor.command_prefix }}
+            - {{    . | toJson }}
+            {{-   end }}
+            {{-   range .command }}
+            - {{    . | toJson }}
+            {{-   end }}
+          {{-   end }}
+          {{- end }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: "honeydipper-job-"
+spec:
+  template:
+    spec:
+      {{- with (initial $ctx.steps) }}
+      initContainers:
+        {{- range $index, $step := . }}
+        {{-   template "container" (set $step "stepName" (printf "step-%v" (default $index .name))) }}
+        {{- end }}
+      {{- end }}
+      containers:
+        {{- with (last $ctx.steps) }}
+        {{-   template "container" (set . "stepName" (printf "step-%v" (default $finalStepNum .name))) }}
+        {{- end }}
+      restartPolicy: Never
+      volumes:
+        - name: workdir
+          emptyDir: {}
+        {{- range $allVolumes }}
+        - {{ toJson .volume }}
+        {{- end }}
+      {{- with .ctx.nodeSelector }}
+      nodeSelector:
+        {{ . | toJson }}
+      {{- end }}
+  backoffLimit: 1
+  {{- with .ctx.timeout }}
+  activeDeadlineSeconds: {{ . }}
+  {{- end }}
+  {{- with .ctx.cleanupAfter }}
+  ttlSecondsAfterFinished: {{ . }}
+  {{- end }}

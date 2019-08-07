@@ -1,0 +1,33 @@
+---
+contexts:
+  _default:
+    notify:
+      chat_system: slack_bot
+      chat_colors:
+        success: good
+        error: danger
+        failure: danger
+        normal: ""
+        warning: warning
+    workflow_announcement:
+      notify: []
+    workflow_status:
+      notify: []
+      notify_on_error: []
+
+  _events:
+    "*":
+      hooks:
+        on_first_action:
+          - workflow_announcement
+        on_exit:
+          - workflow_status
+        on_error: []
+
+  mute:
+    "_events":
+      hooks:
+        on_first_action: []
+        on_exit: []
+        on_error:
+          - workflow_status
