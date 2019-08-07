@@ -160,8 +160,10 @@ systems:
           system: github
           function: api
         parameters:
-          URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/contents/{{ .wfdata.path }}'
+          URL: 'https://api.github.com/repos/{{ default .wfdata.repo .event.json.repository.full_name }}/contents/{{ .wfdata.path }}{{ if .wfdata.ref }}?ref={{ .wfdata.ref }}{{ end }}'
           method: GET
+        export:
+          content: "{{ b64dec .data.json.content }}"
     triggers:
       # Trigger: hit
       #   raised when receive a webhook from github, the payload will be in .event.json. See github
