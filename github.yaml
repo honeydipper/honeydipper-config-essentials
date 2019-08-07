@@ -40,8 +40,10 @@ systems:
           system: github
           function: api
         parameters:
-          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/contents/{{ .ctx.path }}'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/contents/{{ .ctx.path }}{{ if .ctx.git_ref }}?ref={{ .ctx.git_ref }}{{ end }}'
           method: GET
+        export:
+          file_content: '{{ b64dec .data.json.content }}'
 
     triggers:
       hit:
