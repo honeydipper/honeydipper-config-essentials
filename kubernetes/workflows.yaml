@@ -41,7 +41,7 @@ workflows:
             {{- end }}
       - name: build job manifest file
         export:
-          jobTemplate: "@resources/honeydipper-job.yaml.tmpl"
+          jobTemplate: "@:resources/honeydipper-job.yaml.tmpl"
       - name: create job with kubernetes API
         function:
           target:

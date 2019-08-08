@@ -42,7 +42,7 @@ contexts:
         git-clone:
           name: git-clone
           type: git
-          shell: "@resources/git-clone.sh"
+          shell: "@:resources/git-clone.sh"
           volumes:
             - mountPath: /root/id_rsa
               subPath: id_rsa
