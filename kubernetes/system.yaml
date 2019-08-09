@@ -12,6 +12,7 @@ systems:
         parameters:
           source: $sysData.kubernetes.source
           namespace: $?sysData.kubernetes.namespace
+          deployment: $ctx.deployment
 
       createJob:
         driver: kubernetes
