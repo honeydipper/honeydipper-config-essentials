@@ -42,7 +42,7 @@ workflows:
       message_type: $labels.status
       message: $?ctx.status_message
       message-: >-
-        `{{ coalesce .ctx._meta_desc .ctx._meta_name }}` is completed with status `{{ .labels.status }}`
+        `{{ coalesce .ctx._meta_desc .ctx._meta_name "Unnamed workflow" }}` is completed with status `{{ .labels.status }}`
         {{ eq .labels.status "success" | ternary ""
         ( printf "\nwhile performing `%s`\n```%s```" .labels.performing  .labels.reason ) }}
 
