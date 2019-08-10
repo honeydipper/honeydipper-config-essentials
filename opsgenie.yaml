@@ -49,5 +49,5 @@ systems:
           alert_Id: $event.json.alert.alertId
           _event_id: $event.json.alert.alertId
           _event_detail: |-
-            ```{{ .event.json.alert.message }}
-            {{ .event.json.alert.alias }}```
+            {{ .event.json.alert.message }}
+            {{ .event.json.alert.alias }}
