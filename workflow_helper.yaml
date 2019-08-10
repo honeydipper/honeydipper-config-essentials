@@ -68,3 +68,19 @@ workflows:
           status: $ctx.labels_status
           reason: $?ctx.labels_reason
         payload: $?ctx.resume_payload
+
+  snooze_alert:
+    if:
+      - $?ctx.alert_Id
+    on_error: continue
+    steps:
+      - function:
+          target:
+            system: $ctx.alert_system
+            function: snooze
+      - workflow: notify
+        with:
+          message_type: $labels.status
+          message: |-
+            Snoozing `{{ .ctx.alert_system }}` alert `{{ .ctx.alert_Id }}` returns `{{ .labels.status }}`{{ if ne .labels.status "success" }}
+            ```{{ .labels.reason }}```{{ end }}
