@@ -32,7 +32,9 @@ workflows:
       message_type: normal
       message: $?ctx.event_announcement
       message-: |-
-        An event is triggered with `{{ .ctx._meta_event }}`
+        An event is triggered with `{{ .ctx._meta_event }}` with id `{{ coalesce .ctx._event_id "unspecified" }}`
+        ```{{ coalesce .ctx._event_detail "no detail available" }}```
+      message+: |
         invoking workflow `{{ coalesce .ctx._meta_desc .ctx._meta_name }}`
 
 
