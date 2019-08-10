@@ -29,10 +29,13 @@ workflows:
   workflow_announcement:
     workflow: notify
     with:
-      message_type: normal
+      message_type: announcement
       message: $?ctx.event_announcement
       message-: |-
-        An event is triggered with `{{ .ctx._meta_event }}`
+        An event is triggered for `{{ .ctx._meta_event }}` with id <{{ coalesce .ctx._event_url "./#" }}|#{{ coalesce .ctx._event_id "unspecified" }}>
+        ```{{ coalesce .ctx._event_detail "no detail available" }}```
+      message+: |
+
         invoking workflow `{{ coalesce .ctx._meta_desc .ctx._meta_name }}`
 
 
@@ -79,5 +82,5 @@ workflows:
         with:
           message_type: $labels.status
           message: |-
-            Snoozing `{{ .ctx.alert_system }}` alert `{{ .ctx.alert_Id }}` returns `{{ .labels.status }}`{{ if ne .labels.status "success" }}
+            Snoozing `{{ .ctx.alert_system }}` alert  <{{ coalesce .ctx.alert_url "./#" }}|#{{ coalesce .ctx.alert_Id "unspecified" }}> returns `{{ .labels.status }}`{{ if ne .labels.status "success" }}
             ```{{ .labels.reason }}```{{ end }}

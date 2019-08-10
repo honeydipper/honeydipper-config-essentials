@@ -8,6 +8,7 @@ contexts:
         error: danger
         failure: danger
         normal: ""
+        announcement: ""
         warning: warning
     workflow_announcement:
       notify: []
@@ -31,3 +32,8 @@ contexts:
         on_exit: []
         on_error:
           - workflow_status
+
+  alert_response:
+    notify:
+      chat_colors:
+        announcement: warning
