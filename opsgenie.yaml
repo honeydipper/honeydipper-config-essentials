@@ -47,3 +47,7 @@ systems:
           alert_message: $event.json.alert.message
           alert_alias: $event.json.alert.alias
           alert_Id: $event.json.alert.alertId
+          event_announcement: |-
+            `opsgenie.alert` triggered with ID `{{ .event.json.alert.alertId }}`
+            ```{{ .event.json.alert.message }}
+            {{ .event.json.alert.alias }}```
