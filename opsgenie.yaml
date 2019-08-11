@@ -52,3 +52,4 @@ systems:
           _event_detail: |-
             {{ .event.json.alert.message }}
             {{ .event.json.alert.alias }}
+          _event_url: "https://opsg.in/a/i/{{ .event.json.alert.alertId }}"
