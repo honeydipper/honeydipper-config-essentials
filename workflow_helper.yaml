@@ -82,5 +82,5 @@ workflows:
         with:
           message_type: $labels.status
           message: |-
-            Snoozing `{{ .ctx.alert_system }}` alert `{{ .ctx.alert_Id }}` returns `{{ .labels.status }}`{{ if ne .labels.status "success" }}
+            Snoozing `{{ .ctx.alert_system }}` alert  <{{ coalesce .ctx.alert_url "./#" }}|#{{ coalesce .ctx.alert_Id "unspecified" }}> returns `{{ .labels.status }}`{{ if ne .labels.status "success" }}
             ```{{ .labels.reason }}```{{ end }}
