@@ -3,7 +3,7 @@ workflows:
   start_kube_job:
     on_failure: exit
     steps:
-      - name: interpolating predefined variables
+      - description: interpolating predefined variables
         export:
           steps: |
             :yaml:---
@@ -39,14 +39,10 @@ workflows:
             {{- else }}
             []
             {{- end }}
-      - name: build job manifest file
+      - description: build job manifest file
         export:
           jobTemplate: "@:resources/honeydipper-job.yaml.tmpl"
-      - name: create job with kubernetes API
-        function:
-          target:
-            system: $ctx.system
-            function: createJob
+      - call_function: '{{ .ctx.system }}.createJob'
         with:
           job: $ctx.jobTemplate
     no_export:
@@ -58,17 +54,8 @@ workflows:
   run_kubernetes:
     on_failure: exit
     steps:
-      - name: start kubernetes job
-        workflow: start_kube_job
+      - call_workflow: start_kube_job
       - on_failure: continue
         steps:
-          - name: wait for job
-            function:
-              target:
-                system: $ctx.system
-                function: waitForJob
-          - name: output job log
-            function:
-              target:
-                system: $ctx.system
-                function: getJobLog
+          - call_function: '{{ .ctx.system }}.waitForJob'
+          - call_function: '{{ .ctx.system }}.getJobLog'
