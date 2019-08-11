@@ -13,21 +13,15 @@ workflows:
         switch: $ctx.channel_id
         cases:
           "reply":
-            function:
-              target:
-                system: $ctx.chat_system
-                function: reply
+            call_function: '{{ .ctx.chat_system }}.reply'
         default:
-          function:
-            target:
-              system: $ctx.chat_system
-              function: say
+          call_function: '{{ .ctx.chat_system }}.say'
     no_export:
       - notify
 
 
   workflow_announcement:
-    workflow: notify
+    call_workflow: notify
     with:
       message_type: announcement
       message: $?ctx.event_announcement
@@ -40,7 +34,7 @@ workflows:
 
 
   workflow_status:
-    workflow: notify
+    call_workflow: notify
     with:
       message_type: $labels.status
       message: $?ctx.status_message
@@ -51,34 +45,27 @@ workflows:
 
 
   reload:
-    function:
-      driver: redispubsub
-      rawAction: send
-      parameters:
-        broadcastSubject: reload
+    call_driver: redispubsub.send
+    with:
+      broadcastSubject: reload
 
   resume_workflow:
-    function:
-      driver: redispubsub
-      rawAction: send
-      parameters:
-        broadcastSubject: resume_session
-        key: $ctx.resume_token
-        labels:
-          status: $ctx.labels_status
-          reason: $?ctx.labels_reason
-        payload: $?ctx.resume_payload
+    call_driver: redispubsub.send
+    with:
+      broadcastSubject: resume_session
+      key: $ctx.resume_token
+      labels:
+        status: $ctx.labels_status
+        reason: $?ctx.labels_reason
+      payload: $?ctx.resume_payload
 
   snooze_alert:
     if:
       - $?ctx.alert_Id
     on_error: continue
     steps:
-      - function:
-          target:
-            system: $ctx.alert_system
-            function: snooze
-      - workflow: notify
+      - call_function: '{{ .ctx.alert_system }}.snooze'
+      - call_workflow: notify
         with:
           message_type: $labels.status
           message: |-

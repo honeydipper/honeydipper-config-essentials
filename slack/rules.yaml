@@ -5,7 +5,7 @@ rules:
         system: slack_bot
         trigger: interact
     do:
-      workflow: resume_workflow
+      call_workflow: resume_workflow
       with:
         resume_token: $ctx.slack_payload.callback_id
         labels_status: success
