@@ -107,4 +107,6 @@ rules:
       source:
         system: github
         trigger: hit
-    do: {}
+    do:
+      context: mute
+      description: no op
