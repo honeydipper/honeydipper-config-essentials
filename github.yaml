@@ -68,6 +68,11 @@ systems:
           commits: $event.json.commits
           _event_id: '{{ .event.json.head_commit.id | trunc 8 }}'
           _event_url: $event.json.head_commit.url
+          _event_detail: |-
+            {{ .event.json.repository.full_name }}/{{ .event.json.ref | base }}
+            {{- range .event.json.commits }}
+            `{{ .id | trunc 8 }}` {{ .message | abbrev 46 }}
+            {{- end }}
 
       pull_request:
         source:
