@@ -64,8 +64,10 @@ systems:
         export:
           git_repo: $event.json.repository.full_name
           git_ref: $event.json.ref
-          git_commit: $event.json.head
+          git_commit: '{{ .event.json.head_commit.id | trunc 8 }}'
           commits: $event.json.commits
+          _event_id: '{{ .event.json.head_commit.id | trunc 8 }}'
+          _event_url: $event.json.head_commit.url
 
       pull_request:
         source:
