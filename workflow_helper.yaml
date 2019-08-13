@@ -27,7 +27,7 @@ workflows:
       message: $?ctx.event_announcement
       message-: |-
         An event is triggered for `{{ .ctx._meta_event }}` with id <{{ coalesce .ctx._event_url "./#" }}|#{{ coalesce .ctx._event_id "unspecified" }}>
-        ```{{ coalesce .ctx._event_detail "no detail available" }}```
+        {{ coalesce .ctx._event_detail "`no detail for this event is available`" }}
       message+: |
 
         invoking workflow `{{ coalesce .ctx._meta_desc .ctx._meta_name }}`
