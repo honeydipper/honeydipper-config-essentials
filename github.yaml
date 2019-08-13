@@ -69,9 +69,10 @@ systems:
           _event_id: '{{ .event.json.head_commit.id | trunc 7 }}'
           _event_url: $event.json.head_commit.url
           _event_detail: |-
+
             *Repo: {{ .event.json.repository.full_name }}   Branch: {{ .event.json.ref | base }}*
             {{- range .event.json.commits }}
-            * `{{ .id | trunc 7 }}`: {{ .message | abbrev 40 }}
+            ° `{{ .id | trunc 7 }}`: {{ .message | abbrev 40 }}
             {{- end }}
 
       pull_request:
