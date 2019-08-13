@@ -30,6 +30,7 @@ workflows:
         {{ coalesce .ctx._event_detail "`no detail for this event is available`" }}
       message+: |
 
+
         invoking workflow `{{ coalesce .ctx._meta_desc .ctx._meta_name }}`
 
 
