@@ -72,7 +72,7 @@ systems:
 
             *Repo: {{ .event.json.repository.full_name }}   Branch: {{ .event.json.ref | base }}*
             {{- range .event.json.commits }}
-            ° `{{ .id | trunc 7 }}`: {{ .message | abbrev 40 }}
+            舦 `{{ .id | trunc 7 }}`: {{ .message | abbrev 40 }}
             {{- end }}
 
       pull_request:
