@@ -10,16 +10,16 @@ systems:
         driver: kubernetes
         rawaction: recycleDeployment
         parameters:
-          source: $sysData.kubernetes.source
-          namespace: $?sysData.kubernetes.namespace
+          source: $sysData.source
+          namespace: $?sysData.namespace
           deployment: $ctx.deployment
 
       createJob:
         driver: kubernetes
         rawAction: createJob
         parameters:
-          source: $sysData.kubernetes.source
-          namespace: $?sysData.kubernetes.namespace
+          source: $sysData.source
+          namespace: $?sysData.namespace
           job: $ctx.job
         export:
           jobid: $data.metadata.name
@@ -28,8 +28,8 @@ systems:
         driver: kubernetes
         rawAction: waitForJob
         parameters:
-          source: $sysData.kubernetes.source
-          namespace: $?sysData.kubernetes.namespace
+          source: $sysData.source
+          namespace: $?sysData.namespace
           job: $ctx.jobid
           timeout: '{{ default "60" .ctx.timeout }}'
         export:
@@ -39,8 +39,8 @@ systems:
         driver: kubernetes
         rawAction: getJobLog
         parameters:
-          source: $sysData.kubernetes.source
-          namespace: $?sysData.kubernetes.namespace
+          source: $sysData.source
+          namespace: $?sysData.namespace
           job: $ctx.jobid
         export:
           log: $data.log
