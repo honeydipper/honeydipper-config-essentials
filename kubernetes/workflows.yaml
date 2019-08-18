@@ -7,20 +7,18 @@ workflows:
         export:
           steps: |
             :yaml:---
-            {{- $predefined := .ctx.predefined_steps }}
             {{- range .ctx.steps }}
             {{- if (typeIs "string" .) }}
-            - {{ index $predefined . | toJson }}
+            - {{ index $.ctx.predefined_steps . | toJson }}
             {{- else }}
             - {{ toJson . }}
             {{- end }}
             {{- end }}
           env: |
             :yaml:---
-            {{- $predefined := .ctx.predefined_env }}
             {{- range .ctx.env }}
             {{- if (typeIs "string" .) }}
-            - {{ index $predefined . | toJson }}
+            - {{ index $.ctx.predefined_env . | toJson }}
             {{- else }}
             - {{ toJson . }}
             {{- end }}
@@ -29,10 +27,9 @@ workflows:
             {{- end }}
           volumes: |
             :yaml:---
-            {{- $predefined := .ctx.predefined_volumes }}
             {{- range .ctx.volumes }}
             {{- if (typeIs "string" .) }}
-            - {{ index $predefined . | toJson }}
+            - {{ index $.ctx.predefined_volumes . | toJson }}
             {{- else }}
             - {{ toJson . }}
             {{- end }}
