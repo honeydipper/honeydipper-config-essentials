@@ -1,7 +1,5 @@
 :yaml:---
-{{- $ctx := .ctx }}
-{{- $allVolumes := .ctx.volumes }}
-{{- $finalStepNum := sub (len $ctx.steps) 1 }}
+{{- $finalStepNum := sub (len .ctx.steps) 1 }}
 {{- define "volumeMounts" }}
           {{- range . }}
             - mountPath: {{ .mountPath }}
@@ -12,16 +10,23 @@
           {{- end }}
 {{- end }}
 {{- define "container" }}
+        {{- $step := index . 0 }}
+        {{- $index := index . 1 }}
+        {{- $script_types := index . 2 }}
+        {{- $env := index . 3 }}
+        {{- $volumes := index . 4 }}
+
+        {{- with $step }}
         {{- $useShell := not (empty .shell) }}
-        {{- $processor := index $ctx.script_types (default "bash" .type) }}
-        - name: {{ .stepName }}
+        {{- $processor := index $script_types (default "bash" .type) }}
+        - name: step-{{ default $index .name }}
           image: {{ $processor.image }}
           workingDir: '{{ default "/honeydipper" .workingDir }}'
           env:
-            {{- if (and (empty $ctx.env) (empty .env)) }}
+            {{- if (and (empty $env) (empty .env)) }}
             []
             {{- else }}
-            {{- range $ctx.env }}
+            {{- range $env }}
             - {{ toJson . }}
             {{- end }}
             {{- range .env }}
@@ -31,12 +36,9 @@
           volumeMounts:
             - mountPath: /honeydipper
               name: workdir
-            {{ template "volumeMounts" $ctx.volumes }}
+            {{ template "volumeMounts" $volumes }}
             {{ template "volumeMounts" .volumes }}
-            {{- range .volumes }}
-            {{- $allVolumes = (append $allVolumes .) }}
-            {{- end }}
-          {{- if $userShell }}
+          {{- if $useShell }}
           {{-   if $processor.shell_entry }}
           command: {{ $processor.shell_entry | toJson }}
           {{-   end }}
@@ -67,6 +69,7 @@
             {{-   end }}
           {{-   end }}
           {{- end }}
+          {{- end }}
 {{- end }}
 apiVersion: batch/v1
 kind: Job
@@ -75,22 +78,27 @@ metadata:
 spec:
   template:
     spec:
-      {{- with (initial $ctx.steps) }}
+      {{- with (initial .ctx.steps) }}
       initContainers:
         {{- range $index, $step := . }}
-        {{-   template "container" (set $step "stepName" (printf "step-%v" (default $index .name))) }}
+        {{-   template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes) }}
         {{- end }}
       {{- end }}
       containers:
-        {{- with (last $ctx.steps) }}
-        {{-   template "container" (set . "stepName" (printf "step-%v" (default $finalStepNum .name))) }}
+        {{- with (last .ctx.steps) }}
+        {{-   template "container" (list . $finalStepNum $.ctx.script_types $.ctx.env $.ctx.volumes) }}
         {{- end }}
       restartPolicy: Never
       volumes:
         - name: workdir
           emptyDir: {}
-        {{- range $allVolumes }}
+        {{- range .ctx.volumes }}
         - {{ toJson .volume }}
+        {{- end }}
+        {{- range .ctx.steps }}
+        {{-   range .volumes }}
+        - {{ toJson .volume }}
+        {{-   end }}
         {{- end }}
       {{- with .ctx.nodeSelector }}
       nodeSelector:
