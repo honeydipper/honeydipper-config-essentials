@@ -10,6 +10,7 @@ contexts:
         normal: ""
         announcement: ""
         warning: warning
+      message_type-: normal
     workflow_announcement:
       notify: []
     workflow_status:
