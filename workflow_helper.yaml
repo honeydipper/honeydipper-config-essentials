@@ -72,3 +72,7 @@ workflows:
           message: |-
             Snoozing `{{ .ctx.alert_system }}` alert  <{{ coalesce .ctx.alert_url "./#" }}|#{{ coalesce .ctx.alert_Id "unspecified" }}> returns `{{ .labels.status }}`{{ if ne .labels.status "success" }}
             ```{{ .labels.reason }}```{{ end }}
+
+  send_heartbeat:
+    call_function: '{{ .ctx.alert_system }}.heartbeat'
+    description: sending heartbeat to '{{ .ctx.alert_system }}'
