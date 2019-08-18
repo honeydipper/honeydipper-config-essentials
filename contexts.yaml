@@ -33,6 +33,8 @@ contexts:
         on_exit: []
         on_error:
           - workflow_status
+        on_failure:
+          - workflow_status
 
   alert_response:
     notify:
