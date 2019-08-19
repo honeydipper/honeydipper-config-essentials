@@ -43,4 +43,5 @@ systems:
           namespace: $?sysData.namespace
           job: $ctx.jobid
         export:
-          log: $data.log
+          log: $?data.log
+          output: $?data.output
