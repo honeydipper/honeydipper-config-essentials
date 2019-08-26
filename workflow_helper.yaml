@@ -45,7 +45,7 @@ workflows:
           - :path:wfdata.work
           - content: repeat
             data:
-              times: '{{ `{{ sub (int .wfdata.times) 1 }}` }}'
+              times: '{{ sub (int .wfdata.times) 1 }}'
               '*work': :path:wfdata.work
 
   # Workflow: Essentials.Workflows.foreach_parallel
