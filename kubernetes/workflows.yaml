@@ -305,7 +305,7 @@ workflows:
           ext: sh
           image: google/cloud-sdk:latest
           run_prefix: []
-          command_prefix: [ "-c" ]
+          command_prefix: [ "/bin/bash", "-c" ]
     content:
       - type: function
         data:
