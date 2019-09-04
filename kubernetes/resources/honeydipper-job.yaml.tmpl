@@ -69,6 +69,9 @@
             {{-   end }}
           {{-   end }}
           {{- end }}
+          {{- with $processor.securityContext }}
+          securityContext: {{ . | toJson }}
+          {{- end }}
           {{- end }}
 {{- end }}
 apiVersion: batch/v1
