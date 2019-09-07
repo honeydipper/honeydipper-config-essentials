@@ -43,7 +43,7 @@
           command: {{ $processor.shell_entry | toJson }}
           {{-   end }}
           {{-   if typeIs "string" .shell }}
-          args: {{ append $processor.shell_prefix .shell | toJson }}
+          args: {{ append (default (list) $processor.shell_prefix) .shell | toJson }}
           {{-   else }}
           args:
             {{-   range $processor.shell_prefix }}
@@ -58,7 +58,7 @@
           command: {{ $processor.command_entry | toJson }}
           {{-   end }}
           {{-   if typeIs "string" .command }}
-          args: {{ append $processor.command_prefix .command | toJson }}
+          args: {{ append (default (list) $processor.command_prefix) .command | toJson }}
           {{-   else }}
           args:
             {{-   range $processor.command_prefix }}
