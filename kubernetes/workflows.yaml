@@ -42,6 +42,12 @@ workflows:
       - call_function: '{{ .ctx.system }}.createJob'
         with:
           job: $ctx.jobTemplate
+
+          ### avoid passing the helper variables to the operator
+          predefined_steps: "*removed*"
+          predefined_env: "*removed*"
+          predefined_volumes: "*removed*"
+
     no_export:
       - steps
       - env
