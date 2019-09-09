@@ -7,7 +7,7 @@ workflows:
       - if_match:
           message_type: "error"
         export:
-          notify+: $ctx.notify_on_error
+          notify+: $?ctx.notify_on_error
       - iterate_parallel: $?ctx.notify
         iterate_as: channel_id
         switch: $ctx.channel_id

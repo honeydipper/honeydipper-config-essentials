@@ -1,0 +1,16 @@
+---
+contexts:
+  _default:
+    slashcommand:
+##################### All slash commands #################
+      slashcommands:
+        help:
+          usage: show help message of slashcommands
+          workflow: slashcommand/help
+          keep_commands: true
+
+        reload:
+          usage: reload honeydipper config
+          workflow: reload
+
+  _slashcommands: {}
