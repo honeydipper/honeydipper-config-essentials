@@ -1,0 +1,94 @@
+---
+workflows:
+  slashcommand:
+
+    # sets up notification list skip reply to avoid duplicated message if needed
+
+    with:
+      notify:
+        - reply
+      status_notify: ':yaml:{{ default (list) .ctx.slash_notify | has .ctx.channel_fullname | ternary (list) (list "reply") | toJson }}'
+      notify_on_error: $?ctx.slash_notify
+      hooks:
+        on_first_action:
+          - slashcommand/announcement
+
+    steps:
+
+      # iterate through the known commands after converting from map to a list
+
+      - iterate_parallel: |-
+          :yaml:---
+          {{- range $k, $v := .ctx.slashcommands }}
+          - {{ set $v "command" $k | toJson }}
+          {{- end }}
+        iterate_as: invoked
+
+        steps:
+          - if_match:
+              command: $ctx.invoked.command
+
+            # found a matching command
+
+            steps:
+              - export:
+                  known_command: "true"
+              - if_match:
+                  channel_name: $?ctx.invoked.allowed_channels
+                  user_name: $?ctx.invoked.allowed_users
+                steps:
+                  - call_workflow: $ctx.invoked.workflow
+                    with:
+                      slashcommands: ':yaml:{{ empty .ctx.invoked.keep_commands | ternary "*removed*" .ctx.slashcommands | toJson }}'
+                      hooks:
+                        on_exit:
+                          - slashcommand/status
+                else:
+                  call_workflow: notify
+                  with:
+                    notify: $?ctx.status_notify
+                    message_type: error
+                    message: The `{{ .ctx.command }}` command can only be used with whitelisted channels and/or users.
+
+      # no matching command found
+
+      - unless_match:
+          known_command: "true"
+        call_workflow: notify
+        with:
+          notify: $?ctx.status_notify
+          message_type: error
+          message: Unknown command `{{ .ctx.command }}`
+
+  slashcommand/help:
+    call_workflow: notify
+    with:
+      message: |-
+        All supported commands
+        {{- range .ctx.slashcommands }}
+        `{{ .command }}` - {{ .usage }}
+        {{- end }}
+
+  slashcommand/announcement:
+    unless_match:
+      command: help
+    threads:
+      - call_workflow: notify
+        with:
+          notify: $?ctx.status_notify
+          message: |-
+            command: *{{ .ctx.text }}*
+      - call_workflow: notify
+        with:
+          notify: $?ctx.slash_notify
+          message: |-
+            command: *{{ .ctx.text }}*
+            by: {{ .ctx.user_name }}
+            channel: {{ .ctx.channel_name }}
+
+  slashcommand/status:
+    unless_match:
+      command: help
+    call_workflow: workflow_status
+    with:
+      notify: $?ctx.slash_notify

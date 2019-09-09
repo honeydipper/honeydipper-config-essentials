@@ -40,6 +40,7 @@ systems:
           response_url: $event.form.response_url.0
           text: $event.form.text.0
           channel_name: $event.form.channel_name.0
+          channel_fullname: '#{{ .event.form.channel_name | first }}'
           channel_id: $event.form.channel_id.0
           user_name: $event.form.user_name.0
           command: '{{ splitList " " (index .event.form.text 0) | first }}'

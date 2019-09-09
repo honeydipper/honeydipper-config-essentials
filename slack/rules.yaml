@@ -10,3 +10,11 @@ rules:
         resume_token: $ctx.slack_payload.callback_id
         labels_status: success
         resume_payload: $ctx.slack_payload
+
+  - when:
+      source:
+        system: slack_bot
+        trigger: slashcommand
+    do:
+      context: mute
+      call_workflow: slashcommand
