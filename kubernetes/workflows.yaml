@@ -11,7 +11,11 @@ workflows:
             {{- if (typeIs "string" .) }}
             - {{ index $.ctx.predefined_steps . | toJson }}
             {{- else }}
+            {{- if hasKey . "use" }}
+            - {{ index $.ctx.predefined_steps .use | merge (omit . "use") | toJson }}
+            {{- else }}
             - {{ toJson . }}
+            {{- end }}
             {{- end }}
             {{- end }}
           env: |
