@@ -11,8 +11,8 @@ contexts:
         announcement: ""
         warning: warning
       message_type-: normal
-      notify-: []
-      notify_on_error-: []
+      notify+: []
+      notify_on_error+: []
 
   _events:
     "*":
