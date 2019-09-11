@@ -6,18 +6,18 @@ contexts:
         python3:
           image: python:3
           command_prefix: [ "python", "-c" ]
-          shell_prefix: []
+          shell_prefix: [ "bash", "-c" ]
         python2:
           image: python:2
           command_prefix: [ "python", "-c" ]
-          shell_prefix: []
+          shell_prefix: [ "bash", "-c" ]
         python:
           image: python:latest
           command_prefix: [ "python", "-c" ]
-          shell_prefix: []
+          shell_prefix: [ "bash", "-c" ]
         bash:
           image: bash:latest
-          shell_prefix: [ "-c" ]
+          shell_prefix: [ "bash", "-c" ]
         node:
           image: node:latest
           command_prefix: [ "node", "-e" ]
@@ -36,6 +36,7 @@ contexts:
           shell_entry: [ "/bin/sh", "-c" ]
         gcloud:
           image: google/cloud-sdk:latest
+          command_prefix: []
           shell_entry: [ "/bin/bash", "-c" ]
 
       predefined_steps:
