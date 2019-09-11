@@ -38,6 +38,7 @@ workflows:
                   user_name: $?ctx.invoked.allowed_users
                 steps:
                   - call_workflow: $ctx.invoked.workflow
+                    context: _slashcommands
                     with:
                       slashcommands: ':yaml:{{ empty .ctx.invoked.keep_commands | ternary "*removed*" .ctx.slashcommands | toJson }}'
                       hooks:

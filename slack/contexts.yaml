@@ -12,3 +12,5 @@ contexts:
         reload:
           usage: reload honeydipper config
           workflow: reload
+
+  _slashcommands: {}
