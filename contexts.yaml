@@ -11,11 +11,8 @@ contexts:
         announcement: ""
         warning: warning
       message_type-: normal
-    workflow_announcement:
-      notify-: []
-    workflow_status:
-      notify-: []
-      notify_on_error-: []
+      notify+: []
+      notify_on_error+: []
 
   _events:
     "*":
