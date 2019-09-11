@@ -54,8 +54,6 @@ contexts:
           env:
             - name: REPO
               value: '{{ `{{ .sysData.git_url }}` }}'
-            - name: NAME
-              value: '{{ `{{ .sysData.git_url | split "/" | last | replace ".git" "" }}` }}'
             - name: BRANCH
               value: '{{ default "" .ctx.git_ref }}'
 
