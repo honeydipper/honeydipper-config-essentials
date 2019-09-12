@@ -43,6 +43,7 @@ workflows:
         `{{ coalesce .ctx._meta_desc .ctx._meta_name "Unnamed workflow" }}` is completed with status `{{ .labels.status }}`
         {{ eq .labels.status "success" | ternary ""
         ( printf "\nwhile performing `%s`\n```%s```" .labels.performing  .labels.reason ) }}
+      message+: $?ctx.status_detail
 
 
   reload:
