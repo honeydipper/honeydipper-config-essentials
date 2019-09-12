@@ -92,4 +92,4 @@ workflows:
       command: help
     call_workflow: workflow_status
     with:
-      notify: $?ctx.slash_notify
+      notify: $?ctx.status_notify
