@@ -9,5 +9,4 @@ Host *
   IdentityFile          /root/id_rsa
 EOF
 
-git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO $NAME
-cd $NAME
+git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo
