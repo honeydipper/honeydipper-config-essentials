@@ -93,3 +93,4 @@ workflows:
     call_workflow: workflow_status
     with:
       notify: $?ctx.status_notify
+      notify+: $?ctx.slash_notify
