@@ -10,7 +10,10 @@ workflows:
             - "failure"
         export:
           notify+: $?ctx.notify_on_error
-      - iterate_parallel: $?ctx.notify
+      - call_workflow: channel_translate
+        with:
+          channel_names: $?ctx.notify
+      - iterate_parallel: $?ctx.channel_ids
         iterate_as: channel_id
         switch: $ctx.channel_id
         cases:
@@ -20,6 +23,7 @@ workflows:
           call_function: '{{ .ctx.chat_system }}.say'
     no_export:
       - notify
+      - channel_ids
 
 
   workflow_announcement:
@@ -79,3 +83,15 @@ workflows:
   send_heartbeat:
     call_function: '{{ .ctx.alert_system }}.heartbeat'
     description: sending heartbeat to '{{ .ctx.alert_system }}'
+
+  channel_translate:
+    export:
+      channel_ids: |-
+        :yaml:---
+        {{- if empty .ctx.channel_names }}
+        []
+        {{- else }}
+        {{- range .ctx.channel_names }}
+        - {{ if or (empty $.ctx.channel_map) (hasKey $.ctx.channel_map . | not) }}{{ . }}{{ else }}{{ index $.ctx.channel_map . }}{{ end }}
+        {{- end }}
+        {{- end }}
