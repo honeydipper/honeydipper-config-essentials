@@ -5,7 +5,9 @@ workflows:
     on_failure: exit
     steps:
       - if_match:
-          message_type: "error"
+          message_type:
+            - "error"
+            - "failure"
         export:
           notify+: $?ctx.notify_on_error
       - iterate_parallel: $?ctx.notify
