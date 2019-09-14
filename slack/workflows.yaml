@@ -33,8 +33,11 @@ workflows:
             steps:
               - export:
                   known_command: "true"
+              - call_workflow: channel_translate
+                with:
+                  channel_names: $?ctx.invoked.allowed_channels
               - if_match:
-                  channel_name: $?ctx.invoked.allowed_channels
+                  channel_id: $?ctx.channel_ids
                   user_name: $?ctx.invoked.allowed_users
                 steps:
                   - call_workflow: $ctx.invoked.workflow
@@ -50,6 +53,8 @@ workflows:
                     notify: $?ctx.status_notify
                     message_type: error
                     message: The `{{ .ctx.command }}` command can only be used with whitelisted channels and/or users.
+            no_export:
+              - channel_ids
 
       # no matching command found
 
