@@ -84,12 +84,21 @@ spec:
       {{- with (initial .ctx.steps) }}
       initContainers:
         {{- range $index, $step := . }}
-        {{-   template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{-   if empty $step.as_sidecar }}
+        {{-     template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{-   end }}
         {{- end }}
       {{- end }}
       containers:
         {{- with (last .ctx.steps) }}
         {{-   template "container" (list . $finalStepNum $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{- end }}
+        {{- with (initial .ctx.steps) }}
+        {{-   range $index, $step := . }}
+        {{-     if not (empty $step.as_sidecar) }}
+        {{-       template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{-     end }}
+        {{-   end }}
         {{- end }}
       restartPolicy: Never
       volumes:
