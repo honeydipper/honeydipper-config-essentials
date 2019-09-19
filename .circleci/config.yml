@@ -1,9 +1,12 @@
 ---
+version: 2.1
+
 workflows:
   version: 2
   main:
     jobs:
       - lint
+      - configcheck
 
 jobs:
   lint:
@@ -13,3 +16,12 @@ jobs:
       - checkout
       - run:
           'yamllint .'
+  configcheck:
+    docker:
+      - image: honeydipper/honeydipper:DipperCL-rc4
+    steps:
+      - checkout
+      - run:
+          command: /opt/honeydipper/drivers/builtin/honeydipper configcheck
+          environment:
+            REPO: .
