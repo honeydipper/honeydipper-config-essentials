@@ -11,7 +11,7 @@ workflows:
             {{- if (typeIs "string" .) }}
             - {{ index $.ctx.predefined_steps . | toJson }}
             {{- else }}
-            {{- if hasKey . "use" }}
+            {{- if not (empty .use) }}
             - {{ index $.ctx.predefined_steps .use | merge (omit . "use") | toJson }}
             {{- else }}
             - {{ toJson . }}
@@ -57,6 +57,11 @@ workflows:
       - env
       - volumes
       - jobTemplate
+
+  use_local_kubeconfig:
+    export:
+      steps+:
+        - local_kubeconfig
 
   run_kubernetes:
     on_failure: exit
