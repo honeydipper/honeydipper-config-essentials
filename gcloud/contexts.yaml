@@ -19,7 +19,7 @@ contexts:
                 - name: gcloud_service_credentials
                   secret:
                     defaultMode: 420
-                    secretName: $ctx.google_credentials_secret
+                    secretName: $?ctx.google_credentials_secret
                     items:
                       - key: '{{ default "service-account.json" .ctx.google_credentials_secret_key }}'
                         path: service-account.json
