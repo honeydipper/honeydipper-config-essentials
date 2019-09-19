@@ -116,6 +116,14 @@ spec:
       nodeSelector:
         {{ . | toJson }}
       {{- end }}
+      {{- with .ctx.affinity }}
+      affinity:
+        {{ . | toJson }}
+      {{- end }}
+      {{- with .ctx.tolerations }}
+      tolerations:
+        {{ . | toJson }}
+      {{- end }}
   backoffLimit: 1
   {{- with .ctx.timeout }}
   activeDeadlineSeconds: {{ . }}
