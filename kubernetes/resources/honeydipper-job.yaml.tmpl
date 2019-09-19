@@ -116,8 +116,12 @@ spec:
       nodeSelector:
         {{ . | toJson }}
       {{- end }}
-      {{- with .ctx.nodeAffinity }}
-      nodeAffinity:
+      {{- with .ctx.affinity }}
+      affinity:
+        {{ . | toJson }}
+      {{- end }}
+      {{- with .ctx.tolerations }}
+      tolerations:
         {{ . | toJson }}
       {{- end }}
   backoffLimit: 1
