@@ -1,0 +1,10 @@
+---
+workflows:
+  use_google_credentials:
+    unless:
+      - '{{ empty .ctx.google_credentials_secret }}'
+    export:
+      env+:
+        - gcloud_config
+      steps+:
+        - google_auth
