@@ -13,7 +13,9 @@ workflows:
       - call_workflow: channel_translate
         with:
           channel_names: $?ctx.notify
-      - iterate_parallel: $?ctx.channel_ids
+      - if:
+          - $?ctx.channel_ids
+        iterate_parallel: $?ctx.channel_ids
         iterate_as: channel_id
         switch: $ctx.channel_id
         cases:
@@ -87,6 +89,6 @@ workflows:
     export:
       channel_ids: |-
         :yaml:---
-        {{- range .ctx.channel_names }}
+        {{- range default (list) .ctx.channel_names | uniq }}
         - "{{ if or (empty $.ctx.channel_map) (hasKey $.ctx.channel_map . | not) }}{{ . }}{{ else }}{{ index $.ctx.channel_map . }}{{ end }}"
         {{- end }}

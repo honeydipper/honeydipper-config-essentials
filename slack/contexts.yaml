@@ -1,8 +1,15 @@
 ---
 contexts:
-  _default:
-    slashcommand:
+  _slashcommands:
+    _events:
+      hooks:
+        - on_first_action: []
+        - on_exit: []
+        - on_error: []
+        - on_failure: []
+
 ##################### All slash commands #################
+    slashcommand:
       slashcommands:
         help:
           usage: show help message of slashcommands
@@ -12,5 +19,3 @@ contexts:
         reload:
           usage: reload honeydipper config
           workflow: reload
-
-  _slashcommands: {}
