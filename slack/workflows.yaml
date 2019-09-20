@@ -42,7 +42,6 @@ workflows:
                 steps:
                   - call_workflow: $ctx.invoked.workflow
                     context: _slashcommands
-                    contexts: $?ctx.invoked.contexts
                     with:
                       slashcommands: ':yaml:{{ empty .ctx.invoked.keep_commands | ternary "*removed*" .ctx.slashcommands | toJson }}'
                       hooks:
