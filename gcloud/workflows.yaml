@@ -1,10 +1,25 @@
 ---
 workflows:
   use_google_credentials:
-    unless:
-      - '{{ empty .ctx.google_credentials_secret }}'
+    if:
+      - $?ctx.google_credentials_secret
     export:
       env+:
         - gcloud_config
       steps+:
-        - google_auth
+        - gcloud_auth
+
+  use_gcloud_kubeconfig:
+    export:
+      steps+:
+        - name: get-kubeconfig-{{ default "local" .ctx.cluster.project }}-{{ .ctx.cluster.cluster }}
+          use: gcloud_kubeconfig
+          env:
+            - name: CLUSTER
+              value: $ctx.cluster.cluster
+            - name: PROJECT
+              value: $?ctx.cluster.project
+            - name: ZONE
+              value: $?ctx.cluster.zone
+            - name: REGION
+              value: $?ctx.cluster.region

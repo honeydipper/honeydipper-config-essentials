@@ -58,5 +58,14 @@ contexts:
             - name: BRANCH
               value: '{{ default "" .ctx.git_ref }}'
 
+        local_kubeconfig:
+          name: set-kube-local
+          type: bash
+          shell: test -f $KUBECONFIG && rm -f $KUBECONFIG
+
       predefined_env: {}
       predefined_volumes: {}
+
+      env+:
+        - name: KUBECONFIG
+          value: /honeydipper/.config/kubeconfig
