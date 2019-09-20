@@ -1,22 +1,29 @@
 ---
 workflows:
   slashcommand:
-
-    # sets up notification list skip reply to avoid duplicated message if needed
-
     with:
       notify:
         - reply
-      status_notify: ':yaml:{{ default (list) .ctx.slash_notify | has .ctx.channel_fullname | ternary (list) (list "reply") | toJson }}'
       notify_on_error: $?ctx.slash_notify
-      hooks:
-        on_first_action:
-          - slashcommand/announcement
+
+    no_export:
+      - "*"
 
     steps:
+      # sets up notification list skip reply to avoid duplicated message if needed
+      - call_workflow: channel_translate
+        with:
+          channel_names: $?ctx.slash_notify
+        export:
+          status_notify: ':yaml:{{ has .ctx.channel_id .ctx.channel_ids | ternary `[]` `["reply"]` }}'
+        no_export:
+          - channel_ids
+
+      - call_workflow: slashcommand/announcement
+        no_export:
+          - "*"
 
       # iterate through the known commands after converting from map to a list
-
       - iterate_parallel: |-
           :yaml:---
           {{- range $k, $v := .ctx.slashcommands }}
@@ -27,8 +34,7 @@ workflows:
         steps:
           - if_match:
               command: $ctx.invoked.command
-
-            # found a matching command
+              # found a matching command
 
             steps:
               - export:
@@ -41,7 +47,6 @@ workflows:
                   user_name: $?ctx.invoked.allowed_users
                 steps:
                   - call_workflow: $ctx.invoked.workflow
-                    context: _slashcommands
                     contexts: $?ctx.invoked.contexts
                     with:
                       slashcommands: ':yaml:{{ empty .ctx.invoked.keep_commands | ternary "*removed*" .ctx.slashcommands | toJson }}'
@@ -58,7 +63,6 @@ workflows:
               - channel_ids
 
       # no matching command found
-
       - unless_match:
           known_command: "true"
         call_workflow: notify
@@ -82,7 +86,7 @@ workflows:
     threads:
       - call_workflow: notify
         with:
-          notify: $?ctx.status_notify
+          notify*: $?ctx.status_notify
           message: |-
             command: *{{ .ctx.text }}*
       - call_workflow: notify
