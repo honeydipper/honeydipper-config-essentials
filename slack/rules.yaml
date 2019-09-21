@@ -16,5 +16,5 @@ rules:
         system: slack_bot
         trigger: slashcommand
     do:
-      context: mute
+      context: _slashcommands
       call_workflow: slashcommand
