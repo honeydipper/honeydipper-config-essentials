@@ -15,7 +15,7 @@ workflows:
         with:
           channel_names: $?ctx.slash_notify
         export:
-          status_notify: ':yaml:{{ has .ctx.channel_id .ctx.channel_ids | ternary `[]` `["reply"]` }}'
+          status_notify: ':yaml:{{ has .ctx.channel_id .ctx.channel_ids | or (has .ctx.channel_fullname .ctx.slash_notify) | ternary `[]` `["reply"]` }}'
         no_export:
           - channel_ids
 
