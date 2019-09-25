@@ -19,3 +19,6 @@ contexts:
         reload:
           usage: reload honeydipper config
           workflow: reload
+
+    reload:
+      force: '{{ splitList " " .ctx.parameters | has "force" }}'
