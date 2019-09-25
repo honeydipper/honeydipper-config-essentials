@@ -57,6 +57,7 @@ workflows:
     call_driver: redispubsub.send
     with:
       broadcastSubject: reload
+      force: $?ctx.force
 
   resume_workflow:
     call_driver: redispubsub.send
