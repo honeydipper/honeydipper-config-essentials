@@ -1,6 +1,12 @@
 ---
 workflows:
   start_kube_job:
+    meta:
+      notes:
+        - >
+          This workflow creates a k8s job with given job spec. It is not recommended to use this workflow directly.
+          Instead, use :code:`run_kubernetes` to leverage all the predefined context variables.
+
     on_failure: exit
     steps:
       - description: interpolating predefined variables
@@ -59,11 +65,151 @@ workflows:
       - jobTemplate
 
   use_local_kubeconfig:
+    meta:
+      description:
+        - >
+          This workflow is a helper to add a step into :code:`steps` context variable to ensure the in-cluster
+          kubeconfig is used. Basically, it will delete the kubeconfig files if any presents. It is useful when
+          switching from other clusters to local cluster in the same k8s job.
+        - example: |
+            ---
+            workflows:
+              copy_deployment_to_local:
+                steps:
+                  - call_workflow: use_google_credentials
+                  - call_workflow: use_gcloud_kubeconfig
+                    with:
+                      cluster:
+                        project: foo
+                        cluster: bar
+                        zone: us-central1-a
+                  - export:
+                      steps+:
+                        - type: gcloud
+                          shell: kubectl get -o yaml deployment {{ .ctx.deployment }} > kuberentes.yaml
+                  - call_workflow: use_local_kubeconfig # switching back to local cluster
+                  - call_workflow: run_kubernetes
+                    with:
+                      steps+:
+                        - type: gcloud
+                          shell: kubectl apply -f kubernetes.yaml
     export:
       steps+:
         - local_kubeconfig
 
   run_kubernetes:
+    description: run kubernetes job
+    meta:
+      inputs:
+        - name: system
+          description: The k8s system to use to create and run the job
+        - name: steps
+          description: >
+            The steps that the job is made up with. Each step is an :code:`initContainer` or
+            a :code:`container`. The steps are executed one by one as ordered in the list.
+            A failure in a step will cause the whole job to fail. Each step is defined with fields
+            including :code:`type`, :code:`command`, or :code:`shell`. The :code:`type` tells k8s what image to use,
+            the :code:`command` is the command to be executed with language supported by that image. If
+            a shell script needs to be executed, use :code:`shell` instead of :code:`command`.
+
+            Also supported are :code:`env` and :code:`volumes` for defining the environment variables and
+            volumes specific to this step.
+        - name: env
+          description: >
+            A list of environment variables for all the steps.
+        - name: volumes
+          description: >
+            A list of volumes to be attached for all the steps. By default, there will be a :code:`EmptyDir` volume
+            attached at :code:`/honeydipper`. Each item should have a `name` and `volume` and optionally a `subPath`, and
+            they will be used for creating the volume definition and volume mount definition.
+        - name: workingDir
+          description: >
+            The working directory in which the command or script to be exected. By default, :code:`/honeydipper`.
+            Note that, the default :code:`workingDir` defined in the image is not used here.
+
+        - name: script_types
+          description: >
+            A map of predefined script types. The :code:`type` field in :code:`steps` will be used to select
+            the image here. :code:`image` field is required. :code:`command_entry` is used for defining the entrypoint
+            when using :code:`command` field in step, and :code:`command_prefix` are a list or a string that inserted at the top of
+            container args. Correspondingly, the :code:`shell_entry` and :code:`shell_prefix` are used for defining the entrypoint
+            and argument prefix for running a `shell` script.
+
+            Also supported is an optional :code:`securtyContext` field for defining the image security context.
+
+        - name: predefined_steps
+          description: >
+            A map of predefined steps. Use the name of the predefined step in :code:`steps` list to easily define a step without
+            specifying the fields. This makes it easier to repeat or share the steps that can be used in multiple places. We can also
+            override part of the predefined steps when defining the steps with `use` and overriding fields.
+
+        - name: predefined_env
+          description: >
+            A map of predefined environment variables.
+
+        - name: predefined_volumes
+          description: >
+            A map of predefined volumes.
+
+        - name: nodeSelector
+          description: See k8s pod specification for detail
+
+        - name: affinity
+          description: See k8s pod specification for detail
+
+        - name: tolerations
+          description: See k8s pod specification for detail
+
+        - name: timeout
+          description: Used for setting the :code:`activeDeadlineSeconds` for the k8s pod
+
+        - name: cleanupAfter
+          description: >
+            Used for setting the :code:`TTLSecondsAfterFinished` for the k8s job, requires 1.13+
+            and the feature to be enabled for the cluster.
+
+      exports:
+        - name: log
+          description: The logs of the job organized in map by container and by pod
+
+        - name: output
+          description: The concatinated log outputs as a string
+
+        - name: job_status
+          description: A string indicating if the job is :code:`success` or :code:`failure`
+
+      notes:
+        - See below for a simple example
+        - example: |
+            ---
+            workflows:
+              ci:
+                call_workflow: run_kubernetes
+                with:
+                  system: myrepo.k8s_cluster
+                  steps:
+                    - git_clone # predefined step
+                    - type: node
+                      workingDir: /honeydipper/repo
+                      shell: npm install && npm build && npm test
+
+        - Another example with overrriden predefined step
+        - example: |
+            ---
+            workflows:
+              make_change:
+                call_workflow: run_kubernetes
+                with:
+                  system: myrepo.k8s
+                  steps:
+                    - git_clone # predefined step
+                    - type: bash
+                      shell: sed 's/foo/bar/g' repo/package.json
+                    - use: git_clone # use predefined step with overriding
+                      name: git_commit
+                      workingDir: /honeydipper/repo
+                      shell: git commit -m 'change' -a && git push
+
     on_failure: exit
     steps:
       - call_workflow: start_kube_job

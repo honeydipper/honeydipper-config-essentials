@@ -1,6 +1,38 @@
 ---
 systems:
   opsgenie:
+    description: |
+      This system enables Honeydipper to integrate with `opsgenie`, so Honeydipper can
+      react to opsgenie alerts and take actions through opsgenie API.
+
+    meta:
+      configurations:
+        - name: API_KEY
+          description: The API key used for making API calls to `opsgenie`
+        - name: token
+          description: >
+            A token used for authenticate incoming webhook requests, every webhook request
+            must carry a form field **Token** in the post body or url query that matches the value
+        - name: path
+          description: The path portion of the webhook url, by default :code:`/opsgenie`
+
+      notes:
+        - For example
+        - example: |
+            ---
+            systems:
+              opsgenie:
+                data:
+                  API_KEY: ENC[gcloud-kms,...masked...]
+                  token: ENC[gcloud-kms,...masked...]
+                  path: "/webhook/opsgenie"
+        - Assuming the domain name for the webhook server is :code:`myhoneydipper.com', you should
+          configure the webhook in your opsgenie integration with url like below
+        - |
+          .. code-block::
+
+             https://myhoneydipper.com/webhook/opsgenie?token=...masked...
+
     data:
       API_KEY: _place_holder_
       token: _place_holder_
@@ -24,6 +56,34 @@ systems:
         export:
           result: $data.json.result
 
+        description: >
+          This function will snooze the alert with given alert ID.
+
+        meta:
+          inputs:
+            - name: alert_Id
+              description: The ID of the alert to be snoozed
+            - name: duration
+              description: For how long the alert should be snoozed, use golang time format
+          exports:
+            - name: result
+              description: The return result of the API call
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: opsgenie
+                        trigger: alert
+                    do:
+                      if_match:
+                        alert_message: :regex:test-alert
+                      call_function: opsgenie.snooze
+                      #  alert_Id is exported from the event
+
       heartbeat:
         driver: web
         rawAction: request
@@ -34,6 +94,28 @@ systems:
             Authorization: GenieKey {{ .sysData.API_KEY }}
         export:
           result: $data.json.result
+
+        description: >
+          This function will send a heartbeat request to opsgenie.
+
+        meta:
+          inputs:
+            - name: heartbeat
+              description: The name of the heartbeat as configured in your opsgenie settings
+          exports:
+            - name: result
+              description: The return result of the API call
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  steps:
+                    - call_workflow: do_something
+                    - call_function: opsgenie.heartbeat
+                      with:
+                        heartbeat: test-heart-beat
 
     triggers:
       alert:
@@ -54,3 +136,39 @@ systems:
             ```{{ .event.json.alert.message }}
             {{ .event.json.alert.alias }}```
           _event_url: "https://opsg.in/a/i/{{ .event.json.alert.alertId }}"
+
+        description: This event is triggered when an opsgenie alert is raised.
+        meta:
+          matching_parameters:
+            - name: .json.alert.message
+              description: This field can used to match alert with only certain messages
+            - name: .json.alert.alias
+              description: This field is to match only the alerts with certain alias
+          exports:
+            - name: alert_message
+              description: This context variable will be set to the detailed message of the alert.
+            - name: alert_alias
+              description: This context variable will be set to the alias of the alert.
+            - name: alert_Id
+              description: This context variable will be set to the short alert ID.
+            - name: alert_system
+              description: This context variable will be set to the constant string, :code:`opsgenie`
+            - name: alert_url
+              description: This context variable will be set to the url of the alert, used for creating links
+          notes:
+            - See below snippet for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: opsgenie
+                        trigger: alert
+                      if_match:
+                        json:
+                          alert:
+                            message: :regex:^test-alert.*$
+                    do:
+                      call_workflow: notify
+                      with:
+                        message: 'The alert url is {{ .ctx.alert_url }}'

@@ -1,6 +1,41 @@
 ---
 systems:
   kubernetes:
+    description: |
+      This system enables Honeydipper to interact with kubernetes clusters. This system
+      is intended to be extended to create systems represent actual kubernetes clusters,
+      instead of being used directly.
+
+    meta:
+      configurations:
+        - name: source
+          description: >
+            The parameters used for fetching kubeconfig for accessing the cluster, should at least contain
+            a :code:`type` field. Currently, only :code:`local` or :code:`gcloud-gke` are supported.
+            For :code:`gcloud-gke` type,
+            this should also include :code:`service_account`, :code:`project`, :code:`zone`, and :code:`cluster`.
+        - name: namespace
+          description: >
+            The namespace of the resources when operating on the resources within the cluster,
+            e.g. deployments. By default, :code:`default` namespace is used.
+
+      notes:
+        - For example
+        - example: |
+            ---
+            systems:
+              my_gke_cluster:
+                extends:
+                  - kubernetes
+                data:
+                  source:
+                    type: gcloud-gke
+                    service_account: ENC[gcloud-kms,...masked...]
+                    zone: us-central1-a
+                    project: foo
+                    cluster: bar
+                  namespace: mynamespace
+
     data:
       kubernetes:
         namespace: default
@@ -14,6 +49,37 @@ systems:
           namespace: $?sysData.namespace
           deployment: $ctx.deployment
 
+        description: >
+          This function is a wrapper to the kubernetes driver recycleDeployment rawAction.
+          It leverages the pre-configured system data to access the kubernetes cluster.
+
+        meta:
+          inputs:
+            - name: deployment
+              description: The selector for identify the deployment to restart, e.g. :code:`app=nginx`
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: opsgenie
+                        trigger: alert
+                    do:
+                      steps:
+                        - if_match:
+                            alert_message: :regex:foo-deployment
+                          call_function: my-k8s-cluster.recycleDeployment
+                          with:
+                            deployment: app=foo
+                        - if_match:
+                            alert_message: :regex:bar-deployment
+                          call_function: my-k8s-cluster.recycleDeployment
+                          with:
+                            deployment: app=bar
+
       createJob:
         driver: kubernetes
         rawAction: createJob
@@ -23,6 +89,44 @@ systems:
           job: $ctx.job
         export:
           jobid: $data.metadata.name
+
+        description: >
+          This function creates a k8s run-to-completion job with given job spec data structure. It is a wrapper
+          for the kubernetes driver createJob rawAction.  It leverages the pre-configured system data to access
+          the kubernetes cluster. It is recommmended to use the helper workflows instead of using the job handling
+          functions directly.
+
+        meta:
+          inputs:
+            - name: job
+              description: The job data structure following the specification for a run-to-completion job manifest yaml file.
+
+          exports:
+            - name: jobid
+              description: The job ID of the created job
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflow:
+                  create_job:
+                    call_function: my-k8s-cluster.createJob
+                    with:
+                      job:
+                        apiVersion: batch/v1
+                        kind: Job
+                        metadata:
+                          name: pi
+                        spec:
+                          template:
+                            spec:
+                              containers:
+                              - name: pi
+                                image: perl
+                                command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+                              restartPolicy: Never
+                          backoffLimit: 4
 
       waitForJob:
         driver: kubernetes
@@ -35,6 +139,38 @@ systems:
         export:
           job_status: '{{ and (eq .labels.status "success") (eq (int .data.status.failed) 0) | ternary "success" "failure" }}'
 
+        description: >
+          This function blocks and waiting for a k8s run-to-completion job to finish. It is a wrapper
+          for the kubernetes driver waitForJob rawAction.  It leverages the pre-configured system data to access
+          the kubernetes cluster. It is recommmended to use the helper workflows instead of using the job handling
+          functions directly.
+
+        meta:
+          inputs:
+            - name: job
+              description: The job id that the function will wait for to reach terminated states
+
+          exports:
+            - name: job_status
+              description: The status of the job, either :code:`success` or :code:`failure`
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflow:
+                  run_simple_job:
+                    steps:
+                      - call_function: my-k8s-cluster.createJob
+                        with:
+                          job: $ctx.job
+                      - call_function: my-k8s-cluster.waitForJob
+                        with:
+                          job: $ctx.jobid
+                      - call_workflow: notify
+                        with:
+                          message: the job status is {{ .job_status }}
+
       getJobLog:
         driver: kubernetes
         rawAction: getJobLog
@@ -45,3 +181,37 @@ systems:
         export:
           log: $?data.log
           output: $?data.output
+
+        description: >
+          This function fetch all the logs for a k8s job with the given jobid. It is a wrapper
+          for the kubernetes driver getJobLog rawAction.  It leverages the pre-configured system data to access
+          the kubernetes cluster. It is recommmended to use the helper workflows instead of using the job handling
+          functions directly.
+
+        meta:
+          inputs:
+            - name: job
+              description: The ID of the job to fetch logs for
+
+          exports:
+            - name: log
+              description: The logs organized in a map of pod name to a map of container name to logs.
+            - name: output
+              description: The logs all concatinated into a single string
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflow:
+                  run_simple_job:
+                    steps:
+                      - call_function: my-k8s-cluster.createJob
+                        with:
+                          job: $ctx.job
+                      - call_function: my-k8s-cluster.waitForJob
+                        with:
+                          job: $ctx.jobid
+                      - call_workflow: my-k8s-cluster.getJobLog
+                        with:
+                          job: $ctx.jobid

@@ -1,8 +1,42 @@
 ---
 systems:
   jira:
+    description: |
+      This system enables Honeydipper to integrate with `jira`, so Honeydipper can
+      react to jira events and take actions on jira.
+
+    meta:
+      configurations:
+        - name: jira_credential
+          description: The credential used for making API calls to `jira`
+        - name: token
+          description: >
+            A token used for authenticate incoming webhook requests, every webhook request
+            must carry a form field **Token** in the post body or url query that matches the value
+        - name: path
+          description: The path portion of the webhook url, by default :code:`/jira`
+        - name: jira_domain
+          description: Specify the jira domain, e.g. :code:`mycompany` for :code:`mycompany.atlassian.net`
+
+      notes:
+        - For example
+        - example: |
+            ---
+            systems:
+              github:
+                data:
+                  jira_credential: ENC[gcloud-kms,...masked...]
+                  jira_domain: mycompany
+                  token: ENC[gcloud-kms,...masked...]
+                  path: "/webhook/jira"
+        - Assuming the domain name for the webhook server is :code:`myhoneydipper.com', you should
+          configure the webhook in your repo with url like below
+        - |
+          .. code-block::
+
+             https://myhoneydipper.com/webhook/jira?token=...masked...
+
     data:
-      API_KEY: _place_holder_
       token: _place_holder_
       path: "/jira"
       jira_domain: _place_holder_
@@ -30,6 +64,37 @@ systems:
           export:
             jira_ticket: $data.json.key
 
+        description: >
+          This function will create a jira ticket with given information
+
+        meta:
+          inputs:
+            - name: jira_project
+              description: The name of the jira project the ticket is created in
+            - name: ticket_title
+              description: A summary of the ticket
+            - name: ticket_desc
+              description: Detailed description of the work for this ticket
+            - name: ticket_type
+              description: The ticket type, by default :code:`Task`
+
+          exports:
+            - name: jira_ticket
+              description: The ticket number of the newly created ticket
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  create_jira_ticket:
+                    call_function: jira.createTicket
+                    with:
+                      jira_project: devlops
+                      ticket_title: upgrading kubernetes
+                      ticket_desc: |
+                        Upgrade the test cluster to kubernetes 1.16
+
       addComment:
         driver: web
         rawAction: request
@@ -43,6 +108,28 @@ systems:
           content:
             body: $ctx.comment_body
 
+        description: >
+          This function will add a comment to the jira ticket
+
+        meta:
+          inputs:
+            - name: jira_ticket
+              description: The ticket number that the comment is for
+            - name: comment_body
+              description: Detailed description of the comment
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  post_comments:
+                    call_function: jira.addComment
+                    with:
+                      jira_ticket: $ctx.jira_ticket
+                      comment_body: |
+                        Ticket has been created by Honeydipper.
+
     triggers:
       hit:
         driver: webhook
@@ -51,3 +138,4 @@ systems:
           form:
             token: $sysData.token
           url: $sysData.path
+        description: This is a generic trigger for jira webhook events.

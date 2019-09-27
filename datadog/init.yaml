@@ -13,6 +13,84 @@ drivers:
         type: builtin
         handlerData:
           shortName: datadog-emitter
+
+        meta:
+          description:
+            - >
+              This driver enables Honeydipper to emit internal metrics to datadog so we can monitor how
+              Honeydipper is performing.
+
+          configurations:
+            - name: statsdHost
+              description: >
+                The host or IP of the datadog agent to which the metrics are sent to, cannot be combined
+                with :code:`useHostPort`
+            - name: useHostPort
+              description: >
+                boolean, if true, send the metrics to the IP specified through the environment variable
+                :code:`DOGSTATSD_HOST_IP`, which usually is set to k8s node IP using :code:`fieldRef`.
+            - name: statsdPort
+              description: string, the port number on the datadog agent host to which the metrics are sent to
+
+          notes:
+            - For example
+            - example: |
+                ---
+                drivers:
+                  datadog-emitter:
+                    useHostPort: true
+                    statsdPort: "8125"
+
+          RPCs:
+            - name: counter_increment
+              description: Increment a counter metric
+
+              parameters:
+                - name: name
+                  description: The metric name
+                - name: tags
+                  description: A list of strings to be attached as tags
+
+              notes:
+                - For example, calling from a driver
+                - |
+
+                  .. code:: go
+
+                     driver.RPC.Caller.CallNoWait(driver.Out, "emitter", "counter_increment", map[string]interface{}{
+                       "name": "myapp.metric.counter1",
+                       "tags": []string{
+                         "server1",
+                         "team1",
+                       },
+                     })
+
+            - name: gauge_set
+              description: Set a gauge value
+
+              parameters:
+                - name: name
+                  description: The metric name
+                - name: tags
+                  description: A list of strings to be attached as tags
+                - name: value
+                  description: String, the value of the metric
+
+              notes:
+                - For example, calling from a driver
+                - |
+
+                  .. code:: go
+
+                     driver.RPC.Caller.CallNoWait(driver.Out, "emitter", "gauge_set", map[string]interface{}{
+                       "name": "myapp.metric.gauge1",
+                       "tags": []string{
+                         "server1",
+                         "team1",
+                       },
+                       "value": "1000",
+                     })
+
   datadog-emitter:
     useHostPort: true
     statsdPort: "8125"

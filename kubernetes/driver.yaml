@@ -7,6 +7,218 @@ drivers:
         type: builtin
         handlerData:
           shortName: kubernetes
+
+        description: |
+          This driver enables Honeydipper to interact with kubernetes clusters including
+          finding and recycling deployments, running jobs and getting job logs, etc. There a few wrapper
+          workflows around the driver and system functions, see the workflow composing guide
+          for detail. This section provides information on how to configure the driver and what
+          the driver offers as `rawActions`, the information may be helpful for understanding
+          how the kubernetes workflow works.
+        meta:
+          rawActions:
+            - name: createJob
+              description: >
+                Start a run-to-complete job in the specified cluster. Although you can, it is not
+                recommended to use this rawAction directly. Use the wrapper workflows instead.
+              notes:
+                - See below for a simple example
+                - example: |
+                    ---
+                    workflows:
+                      call_driver: kubernetes.createJob
+                      with:
+                        type: local
+                        namespace: test
+                        job:
+                          apiVersion: batch/v1
+                          kind: Job
+                          metadata:
+                            name: pi
+                          spec:
+                            template:
+                              spec:
+                                containers:
+                                - name: pi
+                                  image: perl
+                                  command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+                                restartPolicy: Never
+                            backoffLimit: 4
+              returns:
+                - name: metadata
+                  description: The metadata for the created kubernetes job
+                - name: status
+                  description:  The status for the created kuberntes job
+              parameters:
+                - name: type
+                  description: >
+                    The type of the kubernetes cluster, basically a driver that provides a RPC call
+                    for fetching the kubeconfig from.
+                    currently only `gcloud-gke` and `local` is supported, more types to be added in the future.
+
+                - name: source
+                  description: >
+                    A list of k/v pair as parameters used for making the RPC call to fetch the kubeconfig.
+                    For `local`, no value is required, the driver will try to use in-cluster configurations.
+                    For `gcloud-gke` clusters, the k/v pair should have keys including `service_account`,
+                    `project`, `zone` and `cluster`.
+
+                - name: namespace
+                  description: The namespace for the job
+
+                - name: job
+                  description: the job object following the kubernetes API schema
+
+            - name: recycleDeployment
+              description: recycle a deployment by deleting the replicaset and let it re-spawn.
+              notes:
+                - See below for a simple example
+                - example: |
+                    ---
+                    rules:
+                      - when:
+                          source:
+                            system: alerting
+                            trigger: fired
+                        do:
+                          call_driver: kubernetes.recycleDeployment
+                          with:
+                            type: gcloud-gke
+                            source:
+                              service_account: ENC[gcloud-kms, ...masked... ]
+                              zone: us-central1-a
+                              project: foo
+                              cluster: bar
+                            deployment: run=my-app
+              parameters:
+                - name: type
+                  description: >
+                    The type of the kubernetes cluster, see **createJob** rawAction for detail
+
+                - name: source
+                  description: >
+                    A list of k/v pair as parameters used for getting kubeconfig, see **createJob** rawAction for detail
+
+                - name: namespace
+                  description: The namespace for the deployment to be recycled, `default` if not specified
+
+                - name: deployment
+                  description: a label selector for identifying the deployment, e.g. `run=my-app`, `app=nginx`
+
+            - name: getJobLog
+              description: >
+                Given a kubernetes job metadata name, fetch and return all the logs for this job.
+                Again, it is not recommended to use `createJob`, `waitForJob` or `getJobLog` directly. Use the helper
+                workflows instead.
+              notes:
+                - See below for a simple example
+                - example: |
+                    ---
+                    workflows:
+                      run_job:
+                        steps:
+                          - call_driver: kubernetes.createJob
+                            with:
+                              type: local
+                              job:
+                                apiVersion: batch/v1
+                                kind: Job
+                                metadata:
+                                  name: pi
+                                spec:
+                                  template:
+                                    spec:
+                                      containers:
+                                      - name: pi
+                                        image: perl
+                                        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+                                      restartPolicy: Never
+                                  backoffLimit: 4
+                          - call_driver: kubernetes.waitForJob
+                            with:
+                              type: local
+                              job: $data.metadta.name
+                          - call_driver: kubernetes.getJobLog
+                            with:
+                              type: local
+                              job: $data.metadta.name
+              parameters:
+                - name: type
+                  description: >
+                    The type of the kubernetes cluster, see **createJob** rawAction for detail
+
+                - name: source
+                  description: >
+                    A list of k/v pair as parameters used for getting kubeconfig, see **createJob** rawAction for detail
+
+                - name: namespace
+                  description: The namespace for the job
+
+                - name: job
+                  description: The metadata name of the kubernetes job
+
+              returns:
+                - name: log
+                  description: mapping from pod name to a map from container name to the logs
+
+                - name: output
+                  description: with all logs concatinated
+
+            - name: waitForJob
+              description: >
+                Given a kubernetes job metadata name, use watch API to watch the job until it reaches a terminal state.
+                This action usually follows a `createJob` call and uses the previous call's output as input.
+                Again, it is not recommended to use `createJob`, `waitForJob` or `getJobLog` directly. Use the helper
+                workflows instead.
+              notes:
+                - See below for a simple example
+                - example: |
+                    ---
+                    workflows:
+                      run_job:
+                        steps:
+                          - call_driver: kubernetes.createJob
+                            with:
+                              type: local
+                              job:
+                                apiVersion: batch/v1
+                                kind: Job
+                                metadata:
+                                  name: pi
+                                spec:
+                                  template:
+                                    spec:
+                                      containers:
+                                      - name: pi
+                                        image: perl
+                                        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+                                      restartPolicy: Never
+                                  backoffLimit: 4
+                          - call_driver: kubernetes.waitForJob
+                            with:
+                              type: local
+                              job: $data.metadta.name
+              parameters:
+                - name: type
+                  description: >
+                    The type of the kubernetes cluster, see **createJob** rawAction for detail
+
+                - name: source
+                  description: >
+                    A list of k/v pair as parameters used for getting kubeconfig, see **createJob** rawAction for detail
+
+                - name: namespace
+                  description: The namespace for the job
+
+                - name: job
+                  description: The metadata name of the kubernetes job
+
+                - name: timeout
+                  description: The timeout in seconds
+
+              returns:
+                - name: status
+                  description:  The status for the created kuberntes job
     features:
       operator:
         - name: "driver:kubernetes"

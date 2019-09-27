@@ -1,6 +1,55 @@
 ---
 workflows:
   slashcommand:
+    meta:
+      description:
+        - >
+          This workflow is used internally to respond to slashcommand webhook events. You don't need to use this
+          workflow directly in most cases. Instead, customize the workflow using :code:`_slashcommands` context.
+
+      inputs:
+        - name: slashcommands
+          description: >
+            A map of commands to their definitions.  Each definition should have a brief :code:`usage`, :code:`workflow`
+            :code:`contexts`, and :code:`allowed_channels` fields. By default, two commands are already defined, :code:`help`, and
+            :code:`reload`. You can extend the list or override the commands by defining this variable in :code:`_slashcommands` context.
+
+        - name: slash_notify
+          description: >
+            A recipient list that will receive notifications and status of the commands executed through slashcommand.
+
+      exports:
+        - name: command
+          description: >
+            This variable will be passed the actual workflow invoked by the slashcommand.
+            The command is the  first word after the prefix of the slashcommand. It is used for matching the definition in :code:`$ctx.slashcommands`.
+
+        - name: parameters
+          description: >
+            This variable will be passed the actual workflow invoked by the slashcommand.
+            The parameters is a string that contains the rest of the content in the slashcommand after the first word.
+
+      notes:
+        - >
+          You can try to convert the :code:`$ctx.parameters` to the variables the workflow required by the workflow being invoked through
+          the :code:`_slashcommands` context.
+
+        - example: |
+            ---
+            contexts:
+              _slashcommands:
+
+            ######## definition of the commands ###########
+                slashcommand:
+                  slashcommands:
+                    greeting:
+                      usage: just greet the requestor
+                      workflow: greet
+
+            ######## setting the context variable for the invoked workflow ###########
+                greet:
+                  recipient: $ctx.user_name # exported by slashcommand event trigger
+                  type: $ctx.parameters     # passed from slashcommand workflow
     with:
       notify:
         - reply
@@ -72,6 +121,11 @@ workflows:
           message: Unknown command `{{ .ctx.command }}`
 
   slashcommand/help:
+    meta:
+      description:
+        - >
+          This workflow sends a list of supported commands to the requestor.  Used internally.
+
     call_workflow: notify
     with:
       message: |-
@@ -81,6 +135,11 @@ workflows:
         {{- end }}
 
   slashcommand/announcement:
+    meta:
+      description:
+        - >
+          This workflow sends a announcement message to the channels listed in :code:`slash_notify`.  Used internally.
+
     unless_match:
       command: help
     threads:
@@ -98,6 +157,11 @@ workflows:
             channel: {{ .ctx.channel_name }}
 
   slashcommand/status:
+    meta:
+      description:
+        - >
+          This workflow sends a status message to the channels listed in :code:`slash_notify`.  Used internally.
+
     unless_match:
       command: help
     call_workflow: workflow_status

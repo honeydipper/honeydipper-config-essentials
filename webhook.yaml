@@ -7,5 +7,75 @@ drivers:
         type: builtin
         handlerData:
           shortName: webhook
+
+        description: This driver enables Honeydipper to receive incoming webhooks to trigger workflows
+        meta:
+          configurations:
+            - name: Addr
+              description: the address and port the webhook server is listening to
+          notes:
+            - for example
+            - example: |
+                ---
+                drivers:
+                  webhook:
+                    Addr: :8080 # listening on all IPs at port 8080
+          rawEvents:
+            - name: <default>
+              description: receiving an incoming webhook
+              returns:
+                - name: url
+                  description: the path portion of the url for the incoming webhook request
+                - name: method
+                  description: The method for the web request
+                - name: form
+                  description: a list of k/v pair as query parameters from url parameter or posted form
+                - name: headers
+                  description: A list of k/v pair as headers received from the request
+                - name: host
+                  description: The host part of the url or the Host header
+                - name: remoteAddr
+                  description: The client IP address and port in the form of `xx.xx.xx.xx:xxxx`
+                - name: json
+                  description: if the content type is application/json, it will be parsed and stored in here
+              notes:
+                - The returns can also be used in matching conditions
+                - See below for a simple example
+                - example:
+                    rules:
+                      - when:
+                          driver: webhook
+                          if_match:
+                            url: /foo/bar
+                            method: POST
+                            headers:
+                              content-type: application/x-www-form-urlencoded
+                            form:
+                              s: hello
+                        do:
+                          call_workflow: foobar
+                - Below is an example of defining and using a system trigger with webhook driver
+                - example: |
+                    systems:
+                      internal:
+                        data:
+                          token: ENC[gcloud-kms,...masked...]
+                        trigger:
+                          webhook:
+                            driver: webhook
+                            if_match:
+                              headers:
+                                Authorization: Bearer {{ .sysData.token }}
+                              remoteAddr: :regex:^10\.
+                    rules:
+                      - when:
+                          source:
+                            system: internal
+                            trigger: webhook
+                          if_match:
+                            url: /foo/bar
+                        do:
+                          call_workflow: do_something
+
   webhook:
     Addr: ":8080"

@@ -1,6 +1,46 @@
 ---
 workflows:
   notify:
+    description: send chat message through chat system
+    meta:
+      inputs:
+        - name: chat_system
+          description: >
+            A system name that supports :code:`reply` and :code:`say` function, can be
+            either :code:`slack` or :code:`slack_bot`, by default :code:`slack_bot`.
+        - name: notify
+          description: >
+            A list of channels to which the message is beng sent, a special name :code:`reply`
+            means replying to the slashcommand user.
+        - name: notify_on_error
+          description: >
+            A list of additional channels to which the message is beng sent if the message_type is
+            error or failure.
+        - name: message_type
+          description: >
+            The type of the message used for coloring, could be :code:`success`, :code:`failure`,
+            :code:`error`, :code:`normal`, :code:`warning`, or :code:`announcement`
+        - name: chat_colors
+          description: >
+            A map from message_type to color codes. This should usually be defined in default context
+            so it can be shared.
+      notes:
+        - This workflow wraps around :code:`say` and :code:`reply` method, and allows multiple recipients.
+        - For example
+        - example: |
+            ---
+            workflows:
+              attention:
+                call_workflow: notify
+                with:
+                  notify:
+                    - "#honeydipper-notify"
+                    - "#myteam"
+                  notify_on_error:
+                    - "#oncall"
+                  message_type: $labels.status
+                  message: "work status is {{ .labels.status }}"
+
     on_error: exit
     on_failure: exit
     steps:
@@ -28,6 +68,23 @@ workflows:
       - channel_ids
 
   workflow_announcement:
+    meta:
+      notes:
+        - This workflow sends announcement messages to the slack channels. It can be used in the hooks to
+          automatically announce the start of the workflow executions.
+
+        - example: |
+            ---
+            workflows:
+              do_something:
+                with:
+                  hooks:
+                    on_first_action:
+                      - workflow_announcement
+                steps:
+                  - ...
+                  - ...
+
     call_workflow: notify
     with:
       message_type: announcement
@@ -42,6 +99,23 @@ workflows:
 
 
   workflow_status:
+    meta:
+      notes:
+        - This workflow sends workflow status messages to the slack channels. It can be used in the hooks to
+          automatically announce the exit status of the workflow executions.
+
+        - example: |
+            ---
+            workflows:
+              do_something:
+                with:
+                  hooks:
+                    on_exit:
+                      - workflow_status
+                steps:
+                  - ...
+                  - ...
+
     call_workflow: notify
     with:
       message_type: $labels.status
@@ -60,12 +134,65 @@ workflows:
 
 
   reload:
+    description: reload honeydipper config
+    meta:
+      inputs:
+        - name: force
+          description: >
+            If force is truy, Honeydipper will simply quit, expecting to be re-started by deployment manager.
+      notes:
+        - For example
+        - example: |
+            ---
+            rules:
+              - when:
+                  source:
+                    system: slack_bot
+                    trigger: slashcommand
+                do:
+                  if_match:
+                    command: reload
+                  call_workflow: reload
+                  with:
+                    force: $?ctx.parameters
+
     call_driver: redispubsub.send
     with:
       broadcastSubject: reload
       force: $?ctx.force
 
   resume_workflow:
+    description: resume a suspended workflow
+    meta:
+      inputs:
+        - name: resume_token
+          description: >
+            Every suspended workflow has a :code:`resume_token`, use this to match the workflow to be resumed
+        - name: labels_status
+          description: >
+            Continue the workflow with a dipper message that with the specified status
+        - name: labels_reason
+          description: >
+            Continue the workflow with a dipper message that with the specified reason
+        - name: resume_payload
+          description: >
+            Continue the workflow with a dipper message that with the given payload
+      notes:
+        - For example
+        - example: |
+            ---
+            rules:
+              - when:
+                  source:
+                    system: slack_bot
+                    trigger: interact
+                do:
+                  call_workflow: resume_workflow
+                  with:
+                    resume_token: $ctx.slack_payload.callback_id
+                    labels_status: success
+                    resume_payload: $ctx.slack_payload
+
     call_driver: redispubsub.send
     with:
       broadcastSubject: resume_session
@@ -76,6 +203,37 @@ workflows:
       payload: $?ctx.resume_payload
 
   snooze_alert:
+    description: snooze an alert
+    meta:
+      inputs:
+        - name: alert_system
+          description: >
+            The alert system used for monitoring, by default :code:`opsgenie`
+        - name: alert_Id
+          description: >
+            The Id of the alert, usually exported from the alert event
+        - name: duration
+          description: >
+            How long to snooze the alert for, using golang time format, by default :code:`20m`
+      notes:
+        - >
+          This workflow is just a wraper around the :code:`opsgenie.snooze` function. It also sends a
+          notification through chat to inform if the snoozing is success or not.
+
+        - For example
+
+        - example: |
+            ---
+            rules:
+              - when:
+                  source:
+                    system: opsgenie
+                    trigger: alert
+                do:
+                  steps:
+                    - call_workflow: snooze_alert
+                    - call_workflow: do_something
+
     if:
       - $?ctx.alert_Id
     on_error: continue
@@ -90,9 +248,60 @@ workflows:
 
   send_heartbeat:
     call_function: '{{ .ctx.alert_system }}.heartbeat'
-    description: sending heartbeat to '{{ .ctx.alert_system }}'
+    description: sending heartbeat to alert system
+    meta:
+      inputs:
+        - name: alert_system
+          description: >
+            The alert system used for monitoring, by default :code:`opsgenie`
+        - name: heartbeat
+          description: >
+            The name of the heartbeat
+      notes:
+        - >
+          This workflow is just a wraper around the :code:`opsgenie.heartbeat` function.
 
   channel_translate:
+    description: translate channel_names to channel_ids
+    meta:
+      inputs:
+        - name: channel_names
+          description: a list of channel names to be translated
+        - name: channel_maps
+          description: a map from channel names to ids
+      exports:
+        - name: channel_ids
+          description: a list of channel ids corresponding to the input names
+      notes:
+        - By pre-populating a map, we don't have to make API calls to slack everytime we need to convert a channel name to a ID.
+        - This is used by :code:`slashcommand` workflow and :code:`notify` workflow to automatically translate the names.
+        - example: |
+            ---
+            workflows:
+              attention:
+                with:
+                  channel_map:
+                    '#private_channel1': UGKLASE
+                    '#private_channel2': UYTFYJ2
+                    '#private_channel3': UYUJH56
+                    '#private_channel4': UE344HJ
+                    '@private_user':     U78JS2F
+                steps:
+                  - call_workflow: channel_translate
+                    with:
+                      channel_names:
+                        - '#private_channel1'
+                        - '#private_channel3'
+                        - '@private_user'
+                        - '#public_channel1'
+                  - call_workflow: loop_send_slack_message
+                    # with:
+                    #   channel_ids:
+                    #     - UGKLASE
+                    #     - UYUJH56
+                    #     - U78JS2F
+                    #     - '#public_channel1' # remain unchanged if missing from the map
+
     export:
       channel_ids: |-
         :yaml:---

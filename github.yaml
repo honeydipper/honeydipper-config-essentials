@@ -1,6 +1,38 @@
 ---
 systems:
   github:
+    description: |
+      This system enables Honeydipper to integrate with `github`, so Honeydipper can
+      react to github events and take actions on `github`.
+
+    meta:
+      configurations:
+        - name: oauth_token
+          description: The token or API ID used for making API calls to `github`
+        - name: token
+          description: >
+            A token used for authenticate incoming webhook requests, every webhook request
+            must carry a form field **Token** in the post body or url query that matches the value
+        - name: path
+          description: The path portion of the webhook url, by default :code:`/github/push`
+
+      notes:
+        - For example
+        - example: |
+            ---
+            systems:
+              github:
+                data:
+                  oauth_token: ENC[gcloud-kms,...masked...]
+                  token: ENC[gcloud-kms,...masked...]
+                  path: "/webhook/github"
+        - Assuming the domain name for the webhook server is :code:`myhoneydipper.com', you should
+          configure the webhook in your repo with url like below
+        - |
+          .. code-block::
+
+             https://myhoneydipper.com/webhook/github?token=...masked...
+
     data:
       oauth_token: _place_holder_
       token: _place_holder_
@@ -11,11 +43,20 @@ systems:
         driver: web
         rawAction: request
         parameters:
-          URL: https://api.github.com/{{ .wfdata.resource_path }}
+          URL: https://api.github.com/{{ .ctx.resource_path }}
           header:
             Authorization: token {{ .sysData.oauth_token }}
             Accept: application/vnd.github.v3+json
             Content-Type: application/json; charset=utf-8
+
+        description: >
+          This is a generic function to make a github API call with the configured oauth_token. This
+          function is meant to be used for defining other functions.
+
+        meta:
+          inputs:
+            - name: resource_path
+              description: This field is used as the path portion of the API call url
 
       createStatus:
         target:
@@ -26,6 +67,45 @@ systems:
           method: POST
           content: '{{ set .ctx.status "context" (coalesce .ctx.context .sysData.context "Honeydipper") | toJson }}'
 
+        description: >
+          This function will create a commit status on the given commit.
+
+        meta:
+          inputs:
+            - name: git_repo
+              description: The repo that commit is for, e.g. :code:`myorg/myrepo`
+            - name: git_commit
+              description: The short commit hash for the commit the status is for
+            - name: context
+              description: the status context, a name for the status message, by default :code:`Honeydipper`
+            - name: status
+              description: the status data structure according github API `here <https://developer.github.com/v3/repos/statuses/#parameters>`_
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: github
+                        trigger: push
+                    do:
+                      if_match:
+                        git_repo: myorg/myrepo
+                        git_ref: ref/heads/testbranch
+                      call_workflow: post_status
+
+                workflows:
+                  post_status:
+                    call_function: github.createStatus
+                    with:
+                      # the git_repo is available from event export
+                      # the git_commit is available from event export
+                      status:
+                        state: pending
+                        description: Honeydipper is scanning your commit ...
+
       createComment:
         target:
           system: github
@@ -34,6 +114,37 @@ systems:
           URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/issues/{{ .ctx.git_issue }}/comments'
           method: POST
           content: '{{ dict "body" .ctx.message | toJson }}'
+
+        description: >
+          This function will create a comment on the given PR
+
+        meta:
+          inputs:
+            - name: git_repo
+              description: The repo that commit is for, e.g. :code:`myorg/myrepo`
+            - name: git_issue
+              description: The issue number of the PR
+            - name: message
+              description: The content of the comment to be posted to the PR
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: github
+                        trigger: pull_request
+                    do:
+                      if_match:
+                        git_repo: myorg/myrepo
+                        git_ref: master
+                      call_function: github.createComment
+                      with:
+                        # the git_repo is available from event export
+                        # the git_issue is available from event export
+                        message: type `honeydipper help` to see a list of available commands
 
       getContent:
         target:
@@ -45,6 +156,36 @@ systems:
         export:
           file_content: '{{ b64dec .data.json.content }}'
 
+        description: >
+          This function will fetch a file from the specified repo and branch.
+
+        meta:
+          inputs:
+            - name: git_repo
+              description: The repo from where to download the file, e.g. :code:`myorg/myrepo`
+            - name: git_ref
+              description: The branch from where to download the file, no :code:`ref/heads/` prefix, e.g. :code:`master`
+            - name: path
+              description: The path for fetching the file, no slash in the front, e.g. :code:`conf/nginx.conf`
+
+          exports:
+            - name: file_content
+              description: The file content as a string
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  fetch_circle:
+                    call_function: github.getContent
+                    with:
+                      git_repo: myorg/mybranch
+                      git_ref: master
+                      path: .circleci/config.yml
+                    export:
+                      circleci_conf: :yaml:{{ .ctx.file_content }}
+
     triggers:
       hit:
         driver: webhook
@@ -53,6 +194,9 @@ systems:
           form:
             token: '{{ .sysData.token }}'
           url: '{{ .sysData.path }}'
+        description: >
+          This is a catch all event for github webhook requests. It is not to be used
+          directly, instead should be used as source for defining other triggers.
 
       push:
         source:
@@ -75,6 +219,57 @@ systems:
             • `{{ .id | trunc 7 }}`: {{ .message | abbrev 40 }}
             {{- end }}
 
+        description: This is triggered when **github** receives a push.
+        meta:
+          matching_parameters:
+            - name: .json.repository.full_name
+              description: Specify this in the :code:`when` section of the rule using :code:`if_match`, to filter the push events for the repo
+            - name: .json.ref
+              description: This field is to match only the push events happened on certain branch
+          exports:
+            - name: git_repo
+              description: This context variable will be set to the name of the repo, e.g. :code:`myorg/myrepo`
+            - name: git_ref
+              description: This context variable will be set to the name of the branch, e.g. :code:`ref/heads/mybrach`
+            - name: git_commit
+              description: This context variable will be set to the short (7 characters) commit hash of the head commit of the push
+          notes:
+            - See below snippet for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: github
+                        trigger: push
+                      if_match:
+                        json:
+                          repository:
+                            full_name: myorg/myrepo # .json.repository.full_name
+                          ref: ref/heads/mybranch   # .json.ref
+                    do:
+                      call_workflow: do_something
+                      # following context variables are available
+                      #   git_repo
+                      #   git_ref
+                      #   git_commit
+                      #
+            - Or, you can match the conditions in workflow using exported context variables instead of in the rules
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: github
+                        trigger: push
+                    do:
+                      if_match:
+                        - git_repo: mycompany/myrepo
+                          git_ref: ref/heads/master
+                        - git_repo: myorg/myfork
+                          git_ref: ref/heads/mybranch
+                      call_workflow: do_something
+
       pull_request:
         source:
           system: github
@@ -91,6 +286,65 @@ systems:
           git_commit: $event.json.pull_request.head.sha
           git_title: $event.json.pull_request.title
           git_user: $event.json.pull_request.user
+          _event_id: '#{{ .event.json.number }}'
+          _event_url: $event.json.pull_request.html_url
+          _event_detail: |-
+
+            *PR Repo: {{ .event.json.repository.full_name }}   Base: {{ .event.json.pull_request.base.ref | base }}   Head: {{ .event.json.pull_request.head.ref | base }}*
+            Title: `{{ .event.json.pull_request.title }}`
+            By: `{{ .event.json.pull_request.user.login }}`
+
+        description: This is triggered when a new pull request is created
+        meta:
+          matching_parameters:
+            - name: .json.repository.full_name
+              description: This field is to match only the pull requests from certain repo
+            - name: .json.pull_request.base.ref
+              description: >
+                This field is to match only the pull requests made to certain base branch,
+                note that the ref value here does not have the :code:`ref/heads/` prefix (different from push event). So
+                to match master branch, just use :code:`master` instead of :code:`ref/heads/master`.
+            - name: .json.pull_request.user.login
+              description: This field is to match only the pull requests made by certain user
+          exports:
+            - name: git_repo
+              description: This context variable will be set to the name of the repo, e.g. :code:`myorg/myrepo`
+            - name: git_ref
+              description: This context variable will be set to the name of the branch, e.g. :code:`mybrach`, no :code:`ref/heads/` prefix
+            - name: git_commit
+              description: This context variable will be set to the short (7 characters) commit hash of the head commit of the PR
+            - name: git_user
+              description: This context variable will be set to the user object who created the PR
+            - name: git_issue
+              description: This context variable will be set to the issue number of the PR
+            - name: git_title
+              description: This context variable will be set to the title of the PR
+          notes:
+            - See below snippet for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: github
+                        trigger: pull_request
+                      if_match:
+                        json:
+                          repository:
+                            full_name: myorg/myrepo # .json.repository.full_name
+                          pull_request:
+                            base:
+                              ref: master           # .json.pull_request.base.ref
+                    do:
+                      call_workflow: do_something
+                      # following context variables are available
+                      #   git_repo
+                      #   git_ref
+                      #   git_commit
+                      #   git_issue
+                      #   git_title
+                      #   git_user
+                      #
 
       pr_comment:
         source:
@@ -109,6 +363,55 @@ systems:
           git_repo: $event.json.repository.full_name
           git_message: $event.json.comment.body
           git_user: $event.json.comment.user
+
+        description: This is triggered when a comment is added to a  pull request.
+        meta:
+          matching_parameters:
+            - name: .json.repository.full_name
+              description: This field is to match only the pull requests from certain repo
+            - name: .json.comment.user.login
+              description: This is to match only the comments from certain username
+            - name: .json.comment.author_association
+              description: >
+                This is to match only the comments from certain type of user. See github API reference
+                `here <https://developer.github.com/v4/enum/commentauthorassociation/>`_ for detail.
+            - name: .json.comment.body
+              description: >
+                This field contains the comment message, you can use regular express pattern
+                to match the content of the message.
+          exports:
+            - name: git_repo
+              description: This context variable will be set to the name of the repo, e.g. :code:`myorg/myrepo`
+            - name: git_user
+              description: This context variable will be set to the user object who made the comment
+            - name: git_issue
+              description: This context variable will be set to the issue number of the PR
+            - name: git_message
+              description: This context variable will be set to the comment message
+          notes:
+            - See below snippet for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: github
+                        trigger: pr_commented
+                      if_match:
+                        json:
+                          repository:
+                            full_name: myorg/myrepo # .json.repository.full_name
+                          comment:
+                            autho_association: CONTRIBUTOR
+                            body: ':regex:^\s*terraform\s+plan\s*$'
+                    do:
+                      call_workflow: do_terraform_plan
+                      # following context variables are available
+                      #   git_repo
+                      #   git_issue
+                      #   git_message
+                      #   git_user
+                      #
 
 rules:
   - when:

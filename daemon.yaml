@@ -15,11 +15,80 @@ drivers:
         type: builtin
         handlerData:
           shortName: redisqueue
+        description: |
+          redisqueue driver is used internally to facilitate communications between
+          different components of Honeydipper system. It doesn't offer `rawActions` or
+          `rawEvents` for workflow composing.
+        meta:
+          configurations:
+            - name: connection
+              description: The parameters used for connecting to the redis including `Addr`, `Password` and `DB`.
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  redisqueue:
+                    connection:
+                      Addr: 192.168.2.10:6379
+                      DB: 2
+                      Password: ENC[gcloud-kms,...masked]
+
       redispubsub:
         name: redispubsub
         type: builtin
         handlerData:
           shortName: redispubsub
+        description: |
+          redispubsub driver is used internally to facilitate communications between
+          different components of Honeydipper system.
+        meta:
+          configurations:
+            - name: connection
+              description: The parameters used for connecting to the redis including `Addr`, `Password` and `DB`.
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  redispubsub:
+                    connection:
+                      Addr: 192.168.2.10:6379
+                      DB: 2
+                      Password: ENC[gcloud-kms,...masked]
+          rawActions:
+            - name: send
+              description: |
+                broadcasting a dipper message to all Honeydipper services. This is used
+                in triggering configuration reloading and waking up a suspended workflow.
+                The payload of rawAction call will used as broadcasting dipper message
+                paylod.
+              parameters:
+                - name: broadcastSubject
+                  description: the subject field of the dipper message to be sent
+              notes:
+                - Below is an example of using the driver to trigger a configuration reload
+                - example: |
+                    ---
+                    workflows:
+                      reload:
+                        call_driver: redispubsub.send
+                        with:
+                          broadcastSubject: reload
+                          force: $?ctx.force
+                - Below is another example of using the driver to wake up a suspended workflow
+                - example: |
+                    ---
+                    workflows:
+                      resume_workflow:
+                        call_driver: redispubsub.send
+                        with:
+                          broadcastSubject: resume_session
+                          key: $ctx.resume_token
+                          labels:
+                            status: $ctx.labels_status
+                            reason: $?ctx.labels_reason
+                          payload: $?ctx.resume_payload
 
   redisqueue:
     connection:

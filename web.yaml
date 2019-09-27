@@ -10,3 +10,54 @@ drivers:
         type: builtin
         handlerData:
           shortName: web
+
+        description: This driver enables Honeydipper to make outbound web requests
+        meta:
+          rawActions:
+            - name: request
+              description: making an outbound web request
+              parameters:
+                - name: URL
+                  description: The target url for the outbound web request
+                - name: header
+                  description: A list of k/v pair as headers for the web request
+                - name: method
+                  description: The method for the web request
+                - name: content
+                  description: Form data, post data or the data structure encoded as json for application/json content-type
+              returns:
+                - name: status_code
+                  description: HTTP status code
+                - name: cookies
+                  description: A list of k/v pair as cookies received from the web server
+                - name: headers
+                  description: A list of k/v pair as headers received from the web server
+                - name: body
+                  description: a string contains all response body
+                - name: json
+                  description: if the return is json content type, this will be parsed json data blob
+              notes:
+                - See below for a simple example
+                - example:
+                    workflows:
+                      sending_request:
+                        call_driver: web.request
+                        with:
+                          URL: https://ifconfig.co
+                - Below is an example of specifying header for the outbound request defined through a system function
+                - example:
+                    systems:
+                      my_api_server:
+                        data:
+                          url: https://foo.bar/api
+                          token: ENC[gcloud-kms,...masked...]
+                        function:
+                          secured_api:
+                            driver: web
+                            rawAction: request
+                            parameters:
+                              URL: $sysData.url
+                              header:
+                                content-type: application.json
+                                Authorization: Bearer {{ .sysData.token }}
+
