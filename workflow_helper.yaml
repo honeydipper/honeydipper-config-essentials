@@ -52,7 +52,7 @@ workflows:
         ( printf "\nwhile performing `%s`\n```%s```" .labels.performing
         ( (gt (len .labels.reason) 512) | ternary
         (printf "%s\n...skipped...\n%s" (trunc 256 .labels.reason) (trunc -256 .labels.reason) )
-        .labels.reason
+        .labels.reason )
         )
         }}
       message+: $?ctx.status_detail
