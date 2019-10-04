@@ -48,13 +48,14 @@ workflows:
       message: $?ctx.status_message
       message-: >-
         `{{ coalesce .ctx._meta_desc .ctx._meta_name "Unnamed workflow" }}` is completed with status `{{ .labels.status }}`
-        {{ eq .labels.status "success" | ternary ""
-        ( printf "\nwhile performing `%s`\n```%s```" .labels.performing
-        ( (gt (len .labels.reason) 512) | ternary
-        (printf "%s\n...skipped...\n%s" (trunc 256 .labels.reason) (trunc -256 .labels.reason) )
-        .labels.reason )
-        )
-        }}
+        {{ if ne .labels.status "success" }}
+        {{   printf "\nwhile performing `%s`\n" .labels.performing }}
+        ```{{   if (gt (len .labels.reason) 512) }}
+        {{     printf "%s\n...skipped...\n%s" (trunc 256 .labels.reason) (substr (int (sub (len .labels.reason) 256)) -1 .labels.reason) }}
+        {{   else }}
+        {{     .labels.reason }}
+        {{   end }}```
+        {{ end }}
       message+: $?ctx.status_detail
 
 
