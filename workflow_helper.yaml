@@ -1,475 +1,310 @@
 ---
 workflows:
-  # Workflow: Essentials.Workflows.repeat
-  #
-  # This is a abstract workflow, meaning you define the work in the data. And, you can use
-  # this to repeat any work. Remember, some of the interpolation in the `work` needs to be
-  # escaped.
-  #
-  # Parameters:
-  #
-  # .wfdata.times - how many times to repeat
-  # .wfdata.work - what to do
-  #
-  # Notes:
-  #
-  # repeat the specified work for the specified number of times
-  # use (int wfdata.times) to access the remaining times in interpolation.
-  #
-  # Examples:
-  #
-  # === Code
-  # ---
-  # rules:
-  #   - when:
-  #       ...
-  #     do:
-  #       content: repeat
-  #       data:
-  #         times: 3
-  #         work:
-  #           content: notify
-  #           data:
-  #             notify:
-  #               - "#my_channel"
-  #             message:
-  #               text: There are {{ `{{ int .wfdata.times }}` }} lines left
-  # ===
-  #
-  repeat:
-    type: if
-    condition: '{{ gt (int .wfdata.times) 0 }}'
-    content:
-      - type: pipe
-        content:
-          - :path:wfdata.work
-          - content: repeat
-            data:
-              times: '{{ sub (int .wfdata.times) 1 }}'
-              '*work': :path:wfdata.work
-
-  # Workflow: Essentials.Workflows.foreach_parallel
-  #
-  # This is a abstract workflow, meaning you define the work in the data, and you can use
-  # this to start multiple workflow at the same time with different parameters.
-  #
-  # Parameters:
-  #
-  # .wfdata.items - the list of items to iterate
-  # .wfdata.work - what to do
-  #
-  # Notes:
-  #
-  # iterate over the list of items to repeat the specified work in parallel
-  # use wfdata.current to access the current item
-  #
-  # Examples:
-  #
-  # === Code
-  # ---
-  # rules:
-  #   - when:
-  #       ...
-  #     do:
-  #       content: foreach_parallel
-  #       data:
-  #         items:
-  #           - apple
-  #           - orange
-  #           - strawberry
-  #         work:
-  #           content: notify
-  #           data:
-  #             notify:
-  #               - "#my_channel"
-  #             message:
-  #               text: I like {{ `{{ .wfdata.current }}` }}.
-  # ===
-  #
-  foreach_parallel:
-    type: if
-    condition: '{{ gt (len .wfdata.items) 0 }}'
-    content:
-      - |
-          :yaml:---
-          type: parallel
-          content:
-            {{- range .wfdata.items }}
-            - type: pipe
-              content:
-                - :path:wfdata.work
-              data:
-                current: "{{ . }}"
-            {{- end }}
-
-  # Workflow: Essentials.Workflows.foreach
-  #
-  # This is a abstract workflow, meaning you define the work in the data, and you can use
-  # this to run the same workflow one by one for each item in the list. Use `wfdata.items` to
-  # access the remaining items in interpolation.
-  #
-  # Parameters:
-  #
-  # .wfdata.items - the list of items to iterate
-  # .wfdata.work - what to do
-  #
-  # Notes:
-  #
-  # iterate over the list of items to repeat the specified work
-  # use wfdata.items to access the remaining items
-  #
-  # Examples:
-  #
-  # === Code
-  # ---
-  # rules:
-  #   - when:
-  #       ...
-  #     do:
-  #       content: foreach
-  #       data:
-  #         items:
-  #           - apple
-  #           - orange
-  #           - strawberry
-  #         work:
-  #           content: notify
-  #           data:
-  #             notify:
-  #               - "#my_channel"
-  #             message:
-  #               text: I like {{ `{{ .wfdata.items | first }}` }}.
-  # ===
-  #
-  foreach:
-    type: if
-    condition: '{{ gt (len .wfdata.items) 0 }}'
-    content:
-      - type: pipe
-        content:
-          - :path:wfdata.work
-          - :yaml:{{ (dict "content" "foreach" "data" (dict "*items" (rest .wfdata.items) "*work" ":path:wfdata.work")) | toJson }}
-
-  # Workflow: Essentials.Workflows.pipe
-  #
-  # This is an enhanced version of `pipe` workflow. Similar to the native `pipe` type workflow, it iterates through the
-  # the steps one at a time.  Unlike the native `pipe` workflow, the named `pipe` workflow will stop when any
-  # of the steps return failure status in `.labels.status`. It also preserves the name of the step, if specified, in
-  # `.data.step` as an ouput value. This is useful when you have many steps for a workflow and don't want to check
-  # the status for each step.
-  #
-  # Parameters:
-  #
-  # .wfdata.on_error - possible values are "continue", "exit" and "final", default to "final", meaning to execute the last
-  #        step before exiting, useful for cleaning up or sending notification
-  # .wfdata.steps - a list of steps
-  #
-  # Fields in step:
-  #
-  # name - optional, used for error reporting
-  # work - a workflow data structure describing the work to be performed in this step
-  #
-  # Return:
-  #
-  # .data.work_status - status of the last step performed
-  # .data.work_data - the payload of the last action
-  # .data.reason - specify the reason for the failed step
-  # .data.step - the name of the step that is failing
-  #
-  # Example:
-  #
-  # === Code
-  # ---
-  # rules:
-  #   - when:
-  #       ...
-  #     do:
-  #       content: pipe
-  #       data:
-  #         steps:
-  #           - name: getting chat ID
-  #             work:
-  #               target:
-  #                 system: slack_bot
-  #                 function: getChatID
-  #               parameters:
-  #                 username: somebody
-  #           - name: getting notes
-  #             work:
-  #               target:
-  #                 system: notes
-  #                 function: fetch
-  #               parameters:
-  #                 username: somebody
-  #
-  #             ...
-  #
-  #           - name: final notification
-  #             work:
-  #               content: notify
-  #               data:
-  #                 message:
-  #                   text: job status {{ `{{ .labels.status }}` at step `{{ index .wfdata "steps" 0 "name" }}` }}
-  #
-  pipe:
-    type: if
-    condition: '{{ gt (len .wfdata.steps) 0 }}'
-    content:
-      - type: pipe
-        data:
-          on_error: '{{ default "final" .wfdata.on_error }}'
-        content:
-          - type: pipe
-            data:
-              "*steps": clear
-            content:
-              - ':yaml:{{ index .wfdata "steps" 0 "work" | toJson }}'
-          - type: if
-            condition: >-
-              {{ or
-              (eq .wfdata.on_error "continue")
-              (and
-              (eq .wfdata.on_error "final")
-              (eq (coalesce .data.work_status .labels.status) "success")
-              (gt (len .wfdata.steps) 2)
-              )
-              (and
-              (eq .wfdata.on_error "exit")
-              (eq (coalesce .data.work_status .labels.status) "success")
-              )
-              }}
-            content:
-              - content: pipe
-                data:
-                  work_data: ':yaml:{{ default (dict) .data.work_data | toJson }}'
-                  on_error: :path:wfdata.on_error
-                  "*steps": :yaml:{{ rest .wfdata.steps | toJson }}
-              - type: pipe
-                data:
-                  work_data: :yaml:{{ default (dict) .data.work_data | toJson }}
-                  work_status: '{{ coalesce .data.work_status .labels.status }}'
-                  reason: '{{ default "" (coalesce .data.reason .labels.reason) }}'
-                  step: '{{ eq (coalesce .data.work_status .labels.status) "success" | ternary "" (default "" (index .wfdata "steps" 0 "name")) }}'
-                content:
-                  - type: if
-                    condition: '{{ and (eq .wfdata.on_error "final") (gt (len .wfdata.steps) 1) }}'
-                    data:
-                      "*steps": clear
-                    content:
-                      - ':yaml:{{ index (.wfdata.steps | last) "work" | toJson }}'
-                  - type: data
-                    content:
-                      work_data: :path:wfdata.work_data
-                      work_status: :path:wfdata.work_status
-                      reason: :path:wfdata.reason
-                      step: :path:wfdata.step
-      - type: data
-        content:
-          work_data: :yaml:{{ default (dict) .data.work_data | toJson }}
-          work_status: 'success'
-
-  # Workflow: Essentials.Workflows.notify
-  #
-  # This abstract workflow simplifies how you send message to chat.
-  #
-  # Parameters:
-  #
-  # .wfdata.notify - the list of channel, "reply" means where this is triggered
-  # .wfdata.notify_on_error - a list of additional channels to receive message if error happens (when is_error is true)
-  # .wfdata.message - content to be send to chat
-  # .wfdata.chat_system - which chat system to use, default to `slack` system
-  # .wfdata.is_error - if true, will also send to notify_on_error
-  #
-  # Note:
-  #
-  # abstract method notify through chat using slack, hipchat, etc.
-  #
-  # Examples:
-  #
-  # === Code
-  # ---
-  # rules:
-  #   - when:
-  #       ...
-  #     do:
-  #       content: notify
-  #       data:
-  #         notify:
-  #           - "#my_channel"
-  #           - "@user_name"
-  #           - reply              # only works if triggered through slash command
-  #         message:
-  #           attachments:
-  #             - color: good
-  #               text: hello world
-  # ===
-  #
   notify:
-    type: pipe
-    content:
-      - content: foreach_parallel
-        data:
-          '*items': >-
-             :yaml:
-             {{ without (list
-             (default (list) .wfdata.notify | join " ")
-             (or (empty .wfdata.is_error) (eq (toString .wfdata.is_error) "false") | ternary
-             (list)
-             (default (list "#honeydipper-notify") .wfdata.notify_on_error)
-             | join " ")
-             | join " "
-             | trim
-             | splitList " "
-             | uniq) "" " "
-             | toJson }}
-          '*work':
-            type: if
-            condition: '{{ `{{ eq .wfdata.current "reply" }}` }}'
-            content:
-              - type: function
-                content:
-                  target:
-                    system: '{{ if .wfdata.chat_system }}{{ .wfdata.chat_system }}{{ else }}slack{{ end }}'
-                    function: reply
-                  parameters:
-                    content: :path:wfdata.message
-              - type: function
-                content:
-                  target:
-                    system: '{{ if .wfdata.chat_system }}{{ .wfdata.chat_system }}{{ else }}slack{{ end }}'
-                    function: say
-                  parameters:
-                    content: ':yaml:{{ set .wfdata.message "channel" ":path:wfdata.current" | toJson }}'
-      - type: data
-        content:
-          work_data: :path:data
-          work_status: '{{ .labels.status | replace "skip" "success" }}'
-          reason: '{{ .labels.reason }}'
+    description: send chat message through chat system
+    meta:
+      inputs:
+        - name: chat_system
+          description: >
+            A system name that supports :code:`reply` and :code:`say` function, can be
+            either :code:`slack` or :code:`slack_bot`, by default :code:`slack_bot`.
+        - name: notify
+          description: >
+            A list of channels to which the message is beng sent, a special name :code:`reply`
+            means replying to the slashcommand user.
+        - name: notify_on_error
+          description: >
+            A list of additional channels to which the message is beng sent if the message_type is
+            error or failure.
+        - name: message_type
+          description: >
+            The type of the message used for coloring, could be :code:`success`, :code:`failure`,
+            :code:`error`, :code:`normal`, :code:`warning`, or :code:`announcement`
+        - name: chat_colors
+          description: >
+            A map from message_type to color codes. This should usually be defined in default context
+            so it can be shared.
+      notes:
+        - This workflow wraps around :code:`say` and :code:`reply` method, and allows multiple recipients.
+        - For example
+        - example: |
+            ---
+            workflows:
+              attention:
+                call_workflow: notify
+                with:
+                  notify:
+                    - "#honeydipper-notify"
+                    - "#myteam"
+                  notify_on_error:
+                    - "#oncall"
+                  message_type: $labels.status
+                  message: "work status is {{ .labels.status }}"
 
-  # Workflow: Essentials.Workflows.notify_then_do
-  #
-  # Notifying through chat and then start doing something.
-  #
-  # Parameters:
-  #
-  # .wfdata.notify - the list of channel, "reply" means where this is triggered
-  # .wfdata.work - what to do
-  # .wfdata.message - content to be send to chat
-  # .wfdata.chat_system - which chat system to use, default to slack system
-  #
-  # Examples:
-  #
-  # === Code
-  # ---
-  # rules:
-  #   - when:
-  #       ...
-  #     do:
-  #       content: notify_then_do
-  #       data:
-  #         notify:
-  #           - "#my_channel"
-  #           - "@user_name"
-  #           - reply              # only works if triggered through slash command
-  #         message:
-  #           attachments:
-  #             - color: good
-  #               text: I am doing something ...
-  #         work:
-  #           ...
-  # ===
-  #
-  notify_then_do:
-    type: pipe
-    content:
-      - content: notify
-      - type: pipe
-        data:
-          "*message": {}
-        content:
-          - ':path:wfdata.work'
+    on_error: exit
+    on_failure: exit
+    steps:
+      - if_match:
+          message_type:
+            - "error"
+            - "failure"
+        export:
+          notify+: $?ctx.notify_on_error
+      - call_workflow: channel_translate
+        with:
+          channel_names: $?ctx.notify
+      - if:
+          - $?ctx.channel_ids
+        iterate_parallel: $?ctx.channel_ids
+        iterate_as: channel_id
+        switch: $ctx.channel_id
+        cases:
+          "reply":
+            call_function: '{{ .ctx.chat_system }}.reply'
+        default:
+          call_function: '{{ .ctx.chat_system }}.say'
+    no_export:
+      - notify
+      - channel_ids
 
-  # Workflow: Essentials.Workflows.do_then_notify
-  #
-  # Perform an action then notify through chat
-  #
-  # Parameters:
-  #
-  # .wfdata.notify - the list of channel, "reply" means where this is triggered
-  # .wfdata.notify_on_error - a channel to report error addition to the normal notify list
-  # .wfdata.work - what to do
-  # .wfdata.message - content to be send to chat
-  # .wfdata.chat_system - which chat system to use, default to slack system
-  #
-  # Return:
-  #
-  # .data.work_data - the return data from the work
-  # .data.work_status - the status from the work
-  # .data.reason - if work_status is not success, what is the reason of failure
-  #
-  # Examples:
-  #
-  # === Code
-  # ---
-  # rules:
-  #   - when:
-  #       ...
-  #     do:
-  #       content: do_then_notify
-  #       data:
-  #         notify:
-  #           - "#my_channel"
-  #           - "@user_name"
-  #           - reply              # only works if triggered through slash command
-  #         message:
-  #           attachments:
-  #             - color: good
-  #               text: Done something, and it is {{ `{{ .labels.status }}` }}
-  #         work:
-  #           ...
-  # ===
-  #
-  do_then_notify:
-    type: pipe
-    content:
-      - type: pipe
-        data:
-          "*message": {}
-        content:
-          - ':path:wfdata.work'
-      - type: pipe
-        data:
-          work_data: :yaml:{{ default (dict) .data | toJson }}
-          work_status: :path:labels.status
-          reason: '{{ default "" .labels.reason }}'
-        content:
-          - content: notify
-            data:
-              is_error: ':yaml:{{ ne .wfdata.work_status "success" }}'
-          - type: data
-            content:
-              work_data: :path:wfdata.work_data
-              work_status: :path:wfdata.work_status
-              reason: :path:wfdata.reason
+  workflow_announcement:
+    meta:
+      notes:
+        - This workflow sends announcement messages to the slack channels. It can be used in the hooks to
+          automatically announce the start of the workflow executions.
 
-  # Workflow: Essentials.Workflows.noop
-  #
-  # Do nothing.
-  #
-  noop:
-    type: if
-    condition: "false"
-    content:
-      - content: donothing
+        - example: |
+            ---
+            workflows:
+              do_something:
+                with:
+                  hooks:
+                    on_first_action:
+                      - workflow_announcement
+                steps:
+                  - ...
+                  - ...
 
-  # Workflow: Essentials.Workflows.reload
-  #
-  # Signal Honeydipper daemon(s) to reload config from the git repos.
-  #
+    call_workflow: notify
+    with:
+      message_type: announcement
+      message: $?ctx.event_announcement
+      message-: |-
+        An event is triggered for `{{ .ctx._meta_event }}` with id <{{ coalesce .ctx._event_url "https://honeydipper.io" }}|{{ coalesce .ctx._event_id "unspecified" }}>{{ with .ctx._event_detail }}
+        {{ . }}{{ end }}
+      message+: |
+
+
+        invoking workflow `{{ coalesce .ctx._meta_desc .ctx._meta_name .ctx.performing }}`
+
+
+  workflow_status:
+    meta:
+      notes:
+        - This workflow sends workflow status messages to the slack channels. It can be used in the hooks to
+          automatically announce the exit status of the workflow executions.
+
+        - example: |
+            ---
+            workflows:
+              do_something:
+                with:
+                  hooks:
+                    on_exit:
+                      - workflow_status
+                steps:
+                  - ...
+                  - ...
+
+    call_workflow: notify
+    with:
+      message_type: $labels.status
+      message: $?ctx.status_message
+      message-: >-
+        `{{ coalesce .ctx._meta_desc .ctx._meta_name "Unnamed workflow" }}` is completed with status `{{ .labels.status }}`
+        {{ if ne .labels.status "success" }}
+        {{   printf "\nwhile performing `%s`\n" .labels.performing }}
+        ```{{   if (gt (len .labels.reason) 512) }}
+        {{     printf "%s\n...skipped...\n%s" (trunc 256 .labels.reason) (substr (int (sub (len .labels.reason) 256)) -1 .labels.reason) }}
+        {{   else }}
+        {{     .labels.reason }}
+        {{   end }}```
+        {{ end }}
+      message+: $?ctx.status_detail
+
+
   reload:
-    type: function
-    content:
-      driver: redispubsub
-      rawAction: send
-      parameters:
-        broadcastSubject: reload
+    description: reload honeydipper config
+    meta:
+      inputs:
+        - name: force
+          description: >
+            If force is truy, Honeydipper will simply quit, expecting to be re-started by deployment manager.
+      notes:
+        - For example
+        - example: |
+            ---
+            rules:
+              - when:
+                  source:
+                    system: slack_bot
+                    trigger: slashcommand
+                do:
+                  if_match:
+                    command: reload
+                  call_workflow: reload
+                  with:
+                    force: $?ctx.parameters
+
+    call_driver: redispubsub.send
+    with:
+      broadcastSubject: reload
+      force: $?ctx.force
+
+  resume_workflow:
+    description: resume a suspended workflow
+    meta:
+      inputs:
+        - name: resume_token
+          description: >
+            Every suspended workflow has a :code:`resume_token`, use this to match the workflow to be resumed
+        - name: labels_status
+          description: >
+            Continue the workflow with a dipper message that with the specified status
+        - name: labels_reason
+          description: >
+            Continue the workflow with a dipper message that with the specified reason
+        - name: resume_payload
+          description: >
+            Continue the workflow with a dipper message that with the given payload
+      notes:
+        - For example
+        - example: |
+            ---
+            rules:
+              - when:
+                  source:
+                    system: slack_bot
+                    trigger: interact
+                do:
+                  call_workflow: resume_workflow
+                  with:
+                    resume_token: $ctx.slack_payload.callback_id
+                    labels_status: success
+                    resume_payload: $ctx.slack_payload
+
+    call_driver: redispubsub.send
+    with:
+      broadcastSubject: resume_session
+      key: $ctx.resume_token
+      labels:
+        status: $ctx.labels_status
+        reason: $?ctx.labels_reason
+      payload: $?ctx.resume_payload
+
+  snooze_alert:
+    description: snooze an alert
+    meta:
+      inputs:
+        - name: alert_system
+          description: >
+            The alert system used for monitoring, by default :code:`opsgenie`
+        - name: alert_Id
+          description: >
+            The Id of the alert, usually exported from the alert event
+        - name: duration
+          description: >
+            How long to snooze the alert for, using golang time format, by default :code:`20m`
+      notes:
+        - >
+          This workflow is just a wraper around the :code:`opsgenie.snooze` function. It also sends a
+          notification through chat to inform if the snoozing is success or not.
+
+        - For example
+
+        - example: |
+            ---
+            rules:
+              - when:
+                  source:
+                    system: opsgenie
+                    trigger: alert
+                do:
+                  steps:
+                    - call_workflow: snooze_alert
+                    - call_workflow: do_something
+
+    if:
+      - $?ctx.alert_Id
+    on_error: continue
+    steps:
+      - call_function: '{{ .ctx.alert_system }}.snooze'
+      - call_workflow: notify
+        with:
+          message_type: $labels.status
+          message: |-
+            Snoozing `{{ .ctx.alert_system }}` alert  <{{ coalesce .ctx.alert_url "./#" }}|#{{ coalesce .ctx.alert_Id "unspecified" }}> returns `{{ .labels.status }}`{{ if ne .labels.status "success" }}
+            ```{{ .labels.reason }}```{{ end }}
+
+  send_heartbeat:
+    call_function: '{{ .ctx.alert_system }}.heartbeat'
+    description: sending heartbeat to alert system
+    meta:
+      inputs:
+        - name: alert_system
+          description: >
+            The alert system used for monitoring, by default :code:`opsgenie`
+        - name: heartbeat
+          description: >
+            The name of the heartbeat
+      notes:
+        - >
+          This workflow is just a wraper around the :code:`opsgenie.heartbeat` function.
+
+  channel_translate:
+    description: translate channel_names to channel_ids
+    meta:
+      inputs:
+        - name: channel_names
+          description: a list of channel names to be translated
+        - name: channel_maps
+          description: a map from channel names to ids
+      exports:
+        - name: channel_ids
+          description: a list of channel ids corresponding to the input names
+      notes:
+        - By pre-populating a map, we don't have to make API calls to slack everytime we need to convert a channel name to a ID.
+        - This is used by :code:`slashcommand` workflow and :code:`notify` workflow to automatically translate the names.
+        - example: |
+            ---
+            workflows:
+              attention:
+                with:
+                  channel_map:
+                    '#private_channel1': UGKLASE
+                    '#private_channel2': UYTFYJ2
+                    '#private_channel3': UYUJH56
+                    '#private_channel4': UE344HJ
+                    '@private_user':     U78JS2F
+                steps:
+                  - call_workflow: channel_translate
+                    with:
+                      channel_names:
+                        - '#private_channel1'
+                        - '#private_channel3'
+                        - '@private_user'
+                        - '#public_channel1'
+                  - call_workflow: loop_send_slack_message
+                    # with:
+                    #   channel_ids:
+                    #     - UGKLASE
+                    #     - UYUJH56
+                    #     - U78JS2F
+                    #     - '#public_channel1' # remain unchanged if missing from the map
+
+    export:
+      channel_ids: |-
+        :yaml:---
+        {{- range default (list) .ctx.channel_names | uniq }}
+        - "{{ if or (empty $.ctx.channel_map) (hasKey $.ctx.channel_map . | not) }}{{ . }}{{ else }}{{ index $.ctx.channel_map . }}{{ end }}"
+        {{- end }}

@@ -1,25 +1,20 @@
 ---
-# Rule: Essentials.Rules.slack_interact
-#
-# This rule is automatically enabled when Essential bundle is installed. It makes
-# sure that when user clicks interactive button in the message, the workflow session
-# with the globally unique callback_id will be resumed.
-#
 rules:
   - when:
       source:
         system: slack_bot
         trigger: interact
     do:
-      type: function
-      data:
-        payload: :yaml:{{ index .event.form.payload 0 | replace "\\n" "\n" | replace "\\/" "/" }}
-      content:
-        driver: redispubsub
-        rawAction: send
-        parameters:
-          broadcastSubject: resume_session
-          key: :path:wfdata.payload.callback_id
-          labels:
-            status: success
-          payload: :yaml:{{ set .event "form" (set .event.form "payload" (list .wfdata.payload)) | toJson }}
+      call_workflow: resume_workflow
+      with:
+        resume_token: $ctx.slack_payload.callback_id
+        labels_status: success
+        resume_payload: $ctx.slack_payload
+
+  - when:
+      source:
+        system: slack_bot
+        trigger: slashcommand
+    do:
+      context: _slashcommands
+      call_workflow: slashcommand

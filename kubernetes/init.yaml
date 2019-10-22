@@ -3,3 +3,4 @@ includes:
   - driver.yaml
   - system.yaml
   - workflows.yaml
+  - contexts.yaml

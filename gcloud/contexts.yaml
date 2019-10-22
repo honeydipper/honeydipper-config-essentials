@@ -1,0 +1,36 @@
+---
+contexts:
+  _default:
+    start_kube_job:
+      predefined_env:
+        gcloud_config:
+          name: CLOUDSDK_CONFIG
+          value: /honeydipper/.config/gcloud
+
+      predefined_steps:
+        gcloud_kubectl:
+          type: gcloud
+
+        gcloud_auth:
+          type: gcloud
+          name: google-auth
+          shell: gcloud auth activate-service-account --key-file=/etc/gcloud/service-account.json
+          volumes:
+            - mountPath: /etc/gcloud/service-account.json
+              subPath: service-account.json
+              volume:
+                name: gcloud-service-credentials
+                secret:
+                  defaultMode: 420
+                  secretName: $?ctx.google_credentials_secret
+                  items:
+                    - key: $ctx.google_credentials_secret_key,"service-account.json"
+                      path: service-account.json
+
+        gcloud_kubeconfig:
+          type: gcloud
+          shell: >-
+            gcloud container clusters get-credentials $CLUSTER
+            ${PROJECT:+--project} $PROJECT
+            ${ZONE:+--zone} $ZONE
+            ${REGION:+--region} $REGION

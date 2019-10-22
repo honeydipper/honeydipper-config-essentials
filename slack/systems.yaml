@@ -1,336 +1,305 @@
 ---
 systems:
-  # System: Essentials.Systems.slack
-  #
-  # Purpose:
-  #   Integrate with slack to post messages to using incoming webhook integration, interact with slack using slash command integration.
-  #
-  # Config:
-  #   url - the url given by slack for the incoming webhook integration
-  #   token - a token randomly generated for authenticate slash command web request. It should match the url parameter "token"
-  #   path - the path part of the uri where the webhook is listening for slash command, defaults to /slack/slashcommand
-  #
-  # Synopsis:
-  #   Below is an example config for the system
-  #     +----------------------------------------------------------------------+
-  #     | ---
-  #     | systems:
-  #     |   slack:
-  #     |     data:
-  #     |       url: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       path: "/command"
-  #     |
-  #     +----------------------------------------------------------------------+
-  #
-  #   You can also extend this system.
-  #     +----------------------------------------------------------------------+
-  #     | ---
-  #     | systems:
-  #     |   dev_channel:
-  #     |     extends:
-  #     |       - slack
-  #     |     data:
-  #     |       url: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |
-  #     +----------------------------------------------------------------------+
-  #
-  # Notes:
-  #   Use encryption for your url and token value for security
   slack:
+    description: |
+      This system enables Honeydipper to integrate with `slack`, so Honeydipper can
+      send messages to and react to commands from slack channels. This system uses :code:`Custom
+      Integrations` to integrate with slack. It is recommended to use :code:`slack_bot` system, which uses
+      a slack app to integrate with slack.
+
+    meta:
+      configurations:
+        - name: url
+          description: The slack incoming webhook integration url
+        - name: slash_token
+          description: The token for authenticating slash command requests
+        - name: slash_path
+          description: The path portion of the webhook url for receiving slash command requests, by default :code:`/slack/slashcommand`
+
+      notes:
+        - For example
+        - example: |
+            ---
+            systems:
+              slack:
+                data:
+                  url: ENC[gcloud-kms,...masked...]
+                  slash_token: ENC[gcloud-kms,...masked...]
+                  slash_path: "/webhook/slash"
+        - |
+          To configure the integration in slack,
+
+          1. select from menu :code:`Administration` => :code:`Manage Apps`
+          2. select :code:`Custom Integrations`
+          3. add a :code:`Incoming Webhooks`, and copy the webhook url and use it as :code:`url` in system data
+          4. create a random token to be used in slash command integration, and record it as :code:`slash_token` in system data
+          5. add a :code:`Slash Commands`, and use the url like below to send commands
+
+        - |
+          .. code-block::
+
+             https://myhoneydipper.com/webhook/slash?token=...masked...
+
     data:
       url: _place_holder_
-      token: _place_holder_
+      slash_token: _place_holder_
+      slash_path: "/slack/slashcommand"
+
     functions:
-      # Action: reply
-      #
-      # send reply message to received the slash command. Every slash command web request has an "response_url",
-      # this function will use that "response_url" to post messages.
-      #
-      # Parameters:
-      #
-      # content - the payload of the message, do not set "channel" field.
-      #
-      # See slack documents for detail on attachments and formatting.
-      #
-      # Example:
-      #
-      # === Code
-      # ---
-      # rules:
-      #   - when:
-      #       source:
-      #         system: slack
-      #         trigger: slashcommand
-      #     do:
-      #       target:
-      #         system: slack
-      #         function: reply
-      #       parameters:
-      #         content:
-      #           attachments:
-      #             - title: Honeydipper Message
-      #               color: good
-      #               text: Hello world
-      # ===
-      #
-      # Notes:
-      #
-      # It is recommended to use <notify : Workflows.notify> abstract workflow. It can have
-      # multiple recipients and it works for all chat systems that supports "reply" function.
-      #
       reply:
         driver: web
         rawAction: request
         parameters:
-          URL: '{{ index .event.form.response_url 0 }}'
+          URL: $ctx.response_url
           header:
             Content-Type: application/json
           method: POST
-      # Action: say
-      #
-      # post a message to slack using incoming webhook integration.
-      #
-      # Parameters:
-      #
-      # content - the payload of the message, "channel" field will be recipient.
-      #
-      # See slack documents for detail on attachments and formatting.
-      #
-      # Example:
-      #
-      # === Code
-      # ---
-      # rules:
-      #   - when:
-      #       ...
-      #     do:
-      #       target:
-      #         system: slack
-      #         function: say
-      #       parameters:
-      #         content:
-      #           attachments:
-      #             - title: Honeydipper Message
-      #               color: good
-      #               text: Hello world
-      #           channel: #public_channel
-      # ===
-      #
-      # Notes:
-      #
-      # It is recommended to use <notify : Workflows.notify> abstract workflow. It can have
-      # multiple recipients and it works for all chat systems that supports "say" function.
-      #
+          content:
+            attachments:
+              - title: $?ctx.chat_title
+                color: '{{ index .ctx.chat_colors .ctx.message_type }}'
+                text: $ctx.message
+
+        description: >
+          This function send a reply message to a slash command request. It is recommended to use
+          :code:`notify` workflow instead so we can manage the colors, message types and receipient lists through
+          contexts easily.
+
+        meta:
+          inputs:
+            - name: chat_colors
+              description: a map from message_types to color codes
+            - name: message_type
+              description: a string that represents the type of the message, used for selecting colors
+            - name: message
+              description: the message to be sent
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: slack
+                        trigger: slashcommand
+                    do:
+                      call_function: slack.reply
+                      with:
+                        chat_colors:
+                          critical: danger
+                          normal: ""
+                          error: warning
+                          good: good
+                          special: "#e432ad2e"
+                        message_type: normal
+                        message: I received your request.
       say:
-        driver: web
-        rawAction: request
+        target:
+          system: slack
+          function: reply
         parameters:
-          URL: '{{ .sysData.url }}'
-          header:
-            Content-Type: application/json
-          method: POST
-          # content:
-          #   channel: '@_place_holder_'
+          URL: $sysData.url
+          content:
+            channel: $ctx.channel_id
+
+        description: >
+          This function send a message to a slack channel slack incoming webhook. It is recommended to use
+          :code:`notify` workflow instead so we can manage the colors, message types and receipient lists through
+          contexts easily.
+
+        meta:
+          inputs:
+            - name: chat_colors
+              description: A map from message_types to color codes
+            - name: message_type
+              description: A string that represents the type of the message, used for selecting colors
+            - name: message
+              description: The message to be sent
+            - name: channel_id
+              description: >
+                The id of the channel the message is sent to. Use channel name here only when
+                sending to a public channel or to the home channel of the webhook.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: something
+                        trigger: happened
+                    do:
+                      call_function: slack.say
+                      with:
+                        chat_colors:
+                          critical: danger
+                          normal: ""
+                          error: warning
+                          good: good
+                          special: "#e432ad2e"
+                        message_type: error
+                        message: Something happened
+                        channel_id: '#public_announce'
+
     triggers:
-      # Trigger: slashcommand
-      #   raised when receive a webhook from slack with a slashcommand, the payload will be in .event.form
-      #
-      #   Examples:
-      #     Below is an example that respond to a simple slash command
-      #       +----------------------------------------------------------------------+
-      #       | ---
-      #       | rules:
-      #       |   - when:
-      #       |       source:
-      #       |         system: slack
-      #       |         trigger: slashcommand
-      #       |   - do:
-      #       |       type: if
-      #       |       condition: '{{ eq (index .event.form.text 0) "testcommand" }}'
-      #       |       content:
-      #       |         - type: function
-      #       |           content:
-      #       |             target:
-      #       |               system: slack
-      #       |               function: reply
-      #       |             parameters:
-      #       |               content:
-      #       |                 text: '{{ (index .event.form.user_name 0) }}' hello
-      #       |
-      #       +----------------------------------------------------------------------+
       slashcommand:
         driver: webhook
-        conditions:
+        if_match:
           method: POST
           form:
-            token: '{{ .sysData.token }}'
-          url: "/slack/slashcommand"
+            token: $sysData.slash_token
+          url: $sysData.slash_path
+        export:
+          response_url: $event.form.response_url.0
+          text: $event.form.text.0
+          channel_name: $event.form.channel_name.0
+          channel_fullname: '#{{ .event.form.channel_name | first }}'
+          channel_id: $event.form.channel_id.0
+          user_name: $event.form.user_name.0
+          command: '{{ splitList " " (index .event.form.text 0) | first }}'
+          parameters: '{{ (splitn " " 2 (index .event.form.text 0))._1 }}'
 
-  # System: Essentials.Systems.slack_bot
-  #
-  # Purpose:
-  #   Using slack_bot to post messages, receive slash command and receive interactions.
-  #
-  # Config:
-  #   url - the url given by slack for the incoming webhook integration
-  #   bot_token - used for chat.Postmessage to send message to any channel
-  #   interact_token - used for verify the received interaction request
-  #   slash_token - used for verify the received slash command request
-  #   path - the path part of the uri where the webhook is listening for slash command, defaults to /slack/slashcommand
-  #
-  # Synopsis:
-  #   Below is an example config for the system
-  #     +----------------------------------------------------------------------+
-  #     | ---
-  #     | systems:
-  #     |   slack_bot:
-  #     |     data:
-  #     |       url: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       bot_token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       interact_token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       slash_token: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |       path: "/command"
-  #     |
-  #     +----------------------------------------------------------------------+
-  #
-  #   You can also extend this system.
-  #     +----------------------------------------------------------------------+
-  #     | ---
-  #     | systems:
-  #     |   dev_channel:
-  #     |     extends:
-  #     |       - slack_bot
-  #     |     data:
-  #     |       url: ENC[<decryption_driver>,<base64 encoded ciphertext>]
-  #     |
-  #     +----------------------------------------------------------------------+
-  #
-  # Notes:
-  #   Use encryption for your url and token value for security
+        description: |
+          This is triggered when an user issue a slash command in a slack channel. It is recommended to use the helper workflows
+          and the predefined rules instead of using this trigger directly.
+
+        meta:
+          matching_parameters:
+            - name: .form.text
+              description: The text of the command without the prefix
+            - name: .form.channel_name
+              description: This field is to match only the command issued in a certain channel, this is only available for public channels
+            - name: .form.channel_id
+              description: This field is to match only the command issued in a certain channel
+            - name: .form.user_name
+              description: This field is to match only the command issued by a certain user
+          exports:
+            - name: response_url
+              description: Used by the :code:`reply` function to send reply messages
+            - name: text
+              description: The text of the command without the slash word prefix
+            - name: channel_name
+              description: The name of the channel without `#` prefix, this is only available for public channels
+            - name: channel_fullname
+              description: The name of the channel with `#` prefix, this is only available for public channels
+            - name: channel_id
+              description: The IDof the channel
+            - name: user_name
+              description: The name of the user who issued the command
+            - name: command
+              description: The first word in the text, used as command keyword
+            - name: parameters
+              description: The remaining string with the first word removed
+
+          notes:
+            - See below snippet for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: slack
+                        trigger: slashcommand
+                      if_match:
+                        form:
+                          channel_name:
+                            - public_channel1
+                            - channel2
+                      steps:
+                        - call_function: slack.reply
+                          with:
+                            chat_colors:
+                              this: good
+                            message_type: this
+                            message: command received `{{ .ctx.command }}`
+                        - call_workflow: do_something
+
   slack_bot:
+    description: |
+      This system enables Honeydipper to integrate with `slack`, so Honeydipper can
+      send messages to and react to commands from slack channels. This system uses slack app
+      to integrate with slack. It is recommended to use this instead of :code:`slack` system, which uses
+      a :code:`Custom Integrations` to integrate with slack.
+
+    meta:
+      configurations:
+        - name: token
+          description: The bot user token used for making API calls
+        - name: slash_token
+          description: The token for authenticating slash command requests
+        - name: interact_token
+          description: The token for authenticating slack interactive messages
+        - name: slash_path
+          description: The path portion of the webhook url for receiving slash command requests, by default :code:`/slack/slashcommand`
+        - name: interact_path
+          description: The path portion of the webhook url for receiving interactive component requests, by default :code:`/slack/interact`
+
+      notes:
+        - For example
+        - example: |
+            ---
+            systems:
+              slack_bot:
+                data:
+                  token: ENC[gcloud-kms,...masked...]
+                  slash_token: ENC[gcloud-kms,...masked...]
+                  interact_token: ENC[gcloud-kms,...masked...]
+                  slash_path: "/webhook/slash"
+                  interact_path: "/webhook/slash_interact"
+        - |
+          To configure the integration in slack,
+
+          1. select from menu :code:`Administration` => :code:`Manage Apps`
+          2. select :code:`Build` from top menu, create an app or select an exist app from :code:`Your Apps`
+          3. add feature :code:`Bot User`, and copy the :code:`Bot User OAuth Access Token` and record it as  :code:`token` in system data
+          4. create a random token to be used in slash command integration, and record it as :code:`slash_token` in system data
+          5. add feature :code:`Slash Commands`, and use the url like below to send commands
+
+        - |
+          .. code-block::
+
+             https://myhoneydipper.com/webhook/slash?token=...masked...
+        - |
+          6. create another random token to be used in interactive components integration, and record it as :code:`interact_token` in system data
+          7. add feature :code:`interactive components` and use url like below
+
+        - |
+          .. code-block::
+
+             https://myhoneydipper.com/webhook/slash_interact?token=...masked...
     data:
       url: https://slack.com/api/chat.postMessage
-      bot_token: _place_holder_
+      token: _place_holder_
       interact_token: _place_holder_
-      slash_token: _place_holder_
+      interact_path: /slack/interact
     extends:
       - slack
+
     triggers:
-      # Trigger: interact
-      #   raised when user click on interactive buttons in the messages posted through slack integration. You don't use
-      #   this trigger directly, instead just use the `suspend` workflow and the builtin `interact rule` will `resume`
-      #   the the workflow with user input, when user click on some button.
-      #
-      #   Examples:
-      #     Below is an example that respond to a simple slash command
-      #       +----------------------------------------------------------------------+
-      #       | ---
-      #       | rules:
-      #       |   - when:
-      #       |       source:
-      #       |         system: slack_bot
-      #       |         trigger: slashcommand
-      #       |   - do:
-      #       |       type: if
-      #       |       condition: '{{ eq (index .event.form.text 0) "testcommand" }}'
-      #       |       content:
-      #       |         - type: pipe
-      #       |           content:
-      #       |             - content: notify:
-      #       |               data:
-      #       |                 chat_system: slack_bot
-      #       |                 message: ... some interactive message ...
-      #       |             - type: suspend
-      #       |               content: some_id
-      #       |             - content: notify
-      #       |               data:
-      #       |                 chat_system: slack_bot
-      #       |                 message: You clicked .....
-      #       |
-      #       +----------------------------------------------------------------------+
       interact:
         driver: webhook
-        conditions:
+        if_match:
           method: POST
-          url: "/slack/interact"
+          url: $sysData.interact_path
           form:
-            token: '{{ .sysData.interact_token }}'
+            token: $sysData.interact_token
+        export:
+          slack_payload: :yaml:{{ index .event.form.payload 0 | replace "\\n" "\n" | replace "\\/" "/" }}
 
-      # Trigger: slashcommand
-      #   raised when receive a webhook from slack with a slashcommand, the payload will be in .event.form
-      #
-      #   Examples:
-      #     Below is an example that respond to a simple slash command
-      #       +----------------------------------------------------------------------+
-      #       | ---
-      #       | rules:
-      #       |   - when:
-      #       |       source:
-      #       |         system: slack_bot
-      #       |         trigger: slashcommand
-      #       |   - do:
-      #       |       type: if
-      #       |       condition: '{{ eq (index .event.form.text 0) "testcommand" }}'
-      #       |       content:
-      #       |         - type: function
-      #       |           content:
-      #       |             target:
-      #       |               system: slack_bot
-      #       |               function: reply
-      #       |             parameters:
-      #       |               content:
-      #       |                 text: '{{ (index .event.form.user_name 0) }}' hello
-      #       |
-      #       +----------------------------------------------------------------------+
-      slashcommand:
-        # due to a bug (to be fixed in v0.1.7)
-        # conditions are not able to merge with inheritted parent condition
-        # for now, specify full conditions here.
-        conditions:
-          method: POST
-          form:
-            token: '{{ .sysData.slash_token }}'
-          url: "/slack/slashcommand"
+        description: |
+          This is triggered when an user responds to an interactive component in a message. This enables honeydipper
+          to interactively reacts to user choices through slack messages. A builtin rule is defined to respond to this
+          trigger, so in normal cases, it is not necessary to use this trigger directly.
+
+        meta:
+          exports:
+            - name: slack_payload
+              description: The payload of the interactive response
+
     functions:
-      # Action: say
-      #
-      # post a message to slack using bot integration.
-      #
-      # Parameters:
-      #
-      # content - the payload of the message, "channel" field will be recipient.
-      #
-      # See slack documents for detail on attachments and formatting.
-      #
-      # Example:
-      #
-      # === Code
-      # ---
-      # rules:
-      #   - when:
-      #       ...
-      #     do:
-      #       target:
-      #         system: slack_bot
-      #         function: say
-      #       parameters:
-      #         content:
-      #           attachments:
-      #             - title: Honeydipper Message
-      #               color: good
-      #               text: Hello world
-      #           channel: #public_channel
-      # ===
-      #
-      # Notes:
-      #
-      # It is recommended to use <notify : Workflows.notify> abstract workflow. It can have
-      # multiple recipients and it works for all chat systems that supports "say" function.
-      #
       say:
         parameters:
           header:
-            Authorization: 'Bearer {{ .sysData.bot_token }}'
-          content:
-            channel: '@_place_holder_'
+            Authorization: 'Bearer {{ .sysData.token }}'

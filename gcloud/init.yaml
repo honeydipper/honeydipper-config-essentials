@@ -1,15 +1,5 @@
 ---
-# Bundle: Gcloud.01-Installation
-#   This bundle comes with a few gcloud related drivers to interacting with gcloud resources.
-#
-# Installation:
-#   Include this repo as follows in your bootstrap repo init.yaml
-#     +---------------------------
-#     | ---
-#     | repos:
-#     |   - repo: git@github.com:honeydipper/honeydipper-config-essentials.git
-#     |     path: /gcloud
-#     +---------------------------
-#
 includes:
   - drivers.yaml
+  - contexts.yaml
+  - workflows.yaml

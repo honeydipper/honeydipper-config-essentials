@@ -2,3 +2,5 @@
 includes:
   - systems.yaml
   - rules.yaml
+  - contexts.yaml
+  - workflows.yaml

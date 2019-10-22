@@ -1,0 +1,24 @@
+---
+contexts:
+  _slashcommands:
+    _events:
+      hooks:
+        - on_first_action: []
+        - on_exit: []
+        - on_error: []
+        - on_failure: []
+
+##################### All slash commands #################
+    slashcommand:
+      slashcommands:
+        help:
+          usage: show help message of slashcommands
+          workflow: slashcommand/help
+          keep_commands: true
+
+        reload:
+          usage: reload honeydipper config
+          workflow: reload
+
+    reload:
+      force: '{{ splitList " " .ctx.parameters | has "force" }}'

@@ -1,0 +1,133 @@
+:yaml:---
+{{- $finalStepNum := sub (len .ctx.steps) 1 }}
+{{- define "volumeMounts" }}
+          {{- range . }}
+            - mountPath: {{ .mountPath }}
+              name: {{ .volume.name }}
+              {{- if .subPath }}
+              subPath: {{ .subPath }}
+              {{- end }}
+          {{- end }}
+{{- end }}
+{{- define "container" }}
+        {{- $step := index . 0 }}
+        {{- $index := index . 1 }}
+        {{- $script_types := index . 2 }}
+        {{- $env := index . 3 }}
+        {{- $volumes := index . 4 }}
+
+        {{- with $step }}
+        {{- $useShell := not (empty .shell) }}
+        {{- $processor := index $script_types (default "bash" .type) }}
+        - name: step-{{ default $index .name }}
+          image: {{ $processor.image }}
+          workingDir: '{{ default "/honeydipper" .workingDir }}'
+          env:
+            {{- if (and (empty $env) (empty .env)) }}
+            []
+            {{- else }}
+            {{- range $env }}
+            - {{ toJson . }}
+            {{- end }}
+            {{- range .env }}
+            - {{ toJson . }}
+            {{- end }}
+            {{- end }}
+          volumeMounts:
+            - mountPath: /honeydipper
+              name: workdir
+            {{ template "volumeMounts" $volumes }}
+            {{ template "volumeMounts" .volumes }}
+          {{- if $useShell }}
+          {{-   if $processor.shell_entry }}
+          command: {{ $processor.shell_entry | toJson }}
+          {{-   end }}
+          {{-   if typeIs "string" .shell }}
+          args: {{ append (default (list) $processor.shell_prefix) .shell | toJson }}
+          {{-   else }}
+          args:
+            {{-   range $processor.shell_prefix }}
+            - {{    . | toJson }}
+            {{-   end }}
+            {{-   range .shell }}
+            - {{    . | toJson }}
+            {{-   end }}
+          {{-   end }}
+          {{- else }}
+          {{-   if $processor.command_entry }}
+          command: {{ $processor.command_entry | toJson }}
+          {{-   end }}
+          {{-   if typeIs "string" .command }}
+          args: {{ append (default (list) $processor.command_prefix) .command | toJson }}
+          {{-   else }}
+          args:
+            {{-   range $processor.command_prefix }}
+            - {{    . | toJson }}
+            {{-   end }}
+            {{-   range .command }}
+            - {{    . | toJson }}
+            {{-   end }}
+          {{-   end }}
+          {{- end }}
+          {{- with $processor.securityContext }}
+          securityContext: {{ . | toJson }}
+          {{- end }}
+          {{- end }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: "honeydipper-job-"
+spec:
+  template:
+    spec:
+      {{- with (initial .ctx.steps) }}
+      initContainers:
+        {{- range $index, $step := . }}
+        {{-   if empty $step.as_sidecar }}
+        {{-     template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{-   end }}
+        {{- end }}
+      {{- end }}
+      containers:
+        {{- with (last .ctx.steps) }}
+        {{-   template "container" (list . $finalStepNum $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{- end }}
+        {{- with (initial .ctx.steps) }}
+        {{-   range $index, $step := . }}
+        {{-     if not (empty $step.as_sidecar) }}
+        {{-       template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{-     end }}
+        {{-   end }}
+        {{- end }}
+      restartPolicy: Never
+      volumes:
+        - name: workdir
+          emptyDir: {}
+        {{- range .ctx.volumes }}
+        - {{ toJson .volume }}
+        {{- end }}
+        {{- range .ctx.steps }}
+        {{-   range .volumes }}
+        - {{ toJson .volume }}
+        {{-   end }}
+        {{- end }}
+      {{- with .ctx.nodeSelector }}
+      nodeSelector:
+        {{ . | toJson }}
+      {{- end }}
+      {{- with .ctx.affinity }}
+      affinity:
+        {{ . | toJson }}
+      {{- end }}
+      {{- with .ctx.tolerations }}
+      tolerations:
+        {{ . | toJson }}
+      {{- end }}
+  backoffLimit: 1
+  {{- with .ctx.timeout }}
+  activeDeadlineSeconds: {{ . }}
+  {{- end }}
+  {{- with .ctx.cleanupAfter }}
+  TTLSecondsAfterFinished: {{ . }}
+  {{- end }}
