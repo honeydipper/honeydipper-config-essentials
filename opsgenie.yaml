@@ -53,6 +53,7 @@ systems:
             user: honeydipper
             source: honeydipper
             notes: snoozed due to honeydipper automation
+          retry: 2
         export:
           result: $data.json.result
 
@@ -84,6 +85,145 @@ systems:
                       call_function: opsgenie.snooze
                       #  alert_Id is exported from the event
 
+      schedules:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: https://api.opsgenie.com/v2/schedules{{ with .ctx.scheduleId }}/{{ . }}?identifierType={{ default "name" $.ctx.scheduleIdType }}{{ end }}
+          method: GET
+          header:
+            Authorization: GenieKey {{ .sysData.API_KEY }}
+          form:
+            limit: "100"
+          retry: 2
+        export:
+          schedule: $data.json.data
+          schedules: $data.json.data
+
+        meta:
+          description:
+            - This function list all on-call schedules or fetch a schedule detail if given a schedule identifier.
+            - highlight: This function only fetches first 100 schedules when listing.
+              type: important
+
+          inputs:
+            - name: scheduleId
+              description: The name or ID or the schedule of interest; if missing, list all schedules.
+            - name: scheduleIdType
+              description: The type of the identifier, :code:`name` or :code:`id`.
+          exports:
+            - name: schedule
+              description: For fetching detail, the data structure that contains the schedule detail
+            - name: schedules
+              description: For listing, a list of data structure contains the schedule details
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  steps:
+                    - call_function: opsgenie.schedules
+
+      whoisoncall:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: https://api.opsgenie.com/v2/schedules/{{ .ctx.scheduleId }}/on-calls
+          method: GET
+          header:
+            Authorization: GenieKey {{ .sysData.API_KEY }}
+          form:
+            identifierType: $ctx.scheduleIdType,"name"
+            flat: $ctx.flat,"true"
+          retry: 2
+        export:
+          result: $data.json.data
+
+        meta:
+          description:
+            - This function gets the current on-call persons for the given schedule.
+
+          inputs:
+            - name: scheduleId
+              description: The name or ID or the schedule of interest, required
+            - name: scheduleIdType
+              description: The type of the identifier, :code:`name` or :code:`id`.
+            - name: flat
+              description: If true, will only return the usernames, otherwise, will return all including notification, team etc.
+          exports:
+            - name: result
+              description: the data portion of the json payload.
+
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  steps:
+                    - call_function: opsgenie.whoisoncall
+                      with:
+                        scheduleId: sre_schedule
+
+      users:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: https://api.opsgenie.com/v2/users{{ with .ctx.userId }}/{{ . }}{{ end }}
+          method: GET
+          header:
+            Authorization: GenieKey {{ .sysData.API_KEY }}
+          form:
+            offset: $ctx.opsgenie_offset,"0"
+            query: $ctx.query,""
+            order: $ctx.order,"asc"
+            sort: $ctx.sort,""
+          retry: 2
+        export:
+          user: $data.json.data
+          users+: $data.json.data
+          opsgenie_offset: '{{ with .data.json.paging }}{{ with .next }}{{ splitList "offset=" . | rest | first | splitList "&" | first }}{{ end }}{{ end }}'
+
+        meta:
+          description:
+            - This function gets the user detail with a given ID or list all users
+
+          inputs:
+            - name: userId
+              description: The ID of the user for which to get details; if missing, list users
+            - name: offset
+              description: Number of users to skip from start, used for paging
+            - name: query
+              description: >-
+                :code:`Field:value` combinations with most of user fields to make more advanced searches.
+                Possible fields are :code:`username`, :code:`fullName blocked`, :code:`verified`, :code:`role`,
+                :code:`locale`, :code:`timeZone`, :code:`userAddress` and :code:`createdAt`
+            - name: order
+              description: The direction of the sorting, :code:`asc` or :code:`desc`, default is :code:`asc`
+            - name: sort
+              description: >-
+                The field used for sorting the result, could be :code:`username`, :code:`fullname` or
+                :code:`insertedAt`.
+          exports:
+            - name: user
+              description: The detail of user in a map, or a list of users
+            - name: users
+              description: The detail of user in a map, or a list of users
+            - name: opsgenie_offset
+              description: The offset that can be used for continue fetching the rest of the users, for paging
+
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  steps:
+                    - call_function: opsgenie.users
+                      with:
+                        query: username:foobar
+
       heartbeat:
         driver: web
         rawAction: request
@@ -92,6 +232,7 @@ systems:
           method: GET
           header:
             Authorization: GenieKey {{ .sysData.API_KEY }}
+          retry: 2
         export:
           result: $data.json.result
 
@@ -172,3 +313,16 @@ systems:
                       call_workflow: notify
                       with:
                         message: 'The alert url is {{ .ctx.alert_url }}'
+
+workflows:
+  opsgenie_users:
+    steps:
+      - call_function: opsgenie.users
+      - while:
+          - $?ctx.opsgenie_offset
+        steps:
+          - call_function: opsgenie.users
+
+    meta:
+      description:
+        - This workflow wraps around the :code:`opsgenie.users` function and handles paging to get all users from Opsgenie.

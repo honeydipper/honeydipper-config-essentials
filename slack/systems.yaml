@@ -58,7 +58,8 @@ systems:
             attachments:
               - title: $?ctx.chat_title
                 color: '{{ index .ctx.chat_colors .ctx.message_type }}'
-                text: $ctx.message
+                text: $?ctx.message
+                blocks: $?ctx.blocks
 
         description: >
           This function send a reply message to a slash command request. It is recommended to use
@@ -303,3 +304,38 @@ systems:
         parameters:
           header:
             Authorization: 'Bearer {{ .sysData.token }}'
+
+      users:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: https://slack.com/api/users.list
+          header:
+            Authorization: 'Bearer {{ .sysData.token }}'
+            Content-Type: application/x-www-form-urlencoded
+            Accept: application/json
+          method: GET
+          form:
+            cursor: $ctx.slack_next_cursor,""
+        export:
+          members+: $data.json.members
+          slack_next_cursor: $?data.json.response_metadata.next_cursor
+
+        meta:
+          description:
+            - This function queries all users for the team
+          inputs:
+            - name: cursor
+              description: Used for pagination, continue fetching from the cursor
+          exports:
+            - name: slack_next_cursor
+              description: Used for pagination, used by next call to continue fetch
+            - name: members
+              description: A list of data structures containing member information
+          notes:
+            - See below for example:
+            - example: |
+                ---
+                workflows:
+                  get_all_slack_users:
+                    call_function: slack_bot.users
