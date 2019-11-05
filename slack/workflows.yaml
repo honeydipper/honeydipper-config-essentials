@@ -168,3 +168,15 @@ workflows:
     with:
       notify: $?ctx.status_notify
       notify+: $?ctx.slash_notify
+
+  slack_users:
+    steps:
+      - call_function: slack_bot.users
+      - while:
+          - $?ctx.slack_next_cursor
+        steps:
+          - call_function: slack_bot.users
+
+    meta:
+      description:
+        - This workflow wraps around the :code:`slack_bot.users` function and make multiple calls to stitch pages together.
