@@ -128,11 +128,15 @@ workflows:
 
     call_workflow: notify
     with:
-      message: |-
-        All supported commands
-        {{- range .ctx.slashcommands }}
-        `{{ .command }}` - {{ .usage }}
-        {{- end }}
+      blocks:
+        - type: section
+          text:
+            text: |-
+              *All supported commands*
+              {{- range .ctx.slashcommands }}
+              `{{ .command }}` - {{ .usage }}
+              {{- end }}
+            type: mrkdwn
 
   slashcommand/announcement:
     meta:
