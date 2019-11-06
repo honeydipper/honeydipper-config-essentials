@@ -55,11 +55,16 @@ systems:
             Content-Type: application/json
           method: POST
           content:
-            attachments:
-              - title: $?ctx.chat_title
+            attachments: |-
+              :yaml:---
+              {{ if empty .ctx.message }}
+              []
+              {{ else }}
+              - title: '{{ default "" .ctx.chat_title }}'
                 color: '{{ index .ctx.chat_colors .ctx.message_type }}'
-                text: $?ctx.message
-                blocks: $?ctx.blocks
+                text: {{ .ctx.message | toJson }}
+              {{ end }}
+            blocks: $?ctx.blocks
 
         description: >
           This function send a reply message to a slash command request. It is recommended to use
@@ -74,6 +79,8 @@ systems:
               description: a string that represents the type of the message, used for selecting colors
             - name: message
               description: the message to be sent
+            - name: blocks
+              description: construct the message using the slack :code:`layout blocks`, see slack document for detail
 
           notes:
             - See below for example
@@ -121,6 +128,8 @@ systems:
               description: >
                 The id of the channel the message is sent to. Use channel name here only when
                 sending to a public channel or to the home channel of the webhook.
+            - name: blocks
+              description: construct the message using the slack :code:`layout blocks`, see slack document for detail
 
           notes:
             - See below for example
