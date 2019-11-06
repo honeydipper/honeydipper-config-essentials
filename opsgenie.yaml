@@ -43,7 +43,7 @@ systems:
         driver: web
         rawAction: request
         parameters:
-          URL: https://api.opsgenie.com/v2/alerts/{{ .ctx.alert_Id }}/snooze
+          URL: https://api.opsgenie.com/v2/alerts/{{ .ctx.alert_Id }}/snooze?identifierType=tiny
           header:
             Content-Type: application/json
             Authorization: GenieKey {{ .sysData.API_KEY }}
