@@ -64,6 +64,7 @@ systems:
                 color: '{{ index .ctx.chat_colors .ctx.message_type }}'
                 text: {{ .ctx.message | toJson }}
               {{ end }}
+            response_type: '{{ default "ephemeral" .ctx.response_type }}'
             blocks: $?ctx.blocks
 
         description: >
