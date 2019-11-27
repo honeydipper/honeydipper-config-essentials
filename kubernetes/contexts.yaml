@@ -51,10 +51,10 @@ contexts:
                 name: git-deploy-key
                 secret:
                   defaultMode: 384
-                  secretName: "{{ `{{ .sysData.git_key_secret }}` }}"
+                  secretName: "{{ default `{{ .sysData.git_key_secret }}` .ctx.git_key_secret }}"
           env:
             - name: REPO
-              value: '{{ `{{ .sysData.git_url }}` }}'
+              value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
             - name: BRANCH
               value: '{{ default "" .ctx.git_ref }}'
 
