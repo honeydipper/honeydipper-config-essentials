@@ -216,4 +216,6 @@ workflows:
       - on_failure: continue
         steps:
           - call_function: '{{ .ctx.system }}.waitForJob'
+            with:
+              retry: 2
           - call_function: '{{ .ctx.system }}.getJobLog'
