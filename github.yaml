@@ -58,6 +58,91 @@ systems:
             - name: resource_path
               description: This field is used as the path portion of the API call url
 
+      createRepo:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/orgs/{{ .ctx.org }}/repos'
+          method: POST
+          content:
+            name: $ctx.name
+            private: $ctx.private,"false"
+        export:
+          repoid: '{{ .data.json.id | int }}'
+
+        description: >
+          This function will create a github repository for your org
+
+        meta:
+          inputs:
+            - name: org
+              description: the name of your org
+            - name: name
+              description: The name of your repository
+            - name: private
+              description: privacy of your repo, either true or false(it's default to false if not declared)
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      driver: webhook
+                      if_match:
+                        url: /createrepo
+                    do:
+                      call_workflow: github_create_repo
+
+                workflows:
+                  github_create_repo:
+                    call_function: github.createRepo
+                    with:
+                      org: testing
+                      name: testing-repo
+
+      addRepoToInstallation:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/user/installations/{{ .ctx.installationid }}/repositories/{{ .ctx.repoid }}'
+          method: PUT
+          header:
+            Authorization: token {{ .sysData.oauth_token }}
+            Accept: application/vnd.github.v3+json, application/vnd.github.machine-man-preview+json
+            Content-Type: application/json; charset=utf-8
+
+        description: >
+          This function will add a repo into an installed github app
+
+        meta:
+          inputs:
+            - name: installation_id
+              description: The installation_id of your github app
+            - name: repoid
+              description: The Id of your github repository
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      driver: webhook
+                      if_match:
+                        url: /addrepoinstallation
+                    do:
+                      call_workflow: github_add_repo_installation
+
+                workflows:
+                  github_add_repo_installation:
+                    call_function: github.addRepoToInstallation
+                    with:
+                      repoid: 12345678
+                      intallationid: 12345678
+
       createStatus:
         target:
           system: github
