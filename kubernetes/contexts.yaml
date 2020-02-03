@@ -40,12 +40,41 @@ contexts:
           shell_entry: [ "/bin/bash", "-c" ]
 
       predefined_steps:
+        ssh-key-with-kms:
+          name: ssh-key-with-kms
+          type: gcloud
+          shell: |
+            mkdir -p /honeydipper/.ssh
+            echo -n "$SSH_KEY_OPAQUE" |
+            base64 --decode |
+            gcloud --project "$KMS_PROJECT" kms decrypt \
+              --keyring "$KMS_KEYRING" \
+              --key "$KMS_KEY" \
+              --location "$KMS_LOCATION" \
+              --ciphertext-file - \
+              --plaintext-file /honeydipper/.ssh/id_rsa
+            chmod 600 /honeydipper/.ssh/id_rsa
+          env:
+            - name: SSH_KEY_OPAQUE
+              value: '{{ default `{{ .sysData.ssh_key_opaque }}` .ctx.ssh_key_opaque }}'
+            - name: KMS_PROJECT
+              value: '{{ default `{{ coalesce .sysData.kms_project .sysData.project }}` .ctx.kms_project }}'
+            - name: KMS_KEYRING
+              value: '{{ default `{{ .sysData.kms_keyring }}` .ctx.kms_keyring }}'
+            - name: KMS_KEY
+              value: '{{ default `{{ .sysData.kms_key }}` .ctx.kms_key }}'
+            - name: KMS_LOCATION
+              value: '{{ default `{{ .sysData.kms_location }}` .ctx.kms_location }}'
+
         git-clone:
           name: git-clone
           type: git
-          shell: "@:resources/git-clone.sh"
+          shell: |
+            set -eo pipefail
+            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
           volumes:
-            - mountPath: /root/id_rsa
+            - mountPath: /honeydipper/.ssh/id_rsa
               subPath: id_rsa
               volume:
                 name: git-deploy-key
@@ -57,6 +86,57 @@ contexts:
               value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
             - name: BRANCH
               value: '{{ default "" .ctx.git_ref }}'
+
+        git-clone-opaque-key:
+          name: git-clone
+          type: git
+          shell: |
+            set -eo pipefail
+            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
+          env:
+            - name: REPO
+              value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
+            - name: BRANCH
+              value: '{{ default "" .ctx.git_ref }}'
+
+        git-push:
+          name: git-push
+          type: git
+          shell: |
+            set -eo pipefail
+            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa; git checkout -b $HEAD_BRANCH; git push $REPO $HEAD_BRANCH ${FORCE}"
+          volumes:
+            - mountPath: /honeydipper/.ssh/id_rsa
+              subPath: id_rsa
+              volume:
+                name: git-deploy-key
+                secret:
+                  defaultMode: 384
+                  secretName: "{{ default `{{ .sysData.git_key_secret }}` .ctx.git_key_secret }}"
+          env:
+            - name: REPO
+              value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
+            - name: HEAD_BRANCH
+              value: $ctx.head_branch,"honeydipper-push"
+            - name: FORCE
+              value: '{{ if .ctx.force }}--force-with-lease{{ end }}'
+
+        git-push-opaque-key:
+          name: git-push
+          type: git
+          shell: |
+            set -eo pipefail
+            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa; git checkout -b $HEAD_BRANCH; git push $REPO $HEAD_BRANCH ${FORCE}"
+          env:
+            - name: REPO
+              value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
+            - name: HEAD_BRANCH
+              value: $ctx.head_branch,"honeydipper-push"
+            - name: FORCE
+              value: '{{ if .ctx.force }}--force-with-lease{{ end }}'
 
         local_kubeconfig:
           name: set-kube-local
