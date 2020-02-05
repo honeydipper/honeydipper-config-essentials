@@ -169,8 +169,8 @@ systems:
           channel_fullname: '#{{ .event.form.channel_name | first }}'
           channel_id: $event.form.channel_id.0
           user_name: $event.form.user_name.0
-          command: '{{ splitList " " (index .event.form.text 0) | first }}'
-          parameters: '{{ (splitn " " 2 (index .event.form.text 0))._1 | default "" }}'
+          command: '{{ regexReplaceAll "[\\*~]" (splitList " " (index .event.form.text 0) | first) "" }}'
+          parameters: '{{ regexReplaceAll "[\\*~]" (splitn " " 2 (index .event.form.text 0))._1 "" | default "" }}'
 
         description: |
           This is triggered when an user issue a slash command in a slack channel. It is recommended to use the helper workflows
