@@ -45,7 +45,7 @@ systems:
         parameters:
           URL: https://api.github.com/{{ .ctx.resource_path }}
           header:
-            Authorization: token {{ .sysData.oauth_token }}
+            Authorization: token {{ coalesce .ctx.github_oauth_token .sysData.oauth_token }}
             Accept: application/vnd.github.v3+json
             Content-Type: application/json; charset=utf-8
 
@@ -57,6 +57,52 @@ systems:
           inputs:
             - name: resource_path
               description: This field is used as the path portion of the API call url
+
+      createPR:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/pulls'
+          method: POST
+          content: $ctx.PR_content
+        export:
+          PR: '{{ .data.json }}'
+
+        description: >
+          This function will create a pull request with given infomation
+
+        meta:
+          inputs:
+            - name: git_repo
+              description: The repo that the new PR is for, e.g. :code:`myorg/myrepo`
+            - name: PR_content
+              description: The data structure to be passed to github for creating the PR, see `here <https://developer.github.com/v3/pulls/#input>`_ for detail
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      driver: webhook
+                      if_match:
+                        url: /createPR
+                    do:
+                      call_workflow: github_create_PR
+
+                workflows:
+                  github_create_PR:
+                    call_function: github.createPR
+                    with:
+                      git_repo: myorg/myreop
+                      PR_content:
+                        title: update the data
+                        head: mybranch
+                        body: |
+                          The data needs to be updated
+
+                          This PR is created using honeydipper
 
       createRepo:
         target:
