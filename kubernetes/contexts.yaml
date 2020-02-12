@@ -55,15 +55,15 @@ contexts:
               --plaintext-file .npmrc
           env:
             - name: NPM_TOKEN_OPAQUE
-              value: $ctx.npm_token_opaque,"$sysData.npm.token_opaque"
+              value: $ctx.npm_token_opaque,"$sysData.npm.npm_token_opaque,sysData.npm_token_opaque"
             - name: KMS_PROJECT
-              value: $ctx.npm_kms_project,"$sysData.npm.kms_project,sysData.project"
+              value: $ctx.npm_kms_project,"$sysData.npm.kms_project,sysData.kms_project,sysData.project"
             - name: KMS_KEYRING
-              value: $ctx.npm_kms_keyring,"$sysData.npm.kms_keyring"
+              value: $ctx.npm_kms_keyring,"$sysData.npm.kms_keyring,sysData.kms_keyring"
             - name: KMS_KEY
-              value: $ctx.npm_kms_key,"$sysData.npm.kms_key"
+              value: $ctx.npm_kms_key,"$sysData.npm.kms_key,sysData.kms_key"
             - name: KMS_LOCATION
-              value: $ctx.npm_kms_location,"$sysData.npm.kms_location"
+              value: $ctx.npm_kms_location,"$sysData.npm.kms_location,sysData.kms_location"
 
         ssh-key-with-kms:
           name: ssh-key-with-kms
