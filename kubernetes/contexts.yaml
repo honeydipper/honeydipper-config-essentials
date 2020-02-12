@@ -40,6 +40,31 @@ contexts:
           shell_entry: [ "/bin/bash", "-c" ]
 
       predefined_steps:
+        npm-token-with-kms:
+          name: npm-token-with-kms
+          type: gcloud
+          workingDir: /honeydipper/repo
+          shell: |
+            echo -n "$NPM_TOKEN_OPAQUE" |
+            base64 --decode |
+            gcloud --project "$KMS_PROJECT" kms decrypt \
+              --keyring "$KMS_KEYRING" \
+              --key "$KMS_KEY" \
+              --location "$KMS_LOCATION" \
+              --ciphertext-file - \
+              --plaintext-file .npmrc
+          env:
+            - name: NPM_TOKEN_OPAQUE
+              value: $ctx.npm_token_opaque,"$sysData.npm.token_opaque"
+            - name: KMS_PROJECT
+              value: $ctx.npm_kms_project,"$sysData.npm.kms_project,sysData.project"
+            - name: KMS_KEYRING
+              value: $ctx.npm_kms_keyring,"$sysData.npm.kms_keyring"
+            - name: KMS_KEY
+              value: $ctx.npm_kms_key,"$sysData.npm.kms_key"
+            - name: KMS_LOCATION
+              value: $ctx.npm_kms_location,"$sysData.npm.kms_location"
+
         ssh-key-with-kms:
           name: ssh-key-with-kms
           type: gcloud
