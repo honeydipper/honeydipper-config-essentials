@@ -96,8 +96,8 @@ contexts:
           type: git
           shell: |
             set -eo pipefail
-            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts
-            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
+            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts 2>/dev/null
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
           volumes:
             - mountPath: /honeydipper/.ssh/id_rsa
               subPath: id_rsa
@@ -117,8 +117,8 @@ contexts:
           type: git
           shell: |
             set -eo pipefail
-            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts
-            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
+            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts 2>/dev/null
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
           env:
             - name: REPO
               value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
@@ -130,8 +130,13 @@ contexts:
           type: git
           shell: |
             set -eo pipefail
-            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts
-            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa; git checkout -b $HEAD_BRANCH; git push origin $HEAD_BRANCH ${FORCE}"
+            CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+            if ! git diff --exit-code "${CURRENT_BRANCH}..origin/${CURRENT_BRANCH}"; then
+              ssh-keyscan github.com > /etc/ssh/ssh_known_hosts 2>/dev/null
+              ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git checkout -b $HEAD_BRANCH; git push origin $HEAD_BRANCH ${FORCE}"
+            else
+              echo No changes, skipping git push!
+            fi
           workingDir: /honeydipper/repo
           volumes:
             - mountPath: /honeydipper/.ssh/id_rsa
@@ -154,8 +159,13 @@ contexts:
           type: git
           shell: |
             set -eo pipefail
-            ssh-keyscan github.com > /etc/ssh/ssh_known_hosts
-            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa; git checkout -b $HEAD_BRANCH; git push origin $HEAD_BRANCH ${FORCE}"
+            CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+            if ! git diff --exit-code "${CURRENT_BRANCH}..origin/${CURRENT_BRANCH}"; then
+              ssh-keyscan github.com > /etc/ssh/ssh_known_hosts 2>/dev/null
+              ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git checkout -b $HEAD_BRANCH; git push origin $HEAD_BRANCH ${FORCE}"
+            else
+              echo No changes, skipping git push!
+            fi
           workingDir: /honeydipper/repo
           env:
             - name: REPO
