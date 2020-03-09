@@ -87,7 +87,7 @@ contexts:
           shell: |
             set -eo pipefail
             ssh-keyscan github.com > /etc/ssh/ssh_known_hosts 2>/dev/null
-            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO $DIR"
           volumes:
             - mountPath: /honeydipper/.ssh/id_rsa
               subPath: id_rsa
@@ -99,6 +99,7 @@ contexts:
           env:
             REPO: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
             BRANCH: '{{ default "" .ctx.git_ref }}'
+            DIR: repo
 
         git-clone-opaque-key:
           name: git-clone
@@ -106,10 +107,11 @@ contexts:
           shell: |
             set -eo pipefail
             ssh-keyscan github.com > /etc/ssh/ssh_known_hosts 2>/dev/null
-            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO $DIR"
           env:
             REPO: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
             BRANCH: '{{ default "" .ctx.git_ref }}'
+            DIR: repo
 
         git-push:
           name: git-push
