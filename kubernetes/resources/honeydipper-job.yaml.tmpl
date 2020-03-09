@@ -9,6 +9,21 @@
               {{- end }}
           {{- end }}
 {{- end }}
+{{- define "expandEnvironments" }}
+            {{- if kindIs "map" . }}
+            {{- range $k, $v := . }}
+            {{- if typeIs "string" $v }}
+            - {{ dict "name" $k "value" $v | toJson }}
+            {{- else }}
+            - {{ set (deepCopy $v) "name" $k | toJson }}
+            {{- end }}
+            {{- end }}
+            {{- else }}
+            {{- range . }}
+            - {{ toJson . }}
+            {{- end }}
+            {{- end }}
+{{- end }}
 {{- define "container" }}
         {{- $step := index . 0 }}
         {{- $index := index . 1 }}
@@ -26,12 +41,8 @@
             {{- if (and (empty $env) (empty .env)) }}
             []
             {{- else }}
-            {{- range $env }}
-            - {{ toJson . }}
-            {{- end }}
-            {{- range .env }}
-            - {{ toJson . }}
-            {{- end }}
+            {{ template "expandEnvironments" $env }}
+            {{ template "expandEnvironments" .env }}
             {{- end }}
           volumeMounts:
             - mountPath: /honeydipper
