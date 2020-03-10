@@ -40,6 +40,26 @@ contexts:
           shell_entry: [ "/bin/bash", "-c" ]
 
       predefined_steps:
+        kms:
+          name: kms
+          type: gcloud
+          shell: |
+            echo -n "$SECRET_OPAQUE" |
+            base64 --decode |
+            gcloud --project "$KMS_PROJECT" kms decrypt \
+              --keyring "$KMS_KEYRING" \
+              --key "$KMS_KEY" \
+              --location "$KMS_LOCATION" \
+              --ciphertext-file - \
+              --plaintext-file "$SECRET_FILE"
+          env:
+            SECRET_OPAQUE: $?ctx.secret_opaque
+            SECRET_FILE: $?ctx.secret_file
+            KMS_PROJECT: $ctx.kms_project,"$sysData.kms_project,sysData.project"
+            KMS_KEYRING: $ctx.kms_keyring,"$sysData.kms_keyring"
+            KMS_KEY: $ctx.kms_key,"$sysData.kms_key"
+            KMS_LOCATION: $ctx.kms_location,"$sysData.kms_location"
+
         npm-token-with-kms:
           name: npm-token-with-kms
           type: gcloud
