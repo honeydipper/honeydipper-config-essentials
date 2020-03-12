@@ -40,6 +40,26 @@ contexts:
           shell_entry: [ "/bin/bash", "-c" ]
 
       predefined_steps:
+        kms:
+          name: kms
+          type: gcloud
+          shell: |
+            echo -n "$SECRET_OPAQUE" |
+            base64 --decode |
+            gcloud --project "$KMS_PROJECT" kms decrypt \
+              --keyring "$KMS_KEYRING" \
+              --key "$KMS_KEY" \
+              --location "$KMS_LOCATION" \
+              --ciphertext-file - \
+              --plaintext-file "$SECRET_FILE"
+          env:
+            SECRET_OPAQUE: $?ctx.secret_opaque
+            SECRET_FILE: $?ctx.secret_file
+            KMS_PROJECT: $ctx.kms_project,"$sysData.kms_project,sysData.project"
+            KMS_KEYRING: $ctx.kms_keyring,"$sysData.kms_keyring"
+            KMS_KEY: $ctx.kms_key,"$sysData.kms_key"
+            KMS_LOCATION: $ctx.kms_location,"$sysData.kms_location"
+
         npm-token-with-kms:
           name: npm-token-with-kms
           type: gcloud
@@ -54,22 +74,17 @@ contexts:
               --ciphertext-file - \
               --plaintext-file .npmrc
           env:
-            - name: NPM_TOKEN_OPAQUE
-              value: $ctx.npm_token_opaque,"$sysData.npm.npm_token_opaque,sysData.npm_token_opaque"
-            - name: KMS_PROJECT
-              value: $ctx.npm_kms_project,"$sysData.npm.kms_project,sysData.kms_project,sysData.project"
-            - name: KMS_KEYRING
-              value: $ctx.npm_kms_keyring,"$sysData.npm.kms_keyring,sysData.kms_keyring"
-            - name: KMS_KEY
-              value: $ctx.npm_kms_key,"$sysData.npm.kms_key,sysData.kms_key"
-            - name: KMS_LOCATION
-              value: $ctx.npm_kms_location,"$sysData.npm.kms_location,sysData.kms_location"
+            NPM_TOKEN_OPAQUE: $ctx.npm_token_opaque,"$sysData.npm.npm_token_opaque,sysData.npm_token_opaque"
+            KMS_PROJECT: $ctx.npm_kms_project,"$sysData.npm.kms_project,sysData.kms_project,sysData.project"
+            KMS_KEYRING: $ctx.npm_kms_keyring,"$sysData.npm.kms_keyring,sysData.kms_keyring"
+            KMS_KEY: $ctx.npm_kms_key,"$sysData.npm.kms_key,sysData.kms_key"
+            KMS_LOCATION: $ctx.npm_kms_location,"$sysData.npm.kms_location,sysData.kms_location"
 
         ssh-key-with-kms:
           name: ssh-key-with-kms
           type: gcloud
           shell: |
-            mkdir -p /honeydipper/.ssh
+            mkdir -p .ssh
             echo -n "$SSH_KEY_OPAQUE" |
             base64 --decode |
             gcloud --project "$KMS_PROJECT" kms decrypt \
@@ -77,19 +92,14 @@ contexts:
               --key "$KMS_KEY" \
               --location "$KMS_LOCATION" \
               --ciphertext-file - \
-              --plaintext-file /honeydipper/.ssh/id_rsa
-            chmod 600 /honeydipper/.ssh/id_rsa
+              --plaintext-file .ssh/id_rsa
+            chmod 600 .ssh/id_rsa
           env:
-            - name: SSH_KEY_OPAQUE
-              value: '{{ default `{{ .sysData.ssh_key_opaque }}` .ctx.ssh_key_opaque }}'
-            - name: KMS_PROJECT
-              value: '{{ default `{{ coalesce .sysData.kms_project .sysData.project }}` .ctx.kms_project }}'
-            - name: KMS_KEYRING
-              value: '{{ default `{{ .sysData.kms_keyring }}` .ctx.kms_keyring }}'
-            - name: KMS_KEY
-              value: '{{ default `{{ .sysData.kms_key }}` .ctx.kms_key }}'
-            - name: KMS_LOCATION
-              value: '{{ default `{{ .sysData.kms_location }}` .ctx.kms_location }}'
+            SSH_KEY_OPAQUE: '{{ default `{{ .sysData.ssh_key_opaque }}` .ctx.ssh_key_opaque }}'
+            KMS_PROJECT: '{{ default `{{ coalesce .sysData.kms_project .sysData.project }}` .ctx.kms_project }}'
+            KMS_KEYRING: '{{ default `{{ .sysData.kms_keyring }}` .ctx.kms_keyring }}'
+            KMS_KEY: '{{ default `{{ .sysData.kms_key }}` .ctx.kms_key }}'
+            KMS_LOCATION: '{{ default `{{ .sysData.kms_location }}` .ctx.kms_location }}'
 
         git-clone:
           name: git-clone
@@ -97,7 +107,7 @@ contexts:
           shell: |
             set -eo pipefail
             ssh-keyscan github.com > /etc/ssh/ssh_known_hosts 2>/dev/null
-            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO $DIR"
           volumes:
             - mountPath: /honeydipper/.ssh/id_rsa
               subPath: id_rsa
@@ -107,10 +117,9 @@ contexts:
                   defaultMode: 384
                   secretName: "{{ default `{{ .sysData.git_key_secret }}` .ctx.git_key_secret }}"
           env:
-            - name: REPO
-              value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
-            - name: BRANCH
-              value: '{{ default "" .ctx.git_ref }}'
+            REPO: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
+            BRANCH: '{{ default "" .ctx.git_ref }}'
+            DIR: repo
 
         git-clone-opaque-key:
           name: git-clone
@@ -118,12 +127,11 @@ contexts:
           shell: |
             set -eo pipefail
             ssh-keyscan github.com > /etc/ssh/ssh_known_hosts 2>/dev/null
-            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO repo"
+            ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO $DIR"
           env:
-            - name: REPO
-              value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
-            - name: BRANCH
-              value: '{{ default "" .ctx.git_ref }}'
+            REPO: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
+            BRANCH: '{{ default "" .ctx.git_ref }}'
+            DIR: repo
 
         git-push:
           name: git-push
@@ -147,12 +155,9 @@ contexts:
                   defaultMode: 384
                   secretName: "{{ default `{{ .sysData.git_key_secret }}` .ctx.git_key_secret }}"
           env:
-            - name: REPO
-              value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
-            - name: HEAD_BRANCH
-              value: $ctx.head_branch,"honeydipper-push"
-            - name: FORCE
-              value: '{{ if .ctx.force }}--force-with-lease{{ end }}'
+            REPO: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
+            HEAD_BRANCH: $ctx.head_branch,"honeydipper-push"
+            FORCE: '{{ if .ctx.force }}--force-with-lease{{ end }}'
 
         git-push-opaque-key:
           name: git-push
@@ -168,12 +173,9 @@ contexts:
             fi
           workingDir: /honeydipper/repo
           env:
-            - name: REPO
-              value: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
-            - name: HEAD_BRANCH
-              value: $ctx.head_branch,"honeydipper-push"
-            - name: FORCE
-              value: '{{ if .ctx.force }}--force-with-lease{{ end }}'
+            REPO: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
+            HEAD_BRANCH: $ctx.head_branch,"honeydipper-push"
+            FORCE: '{{ if .ctx.force }}--force-with-lease{{ end }}'
 
         local_kubeconfig:
           name: set-kube-local
