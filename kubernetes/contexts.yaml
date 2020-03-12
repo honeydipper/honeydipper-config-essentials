@@ -84,7 +84,7 @@ contexts:
           name: ssh-key-with-kms
           type: gcloud
           shell: |
-            mkdir -p /honeydipper/.ssh
+            mkdir -p .ssh
             echo -n "$SSH_KEY_OPAQUE" |
             base64 --decode |
             gcloud --project "$KMS_PROJECT" kms decrypt \
@@ -92,8 +92,8 @@ contexts:
               --key "$KMS_KEY" \
               --location "$KMS_LOCATION" \
               --ciphertext-file - \
-              --plaintext-file /honeydipper/.ssh/id_rsa
-            chmod 600 /honeydipper/.ssh/id_rsa
+              --plaintext-file .ssh/id_rsa
+            chmod 600 .ssh/id_rsa
           env:
             SSH_KEY_OPAQUE: '{{ default `{{ .sysData.ssh_key_opaque }}` .ctx.ssh_key_opaque }}'
             KMS_PROJECT: '{{ default `{{ coalesce .sysData.kms_project .sysData.project }}` .ctx.kms_project }}'
