@@ -118,7 +118,7 @@ contexts:
                   secretName: "{{ default `{{ .sysData.git_key_secret }}` .ctx.git_key_secret }}"
           env:
             REPO: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
-            BRANCH: '{{ default "" .ctx.git_ref }}'
+            BRANCH: '{{ default "" .ctx.git_ref | base }}'
             DIR: repo
 
         git-clone-opaque-key:
@@ -130,7 +130,7 @@ contexts:
             ssh-agent sh -c "ssh-add /honeydipper/.ssh/id_rsa 2>/dev/null; git clone --single-branch ${BRANCH:+--branch} $BRANCH $REPO $DIR"
           env:
             REPO: '{{ default `{{ .sysData.git_url }}` .ctx.git_url }}'
-            BRANCH: '{{ default "" .ctx.git_ref }}'
+            BRANCH: '{{ default "" .ctx.git_ref | base }}'
             DIR: repo
 
         git-push:
