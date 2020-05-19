@@ -80,6 +80,40 @@ systems:
                           with:
                             deployment: app=bar
 
+      deleteJob:
+        driver: kubernetes
+        rawAction: deleteJob
+        parameters:
+          source: $sysData.source
+          namespace: $?sysData.namespace
+          job: $ctx.jobid
+
+        description: >
+          This function deletes a kubernetes job specified by the job name in :code:`.ctx.jobid`.
+          It leverages the pre-configured system data to access the kubernetes cluster.
+
+        meta:
+          inputs:
+            - name: jobid
+              description: The name of the kubernetes job
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  run_myjob:
+                    - call_function: myk8scluster.createJob
+                      ...
+                      # this function exports .ctx.jobid
+                    - call_function: myk8scluster.waitForJob
+                      ...
+                    - call_function: myk8scluster.deleteJob
+            - >
+              This function is not usually used directly by users. It is added to the :ref:`run_kubernetes` workflow so
+              that, upon successful completion, the job will be deleted. In rare cases, you can use the wrapper workflow
+              :ref:`cleanup_k8s_job` to delete a job.
+
       createJob:
         driver: kubernetes
         rawAction: createJob

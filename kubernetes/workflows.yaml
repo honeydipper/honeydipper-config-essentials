@@ -166,7 +166,12 @@ workflows:
         - name: cleanupAfter
           description: >
             Used for setting the :code:`TTLSecondsAfterFinished` for the k8s job, requires 1.13+
-            and the feature to be enabled for the cluster.
+            and the alpha features to be enabled for the cluster. The feature is still in alpha as of k8s 1.18.
+
+        - name: no_cleanup_k8s_job
+          description: >
+            By default, the job will be deleted upon successful completion. Setting this context variable to a truthy value will
+            ensure that the successful job is kept in the cluster.
 
       exports:
         - name: log
@@ -219,3 +224,25 @@ workflows:
             with:
               retry: 2
           - call_function: '{{ .ctx.system }}.getJobLog'
+        with:
+          hooks:
+            on_success: cleanup_kube_job
+
+  cleanup_kube_job:
+    description: delete a kubernetes job
+    meta:
+      inputs:
+        - name: system
+          description: The k8s system to use to delete the job
+        - name: no_cleanup_k8s_job
+          description: If set to truthy value, will skip deleting the job
+      notes:
+        - >
+          This workflow is intended to be invoked by :ref:`run_kuberentes` workflow as a hook upon
+          successful completion.
+
+    unless:
+      - '{{ .ctx.no_cleanup_k8s_job }}'
+    call_function: '{{ .ctx.system }}.deleteJob'
+    with:
+      retry: 2
