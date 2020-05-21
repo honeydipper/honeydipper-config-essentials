@@ -120,8 +120,15 @@ workflows:
     with:
       message_type: $labels.status
       message: $?ctx.status_message
-      message-: >-
+      message-: |-
         `{{ coalesce .ctx._meta_desc .ctx._meta_name "Unnamed workflow" }}` is completed with status `{{ .labels.status }}`
+        {{- if not (empty .ctx.links) }}
+        {{ range $k, $v := .ctx.links }}
+        {{- if ne $v.text "deleted" }}
+        * <{{ $v.url }}|{{ coalesce $v.text $k }}>
+        {{- end }}
+        {{- end }}
+        {{- end }}
         {{ if ne .labels.status "success" }}
         {{   printf "\nwhile performing `%s`\n" .labels.performing }}
         ```{{   if (gt (len .labels.reason) 512) }}

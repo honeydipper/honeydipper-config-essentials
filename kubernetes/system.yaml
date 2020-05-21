@@ -87,6 +87,10 @@ systems:
           source: $sysData.source
           namespace: $?sysData.namespace
           job: $ctx.jobid
+        export:
+          links:
+            job:
+              text: 'deleted'
 
         description: >
           This function deletes a kubernetes job specified by the job name in :code:`.ctx.jobid`.
@@ -123,6 +127,7 @@ systems:
           job: $ctx.job
         export:
           jobid: $data.metadata.name
+          links: $?sysData.types.{{ .sysData.source.type }}.joblinks
 
         description: >
           This function creates a k8s run-to-completion job with given job spec data structure. It is a wrapper
