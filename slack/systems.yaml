@@ -46,11 +46,10 @@ systems:
       slash_path: "/slack/slashcommand"
 
     functions:
-      reply:
+      send_message:
         driver: web
         rawAction: request
         parameters:
-          URL: $ctx.response_url
           header:
             Content-Type: application/json
           method: POST
@@ -66,6 +65,13 @@ systems:
               {{ end }}
             response_type: '{{ default "ephemeral" .ctx.response_type }}'
             blocks: $?ctx.blocks
+
+      reply:
+        target:
+          system: slack
+          function: send_message
+        parameters:
+          URL: $ctx.response_url
 
         description: >
           This function send a reply message to a slash command request. It is recommended to use
@@ -106,7 +112,7 @@ systems:
       say:
         target:
           system: slack
-          function: reply
+          function: send_message
         parameters:
           URL: $sysData.url
           content:
