@@ -89,7 +89,7 @@ systems:
           job: $ctx.jobid
         export:
           links:
-            job:
+            k8s_job:
               text: 'deleted'
 
         description: >
