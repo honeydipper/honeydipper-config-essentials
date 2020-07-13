@@ -43,7 +43,7 @@ systems:
         driver: web
         rawAction: request
         parameters:
-          URL: https://api.github.com/{{ coalesce .params.resource_path .ctx.resource_path }}
+          URL: https://api.github.com/{{ .ctx.resource_path }}
           header:
             Authorization: token {{ coalesce .ctx.github_oauth_token .sysData.oauth_token }}
             Accept: application/vnd.github.v3+json
@@ -63,7 +63,7 @@ systems:
           system: github
           function: api
         parameters:
-          resource_path: 'repos/{{ .ctx.git_repo }}/pulls'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/pulls'
           method: POST
           content: $ctx.PR_content
         export:
@@ -109,7 +109,7 @@ systems:
           system: github
           function: api
         parameters:
-          resource_path: 'orgs/{{ .ctx.org }}/repos'
+          URL: 'https://api.github.com/orgs/{{ .ctx.org }}/repos'
           method: POST
           content:
             name: $ctx.name
@@ -153,7 +153,7 @@ systems:
           system: github
           function: api
         parameters:
-          resource_path: 'user/installations/{{ .ctx.installationid }}/repositories/{{ .ctx.repoid }}'
+          URL: 'https://api.github.com/user/installations/{{ .ctx.installationid }}/repositories/{{ .ctx.repoid }}'
           method: PUT
           header:
             Authorization: token {{ .sysData.oauth_token }}
@@ -194,7 +194,7 @@ systems:
           system: github
           function: api
         parameters:
-          resource_path: 'repos/{{ .ctx.git_repo }}/statuses/{{ .ctx.git_commit }}'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/statuses/{{ .ctx.git_commit }}'
           method: POST
           content: '{{ set .ctx.status "context" (coalesce .ctx.context .sysData.context "Honeydipper") | toJson }}'
 
@@ -242,7 +242,7 @@ systems:
           system: github
           function: api
         parameters:
-          resource_path: 'repos/{{ .ctx.git_repo }}/issues/{{ .ctx.git_issue }}/comments'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/issues/{{ .ctx.git_issue }}/comments'
           method: POST
           content: '{{ dict "body" .ctx.message | toJson }}'
 
@@ -282,7 +282,7 @@ systems:
           system: github
           function: api
         parameters:
-          resource_path: 'repos/{{ .ctx.git_repo }}/contents/{{ .ctx.path }}{{ if .ctx.git_ref }}?ref={{ .ctx.git_ref }}{{ end }}'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/contents/{{ .ctx.path }}{{ if .ctx.git_ref }}?ref={{ .ctx.git_ref }}{{ end }}'
           method: GET
         export:
           file_content: '{{ b64dec .data.json.content }}'
