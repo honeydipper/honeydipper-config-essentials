@@ -175,6 +175,7 @@ systems:
           namespace: $?sysData.namespace
           job: $ctx.jobid
           timeout: '{{ default "60" .ctx.timeout }}'
+          retry: $ctx.retry,"3"
         export:
           job_status: '{{ and (eq .labels.status "success") (eq (int .data.status.failed) 0) | ternary "success" "failure" }}'
 
