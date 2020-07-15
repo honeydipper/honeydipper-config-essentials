@@ -8,7 +8,117 @@ drivers:
       operator:
         - name: "driver:gcloud-gke"
         - name: "driver:gcloud-dataflow"
+        - name: "driver:gcloud-spanner"
     drivers:
+      gcloud-spanner:
+        name: gcloud-spanner
+        type: builtin
+        handlerData:
+          shortName: gcloud-spanner
+
+        meta:
+          description:
+            - >
+              This driver enables Honeydipper to perform administrative tasks on spanner databases
+
+          rawActions:
+            - name: backup
+              description: creating a native backup of the specified database
+              parameters:
+                - name: service_account
+                  description: A gcloud service account key (json) stored as byte array
+                - name: project
+                  description: The name of the project where the dataflow job to be created
+                - name: instance
+                  description: The spanner instance of the database
+                - name: db
+                  description: The name of the database
+                - name: expires
+                  description: >
+                    Optional, defaults to 180 days, the duration after which the backup will expire and be removed. It should be in the format
+                    supported by :code:`time.ParseDuration`. See the `document <https://godoc.org/time#ParseDuration>`_
+                    for detail.
+              returns:
+                - name: backupOpId
+                  description: A Honeydipper generated identifier for the backup operation used for getting the operation status
+              notes:
+                - See below for a simple example
+                - example: |
+                    ---
+                    workflows:
+                      start_spanner_native_backup:
+                        call_driver: gcloud-spanner.backup
+                        with:
+                          service_account: ...masked...
+                          project: foo
+                          instance: dbinstance
+                          db: bar
+                          expires: 2160h
+                          # 24h * 90 = 2160h
+                        export_on_success:
+                          backupOpId: $data.backupOpId
+
+            - name: waitForBackup
+              description: wait for backup and return the backup status
+              parameters:
+                - name: backupOpId
+                  description: The Honeydipper generated identifier by `backup` function call
+              returns:
+                - name: backup
+                  description: >
+                    The backup object returned by API. See
+                    `databasepb.Backup <https://godoc.org/google.golang.org/genproto/googleapis/spanner/admin/database/v1#Backup>`_
+                    for detail
+              notes:
+                - See below for a simple example
+                - example: |
+                    ---
+                    workflows:
+                      wait_spanner_native_backup:
+                        call_driver: gcloud-spanner.waitForbackup
+                        with:
+                          backupOpId: $ctx.backupOpId
+
+          notes:
+            - You can create systems to ease the use of this driver.
+            - for example
+            - example: |
+                ---
+                systems:
+                  my_spanner_db:
+                    data:
+                      serivce_account: ENC[...]
+                      project: foo
+                      instance: dbinstance
+                      db: bar
+                    functions:
+                      start_backup:
+                        driver: gcloud-spanner
+                        rawAction: backup
+                        parameters:
+                          service_account: $sysData.service_account
+                          project: $sysData.foo
+                          instance: $sysData.dbinstance
+                          db: $sysData.db
+                          expires: $?ctx.expires
+                        export_on_success:
+                          backupOpId: $data.backupOpId
+                      wait_for_backup:
+                        driver: gcloud-spanner
+                        rawAction: waitForBackup
+                        parameters:
+                          backupOpId: $ctx.backupOpId
+                        export_on_success:
+                          backup: $data.backup
+            - Now we can just easily call the system function like below
+            - example: |
+                ---
+                workflows:
+                  create_spanner_backup:
+                    steps:
+                      - call_function: my_spanner_db.start_backup
+                      - call_function: my_spanner_db.wait_for_backup
+
       gcloud-pubsub:
         name: gcloud-pubsub
         type: builtin
