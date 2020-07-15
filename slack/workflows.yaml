@@ -94,14 +94,7 @@ workflows:
               - if_match:
                   channel_id: $?ctx.channel_ids
                   user_name: $?ctx.invoked.allowed_users
-                steps:
-                  - call_workflow: $ctx.invoked.workflow
-                    contexts: $?ctx.invoked.contexts
-                    with:
-                      slashcommands: ':yaml:{{ empty .ctx.invoked.keep_commands | ternary "*removed*" .ctx.slashcommands | toJson }}'
-                      hooks:
-                        on_exit:
-                          - slashcommand/status
+                call_workflow: slashcommand/execute
                 else:
                   call_workflow: notify
                   with:
@@ -119,6 +112,12 @@ workflows:
           notify: $?ctx.status_notify
           message_type: error
           message: Unknown command `{{ .ctx.command }}`
+
+  slashcommand/execute:
+    call_workflow: $ctx.invoked.workflow
+    contexts: $?ctx.invoked.contexts
+    with:
+      slashcommands: ':yaml:{{ empty .ctx.invoked.keep_commands | ternary "*removed*" .ctx.slashcommands | toJson }}'
 
   slashcommand/help:
     meta:
