@@ -20,5 +20,10 @@ contexts:
           usage: reload honeydipper config
           workflow: reload
 
+    slashcommand/execute:
+      hooks:
+        on_exit:
+          - slashcommand/status
+
     reload:
       force: '{{ splitList " " .ctx.parameters | has "force" }}'
