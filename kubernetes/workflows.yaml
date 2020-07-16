@@ -222,7 +222,7 @@ workflows:
         steps:
           - call_function: '{{ .ctx.system }}.waitForJob'
             with:
-              retry: 2
+              retry: $ctx.k8s_job_wait_retry,"2"
           - call_function: '{{ .ctx.system }}.getJobLog'
         with:
           hooks:
