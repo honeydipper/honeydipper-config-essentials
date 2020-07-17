@@ -118,6 +118,8 @@ workflows:
     contexts: $?ctx.invoked.contexts
     with:
       slashcommands: ':yaml:{{ empty .ctx.invoked.keep_commands | ternary "*removed*" .ctx.slashcommands | toJson }}'
+    # override the message to show actual workflow name in slack status messages
+    description: $ctx.invoked.workflow
 
   slashcommand/help:
     meta:
