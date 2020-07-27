@@ -17,6 +17,8 @@ systems:
           description: The path portion of the webhook url, by default :code:`/jira`
         - name: jira_domain
           description: Specify the jira domain, e.g. :code:`mycompany` for :code:`mycompany.atlassian.net`
+        - name: jira_domain_base
+          description: The DNS zone of the jira API urls, in case of accessing self hosted jira, defaults to :code:`atlassian.net`
 
       notes:
         - For example
@@ -41,6 +43,7 @@ systems:
       path: "/jira"
       jira_domain: _place_holder_
       jira_credentials: _place_holder_
+      jira_domain_base: atlassian.net
 
     functions:
       createTicket:
@@ -48,7 +51,7 @@ systems:
         rawAction: request
         parameters:
           method: POST
-          URL: https://{{ .sysData.jira_domain }}.atlassian.net/rest/api/2/issue/
+          URL: https://{{ .sysData.jira_domain }}.{{ .sysData.jira_domain_base }}/rest/api/3/issue/
           header:
             Authorization: Basic {{ .sysData.jira_credentials }}
             Accept: application/json
@@ -61,8 +64,12 @@ systems:
               description: $ctx.ticket_desc
               issuetype:
                 name: '{{ .ctx.ticket_type | default "Task" }}'
-          export:
-            jira_ticket: $data.json.key
+        export_on_success:
+          jira_ticket: $data.json.key
+          links:
+            jira_ticket:
+              text: See ticket {{ .data.json.key }} in JIRA
+              url: https://{{ .sysData.jira_domain }}.{{ .sysData.jira_domain_base }}/browse/{{ .data.json.key }}
 
         description: >
           This function will create a jira ticket with given information
@@ -100,7 +107,7 @@ systems:
         rawAction: request
         parameters:
           method: POST
-          URL: https://{{ .sysData.jira_domain }}.atlassian.net/rest/api/2/issue/{{ .ctx.jira_ticket }}/comment
+          URL: https://{{ .sysData.jira_domain }}.{{ .sysData.jira_domain_base }}/rest/api/3/issue/{{ .ctx.jira_ticket }}/comment
           header:
             Authorization: Basic {{ .sysData.jira_credentials }}
             Accept: application/json
