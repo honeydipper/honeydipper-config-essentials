@@ -51,7 +51,7 @@ systems:
         rawAction: request
         parameters:
           method: POST
-          URL: https://{{ .sysData.jira_domain }}.{{ .sysData.jira_domain_base }}/rest/api/3/issue/
+          URL: https://{{ .sysData.jira_domain }}.{{ .sysData.jira_domain_base }}/rest/api/2/issue/
           header:
             Authorization: Basic {{ .sysData.jira_credentials }}
             Accept: application/json
@@ -107,7 +107,7 @@ systems:
         rawAction: request
         parameters:
           method: POST
-          URL: https://{{ .sysData.jira_domain }}.{{ .sysData.jira_domain_base }}/rest/api/3/issue/{{ .ctx.jira_ticket }}/comment
+          URL: https://{{ .sysData.jira_domain }}.{{ .sysData.jira_domain_base }}/rest/api/2/issue/{{ .ctx.jira_ticket }}/comment
           header:
             Authorization: Basic {{ .sysData.jira_credentials }}
             Accept: application/json
