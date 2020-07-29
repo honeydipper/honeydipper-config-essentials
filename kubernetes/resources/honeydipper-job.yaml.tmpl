@@ -1,5 +1,6 @@
 :yaml:---
 {{- $finalStepNum := sub (len .ctx.steps) 1 }}
+{{- $uniqueID := (empty $.ctx.unique_identifier | ternary (uuidv4) $.ctx.unique_identifier) }}
 {{- define "volumeMounts" }}
           {{- range . }}
             - mountPath: {{ .mountPath }}
@@ -89,8 +90,15 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   generateName: "honeydipper-job-"
+  labels:
+    creator: honeydipper
+    honeydipper-unique-identifier: "{{ $uniqueID }}"
 spec:
   template:
+    metadata:
+      labels:
+        creator: honeydipper
+        honeydipper-unique-identifier: "{{ $uniqueID }}"
     spec:
       {{- with (initial .ctx.steps) }}
       initContainers:
