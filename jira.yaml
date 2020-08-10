@@ -57,13 +57,7 @@ systems:
             Accept: application/json
             Content-Type: application/json
           content:
-            fields:
-              project:
-                key: $ctx.jira_project
-              summary: $ctx.ticket_title
-              description: $ctx.ticket_desc
-              issuetype:
-                name: '{{ .ctx.ticket_type | default "Task" }}'
+            fields: $ctx.ticket
         export_on_success:
           jira_ticket: $data.json.key
           links:
@@ -72,18 +66,24 @@ systems:
               url: https://{{ .sysData.jira_domain }}.{{ .sysData.jira_domain_base }}/browse/{{ .data.json.key }}
 
         description: >
-          This function will create a jira ticket with given information
+          This function will create a jira ticket with given information, refer to
+          `jira rest API document<https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issues/#api-rest-api-3-issue-post>`_
+          for description of the fields and custom fields.
 
         meta:
           inputs:
-            - name: jira_project
+            - name: ticket.project.key
               description: The name of the jira project the ticket is created in
-            - name: ticket_title
+            - name: ticket.summary
               description: A summary of the ticket
-            - name: ticket_desc
+            - name: ticket.description
               description: Detailed description of the work for this ticket
-            - name: ticket_type
-              description: The ticket type, by default :code:`Task`
+            - name: ticket.issuetype.name
+              description: The ticket type
+            - name: ticket.components
+              description: Optional, a list of components associated with the ticket
+            - name: ticket.labels
+              description: Optional, a list of strings used as labels
 
           exports:
             - name: jira_ticket
@@ -97,10 +97,20 @@ systems:
                   create_jira_ticket:
                     call_function: jira.createTicket
                     with:
-                      jira_project: devlops
-                      ticket_title: upgrading kubernetes
-                      ticket_desc: |
-                        Upgrade the test cluster to kubernetes 1.16
+                      ticket:
+                        project:
+                          key: devops
+                        issuetype:
+                          name: Task
+                        summary: upgrading kubernetes
+                        description: |
+                          Upgrade the test cluster to kubernetes 1.16
+                        components:
+                          - name: GKE
+                          - name: security
+                        labels:
+                          - toil
+                          - small
 
       addComment:
         driver: web
