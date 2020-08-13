@@ -143,7 +143,7 @@ spec:
       tolerations:
         {{ . | toJson }}
       {{- end }}
-  backoffLimit: 1
+  backoffLimit: {{ default 0 .ctx.k8s_job_backoffLimit }}
   {{- with .ctx.timeout }}
   activeDeadlineSeconds: {{ . }}
   {{- end }}
