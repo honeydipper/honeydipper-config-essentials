@@ -173,6 +173,11 @@ workflows:
             By default, the job will be deleted upon successful completion. Setting this context variable to a truthy value will
             ensure that the successful job is kept in the cluster.
 
+        - name: k8s_job_backoffLimit
+          description: >
+            By default, the job will not retry if the pod fails (:code:`backoffLimit` set to 0), you can use this
+            to override the setting for the job.
+
       exports:
         - name: log
           description: The logs of the job organized in map by container and by pod
