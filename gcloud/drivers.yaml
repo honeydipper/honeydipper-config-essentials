@@ -39,7 +39,7 @@ drivers:
                     supported by :code:`time.ParseDuration`. See the `document <https://godoc.org/time#ParseDuration>`_
                     for detail.
               returns:
-                - name: backupOpId
+                - name: backupOpID
                   description: A Honeydipper generated identifier for the backup operation used for getting the operation status
               notes:
                 - See below for a simple example
@@ -56,12 +56,12 @@ drivers:
                           expires: 2160h
                           # 24h * 90 = 2160h
                         export_on_success:
-                          backupOpId: $data.backupOpId
+                          backupOpID: $data.backupOpID
 
             - name: waitForBackup
               description: wait for backup and return the backup status
               parameters:
-                - name: backupOpId
+                - name: backupOpID
                   description: The Honeydipper generated identifier by `backup` function call
               returns:
                 - name: backup
@@ -77,7 +77,7 @@ drivers:
                       wait_spanner_native_backup:
                         call_driver: gcloud-spanner.waitForbackup
                         with:
-                          backupOpId: $ctx.backupOpId
+                          backupOpID: $ctx.backupOpID
 
           notes:
             - You can create systems to ease the use of this driver.
@@ -102,12 +102,12 @@ drivers:
                           db: $sysData.db
                           expires: $?ctx.expires
                         export_on_success:
-                          backupOpId: $data.backupOpId
+                          backupOpID: $data.backupOpID
                       wait_for_backup:
                         driver: gcloud-spanner
                         rawAction: waitForBackup
                         parameters:
-                          backupOpId: $ctx.backupOpId
+                          backupOpID: $ctx.backupOpID
                         export_on_success:
                           backup: $data.backup
             - Now we can just easily call the system function like below

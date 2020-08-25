@@ -166,7 +166,8 @@ workflows:
     call_driver: redispubsub.send
     with:
       broadcastSubject: reload
-      force: $?ctx.force
+      data:
+        force: $?ctx.force
 
   resume_workflow:
     description: resume a suspended workflow
