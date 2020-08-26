@@ -4,11 +4,15 @@ drivers:
     featureMap:
       global:
         eventbus: redisqueue
+        locker: redislock
+        api-broadcast: api-broadcast
     features:
       global:
         - name: "eventbus"
           required: true
         - name: "driver:redispubsub"
+        - name: locker
+        - name: api-broadcast
     drivers:
       redisqueue:
         name: redisqueue
@@ -90,10 +94,141 @@ drivers:
                             reason: $?ctx.labels_reason
                           payload: $?ctx.resume_payload
 
+      redislock:
+        name: redislock
+        type: builtin
+        handlerData:
+          shortName: redislock
+        description: |
+          redislock driver provides RPC calls for the services to acquire locks for synchronize and
+          coordinate between instances.
+        meta:
+          configurations:
+            - name: connection
+              description: The parameters used for connecting to the redis including `Addr`, `Password` and `DB`.
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  redislock:
+                    connection:
+                      Addr: 192.168.2.10:6379
+                      DB: 2
+                      Password: ENC[gcloud-kms,...masked]
+            - This drive doesn't offer any raw actions as of now.
+
+      api-broadcast:
+        name: api-broadcast
+        type: builtin
+        handlerData:
+          shortName: redispubsub
+        description: |
+          This driver shares the code with `redispubsub` driver. The purpose is provide a abstract
+          feature for services to make broadcasts to each other. The current `redispubsub` driver
+          offers a few functions through a `call_driver`. Once the `DipperCL` offers `call_feature`
+          statement, we can consolidate the loading of the two drivers into one.
+        meta:
+          configurations:
+            - name: connection
+              description: The parameters used for connecting to the redis including `Addr`, `Password` and `DB`.
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  redispubsub:
+                    connection:
+                      Addr: 192.168.2.10:6379
+                      DB: 2
+                      Password: ENC[gcloud-kms,...masked]
+            - This driver doesn't offer any actions or functions.
+
+      auth-simple:
+        name: auth-simple
+        type: builtin
+        handlerData:
+          shortName: auth-simple
+        description: |
+          This driver provides RPCs for the API serive to authenticate the incoming requests. The
+          supported method includes basic authentication, and token authentication. This also acts
+          as a reference on how to implement authentication for honeydipper APIs.
+        meta:
+          configurations:
+            - name: schemes
+              description: a list of strings indicating authenticating methods to try, support `basic` and `token`.
+            - name: users
+              description: a list of users for `basic` authentication.
+            - name: users.name
+              description: the name of the user
+            - name: users.pass
+              description: the password (use encryption)
+            - name: users.subject
+              description: a structure describing the credential, used for authorization
+            - name: tokens
+              description: |
+                a map of tokens to its subjects, each subject is a structure describing
+                the credential, used for authorization.
+
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  auth-simple:
+                    schemes:
+                      - basic
+                      - token
+                    users:
+                      - name: user1
+                        pass: ENC[...]
+                        subject:
+                          group: engineer
+                          role: viewer
+                      - name: admin
+                        pass: ENC[...]
+                        subject:
+                          group: sre
+                          role: admin
+                    tokens:
+                      ioefui3wfjejfasf:
+                        subject:
+                          group: machine
+                          role: viewer
+            - This driver doesn't offer any actions or functions.
+
+    services:
+      api:
+        auth-providers:
+          - auth-simple
+        acls:
+          eventList:
+            - type: allow
+              subjects: all
+          eventWait:
+            - type: allow
+              subjects:
+                - role: viewer
+          eventAdd:
+            - type: allow
+              subjects:
+                - role: viewer
+                - role: user
+
   redisqueue:
     connection:
       Addr: 127.0.0.1:6379
 
   redispubsub:
+    connection:
+      Addr: 127.0.0.1:6379
+
+  redislock:
+    connection:
+      Addr: 127.0.0.1:6379
+
+  api-broadcast:
+    topic: honeydipper:api-broadcast
+    channel: api
     connection:
       Addr: 127.0.0.1:6379
