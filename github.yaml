@@ -112,7 +112,7 @@ systems:
           method: GET
         export:
           repo: $data.json
-          repoid: $data.json.id
+          repoid: '{{ .data.json.id | int }}'
 
         description: >
           This function will query the detailed information about the repo.
