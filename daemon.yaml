@@ -197,24 +197,6 @@ drivers:
                           role: viewer
             - This driver doesn't offer any actions or functions.
 
-    services:
-      api:
-        auth-providers:
-          - auth-simple
-        acls:
-          eventList:
-            - type: allow
-              subjects: all
-          eventWait:
-            - type: allow
-              subjects:
-                - role: viewer
-          eventAdd:
-            - type: allow
-              subjects:
-                - role: viewer
-                - role: user
-
   redisqueue:
     connection:
       Addr: 127.0.0.1:6379
