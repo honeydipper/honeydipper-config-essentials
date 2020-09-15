@@ -1,0 +1,32 @@
+models: []
+
+policies:
+  - |-
+    g, user1, viewer
+    g, user2, editor
+    p, user3, personal, GET
+
+tests:
+  - name: basic_test
+    subject: user1
+    object: event
+    action: GET
+    result: true
+
+  - name: deny_unauthorized_user
+    subject: someone
+    object: something
+    action: GET
+    result: false
+
+  - name: deny_viewer_write
+    subject: user1
+    object: something
+    action: PUT
+    result: false
+
+  - name: custom_acl_rule
+    subject: user3
+    object: personal
+    action: GET
+    result: true
