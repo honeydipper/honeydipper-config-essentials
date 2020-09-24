@@ -213,7 +213,6 @@ systems:
             - name: opsgenie_offset
               description: The offset that can be used for continue fetching the rest of the users, for paging
 
-
           notes:
             - See below for example
             - example: |
@@ -223,6 +222,40 @@ systems:
                     - call_function: opsgenie.users
                       with:
                         query: username:foobar
+
+      contact:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: https://api.opsgenie.com/v2/users/{{ .ctx.userId }}/contacts
+          method: GET
+          header:
+            Authorization: GenieKey {{ .sysData.API_KEY }}
+          retry: 2
+        export:
+          contacts: $data.json.data
+
+        description: >
+          This function gets the user's contact methods
+
+        meta:
+          inputs:
+            - name: userId
+              description: The ID of the user for which to get contact methods
+          exports:
+            - name: contacts
+              description: The detail of user's contact method in a map, or a list of user's contact methods
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  steps:
+                    - call_workflow: do_something
+                    - call_function: opsgenie.contact
+                      with:
+                        userId: username@example.com
 
       heartbeat:
         driver: web
