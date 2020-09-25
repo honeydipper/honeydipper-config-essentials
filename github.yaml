@@ -229,6 +229,47 @@ systems:
                       repoid: 12345678
                       intallationid: 12345678
 
+      removeRepoFromInstallation:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/user/installations/{{ .ctx.installationid }}/repositories/{{ .ctx.repoid }}'
+          method: DELETE
+          header:
+            Authorization: token {{ .sysData.oauth_token }}
+            Accept: application/vnd.github.v3+json, application/vnd.github.machine-man-preview+json
+            Content-Type: application/json; charset=utf-8
+
+        description: >
+          This function will remove a repo from an installed github app
+
+        meta:
+          inputs:
+            - name: installation_id
+              description: The installation_id of your github app
+            - name: repoid
+              description: The Id of your github repository
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      driver: webhook
+                      if_match:
+                        url: /removerepoinstallation
+                    do:
+                      call_workflow: github_remove_repo_installation
+
+                workflows:
+                  github_remove_repo_installation:
+                    call_function: github.removeRepoFromInstallation
+                    with:
+                      repoid: 12345678
+                      intallationid: 12345678
+
       createStatus:
         target:
           system: github
