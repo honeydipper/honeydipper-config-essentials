@@ -103,6 +103,46 @@ systems:
                           The data needs to be updated
 
                           This PR is created using honeydipper
+      getRepo:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}'
+          method: GET
+        export:
+          repo: $data.json
+          repoid: '{{ .data.json.id | int }}'
+
+        description: >
+          This function will query the detailed information about the repo.
+
+        meta:
+          inputs:
+            - name: git_repo
+              description: The repo that the query is for, e.g. :code:`myorg/myrepo`
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      driver: webhook
+                      if_match:
+                        url: /displayRepo
+                    do:
+                      call_workflow: query_repo
+
+                workflows:
+                  query_repo:
+                    steps:
+                      - call_function: github.getRepo
+                        with:
+                          git_repo: myorg/myreop
+                      - call_workflow: notify
+                        with:
+                          message: The repo is created at {{ .ctx.repo.created_at }}
 
       createRepo:
         target:

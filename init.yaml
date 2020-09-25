@@ -10,3 +10,4 @@ includes:
   - workflow_helper.yaml
   - jira.yaml
   - contexts.yaml
+  - api_auth.yaml
