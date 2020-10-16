@@ -14,16 +14,10 @@ contexts:
         help:
           usage: show help message of slashcommands
           workflow: slashcommand/help
-          keep_commands: true
 
         reload:
           usage: reload honeydipper config
           workflow: reload
-
-    slashcommand/execute:
-      hooks:
-        on_exit:
-          - slashcommand/status
 
     reload:
       force: '{{ splitList " " .ctx.parameters | has "force" }}'
