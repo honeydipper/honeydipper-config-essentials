@@ -50,28 +50,11 @@ workflows:
                 greet:
                   recipient: $ctx.user_name # exported by slashcommand event trigger
                   type: $ctx.parameters     # passed from slashcommand workflow
-    with:
-      notify:
-        - reply
-      notify_on_error: $?ctx.slash_notify
 
     no_export:
       - "*"
 
     steps:
-      # sets up notification list skip reply to avoid duplicated message if needed
-      - call_workflow: channel_translate
-        with:
-          channel_names: $?ctx.slash_notify
-        export:
-          status_notify: ':yaml:{{ has .ctx.channel_id .ctx.channel_ids | or (has .ctx.channel_fullname .ctx.slash_notify) | ternary `[]` `["reply"]` }}'
-        no_export:
-          - channel_ids
-
-      - call_workflow: slashcommand/announcement
-        no_export:
-          - "*"
-
       # iterate through the known commands after converting from map to a list
       - iterate_parallel: |-
           :yaml:---
@@ -96,30 +79,44 @@ workflows:
                   user_name: $?ctx.invoked.allowed_users
                 call_workflow: slashcommand/execute
                 else:
-                  call_workflow: notify
-                  with:
-                    notify: $?ctx.status_notify
-                    message_type: error
-                    message: The `{{ .ctx.command }}` command is only accepted from allowed channels and/or users.
+                  steps:
+                    - call_workflow: slashcommand/prepare_notification_list
+                    - call_workflow: notify
+                      with:
+                        message_type: error
+                        message: The `{{ .ctx.command }}` command is only accepted from allowed channels and/or users.
             no_export:
               - channel_ids
 
       # no matching command found
       - unless_match:
           known_command: "true"
-        call_workflow: notify
-        with:
-          notify: $?ctx.status_notify
-          message_type: error
-          message: Unknown command `{{ .ctx.command }}`
+        steps:
+          - call_workflow: slashcommand/prepare_notification_list
+          - call_workflow: notify
+            with:
+              message_type: error
+              message: Unknown command `{{ .ctx.command }}`
 
   slashcommand/execute:
-    call_workflow: $ctx.invoked.workflow
     contexts: $?ctx.invoked.contexts
-    with:
-      slashcommands: ':yaml:{{ empty .ctx.invoked.keep_commands | ternary "*removed*" .ctx.slashcommands | toJson }}'
-    # override the message to show actual workflow name in slack status messages
-    description: $ctx.invoked.workflow
+    if_match:
+      invoked:
+        command: help
+    call_workflow: $ctx.invoked.workflow
+    else:
+      steps:
+        - call_workflow: slashcommand/prepare_notification_list
+        - call_workflow: $ctx.invoked.workflow
+          with:
+            slashcommands: '*removed*'
+            hooks:
+              on_first_action:
+                - slashcommand/announcement
+              on_exit:
+                - workflow_status
+          # override the message to show actual workflow name in slack status messages
+          description: $ctx.invoked.workflow
 
   slashcommand/help:
     meta:
@@ -129,6 +126,8 @@ workflows:
 
     call_workflow: notify
     with:
+      notify:
+        - reply
       blocks:
         - type: section
           text:
@@ -145,12 +144,14 @@ workflows:
         - >
           This workflow sends a announcement message to the channels listed in :code:`slash_notify`.  Used internally.
 
-    unless_match:
-      command: help
     threads:
-      - call_workflow: notify
+      - unless_match:
+          - channel_ids: $ctx.channel_id
+          - slash_notify: $ctx.channel_fullname
+        call_workflow: notify
         with:
-          notify*: $?ctx.status_notify
+          notify:
+            - reply
           message: |-
             command: *{{ .ctx.text }}*
       - call_workflow: notify
@@ -161,18 +162,25 @@ workflows:
             by: {{ .ctx.user_name }}
             channel: {{ .ctx.channel_name }}
 
-  slashcommand/status:
+  slashcommand/prepare_notification_list:
     meta:
       description:
         - >
-          This workflow sends a status message to the channels listed in :code:`slash_notify`.  Used internally.
+          This workflow constructs the notification list using :code:`slash_notify`. If the command is NOT issued from one of
+          the listed channels, a :code:`reply` is added to the list to ensure that the command invoker gets proper feedback.
 
-    unless_match:
-      command: help
-    call_workflow: workflow_status
-    with:
-      notify: $?ctx.status_notify
-      notify+: $?ctx.slash_notify
+    steps:
+      - call_workflow: channel_translate
+        with:
+          channel_names: $?ctx.slash_notify
+        export:
+          notify: $?ctx.slash_notify
+      - unless_match:
+          - channel_ids: $ctx.channel_id
+          - slash_notify: $ctx.channel_fullname
+        export:
+          notify+:
+            - reply
 
   slack_users:
     steps:

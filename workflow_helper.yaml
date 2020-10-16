@@ -125,7 +125,7 @@ workflows:
         {{- if not (empty .ctx.links) }}
         {{ range $k, $v := .ctx.links }}
         {{- if ne $v.text "deleted" }}
-        * <{{ $v.url }}|{{ coalesce $v.text $k }}>
+        • <{{ $v.url }}|{{ coalesce $v.text $k }}>
         {{- end }}
         {{- end }}
         {{- end }}
