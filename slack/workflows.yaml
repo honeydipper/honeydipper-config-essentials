@@ -74,29 +74,55 @@ workflows:
               - call_workflow: channel_translate
                 with:
                   channel_names: $?ctx.invoked.allowed_channels
+                export:
+                  allowed_channel_ids: $?ctx.channel_ids
+                no_export:
+                  - channel_ids
               - if_match:
-                  channel_id: $?ctx.channel_ids
+                  channel_id: $?ctx.allowed_channel_ids
                   user_name: $?ctx.invoked.allowed_users
                 call_workflow: slashcommand/execute
                 else:
                   steps:
-                    - call_workflow: slashcommand/prepare_notification_list
-                    - call_workflow: notify
+                    - unless_match:
+                        report_unauth_commands: "true"
+                      export:
+                        slash_notify: []
+                        notify_on_error: []
+                    - call_workflow: channel_translate
+                      with:
+                        channel_names: $?ctx.slash_notify
+                    - call_workflow: slashcommand/respond
                       with:
                         message_type: error
-                        message: The `{{ .ctx.command }}` command is only accepted from allowed channels and/or users.
+                        reply_message: "The `{{ .ctx.command }}` command is only accepted from <#{{ .ctx.allowed_channel_ids | join `>, <#` }}> ."
+                        notification: |-
+                          unauthorized command: *{{ .ctx.text }}*
+                          by: {{ .ctx.user_name }}
+                          channel: {{ .ctx.channel_name }}
             no_export:
-              - channel_ids
+              - allowed_channel_ids
 
       # no matching command found
       - unless_match:
           known_command: "true"
         steps:
-          - call_workflow: slashcommand/prepare_notification_list
-          - call_workflow: notify
+          - unless_match:
+              report_unknown_commands: "true"
+            export:
+              slash_notify: []
+              notify_on_error: []
+          - call_workflow: channel_translate
+            with:
+              channel_names: $?ctx.slash_notify
+          - call_workflow: slashcommand/respond
             with:
               message_type: error
-              message: Unknown command `{{ .ctx.command }}`
+              reply_message: Unknown command `{{ .ctx.command }}`
+              notification: |-
+                unknown command: *{{ .ctx.text }}*
+                by: {{ .ctx.user_name }}
+                channel: {{ .ctx.channel_name }}
 
   slashcommand/execute:
     contexts: $?ctx.invoked.contexts
@@ -159,11 +185,11 @@ workflows:
                 {{- end }}
               type: mrkdwn
 
-  slashcommand/announcement:
+  slashcommand/respond:
     meta:
       description:
         - >
-          This workflow sends a announcement message to the channels listed in :code:`slash_notify`.  Used internally.
+          This workflow sends a response message to the channels listed in :code:`slash_notify`.  Used internally.
 
     threads:
       - unless_match:
@@ -173,15 +199,29 @@ workflows:
         with:
           notify:
             - reply
-          message: |-
-            command: *{{ .ctx.text }}*
+          notify_on_error: []
+          message_type: $ctx.message_type,"normal"
+          message: $?ctx.reply_message
       - call_workflow: notify
         with:
           notify: $?ctx.slash_notify
-          message: |-
-            command: *{{ .ctx.text }}*
-            by: {{ .ctx.user_name }}
-            channel: {{ .ctx.channel_name }}
+          message_type: $ctx.message_type,"normal"
+          message: $?ctx.notification
+
+  slashcommand/announcement:
+    meta:
+      description:
+        - >
+          This workflow sends an announcement message to the channels listed in :code:`slash_notify`.  Used internally.
+
+    call_workflow: slashcommand/respond
+    with:
+      reply_message: |-
+        command: *{{ .ctx.text }}*
+      notification: |-
+        command: *{{ .ctx.text }}*
+        by: {{ .ctx.user_name }}
+        channel: {{ .ctx.channel_name }}
 
   slashcommand/prepare_notification_list:
     meta:
