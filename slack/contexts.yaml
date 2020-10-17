@@ -14,10 +14,16 @@ contexts:
         help:
           usage: show help message of slashcommands
           workflow: slashcommand/help
+          usage_detail: |
+            • `help` will list all supported commands
+            • `help <command>` gives detail usage information of the command
 
         reload:
           usage: reload honeydipper config
           workflow: reload
+          usage_detail: |
+            • `reload` refresh with latest configuration in the repo
+            • `reload force` stop and restart the daemon
 
     reload:
       force: '{{ splitList " " .ctx.parameters | has "force" }}'
