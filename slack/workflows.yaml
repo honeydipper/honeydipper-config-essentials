@@ -124,6 +124,9 @@ workflows:
         - >
           This workflow sends a list of supported commands to the requestor.  Used internally.
 
+    if_match:
+      slashcommands:
+        ":absent:": $ctx.parameters
     call_workflow: notify
     with:
       notify:
@@ -137,6 +140,24 @@ workflows:
               `{{ .command }}` - {{ .usage }}
               {{- end }}
             type: mrkdwn
+    else:
+      call_workflow: notify
+      with:
+        notify:
+          - reply
+        blocks:
+          - type: section
+            text:
+              text: |-
+                *Command: {{ .ctx.parameters }}*
+                {{- with ( index .ctx.slashcommands .ctx.parameters "usage_detail" ) }}
+
+                {{ . }}
+                {{ else }}
+
+                No detailed information available for this command.
+                {{- end }}
+              type: mrkdwn
 
   slashcommand/announcement:
     meta:
