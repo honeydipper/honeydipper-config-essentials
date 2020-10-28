@@ -100,7 +100,7 @@ workflows:
                   with:
                     notify: $?ctx.status_notify
                     message_type: error
-                    message: The `{{ .ctx.command }}` command can only be used with whitelisted channels and/or users.
+                    message: The `{{ .ctx.command }}` command is only accepted from allowed channels and/or users.
             no_export:
               - channel_ids
 
