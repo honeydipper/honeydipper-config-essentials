@@ -140,7 +140,7 @@ workflows:
               on_first_action:
                 - slashcommand/announcement
               on_exit:
-                - workflow_status
+                - slashcommand/status
           # override the message to show actual workflow name in slack status messages
           description: $ctx.invoked.workflow
 
@@ -201,7 +201,7 @@ workflows:
             - reply
           notify_on_error: []
           message_type: $ctx.message_type,"normal"
-          message: $?ctx.reply_message
+          message: $ctx.reply_message,ctx.notification
       - call_workflow: notify
         with:
           notify: $?ctx.slash_notify
@@ -222,6 +222,26 @@ workflows:
         command: *{{ .ctx.text }}*
         by: {{ .ctx.user_name }}
         channel: {{ .ctx.channel_name }}
+
+  slashcommand/status:
+    meta:
+      description:
+        - >
+          This workflow sends a status message to the channels listed in :code:`slash_notify`.  Used internally.
+
+    threads:
+      - unless_match:
+          - channel_ids: $ctx.channel_id
+          - slash_notify: $ctx.channel_fullname
+        call_workflow: workflow_status
+        with:
+          notify:
+            - reply
+          notify_on_error: []
+      - call_workflow: workflow_status
+        with:
+          notify: $?ctx.slash_notify
+          notify_on_error: []
 
   slashcommand/prepare_notification_list:
     meta:
