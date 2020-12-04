@@ -54,6 +54,8 @@ workflows:
     no_export:
       - "*"
 
+    with:
+      notify_on_error: []
     steps:
       # iterate through the known commands after converting from map to a list
       - iterate_parallel: |-
@@ -88,10 +90,7 @@ workflows:
                         report_unauth_commands: "true"
                       export:
                         slash_notify: []
-                        notify_on_error: []
-                    - call_workflow: channel_translate
-                      with:
-                        channel_names: $?ctx.slash_notify
+                    - call_workflow: slashcommand/prepare_notification_list
                     - call_workflow: slashcommand/respond
                       with:
                         message_type: error
@@ -111,10 +110,7 @@ workflows:
               report_unknown_commands: "true"
             export:
               slash_notify: []
-              notify_on_error: []
-          - call_workflow: channel_translate
-            with:
-              channel_names: $?ctx.slash_notify
+          - call_workflow: slashcommand/prepare_notification_list
           - call_workflow: slashcommand/respond
             with:
               message_type: error
@@ -165,6 +161,8 @@ workflows:
               {{- range .ctx.slashcommands }}
               `{{ .command }}` - {{ .usage }}
               {{- end }}
+
+              For detailed usage information of a command, type `help <command>`
             type: mrkdwn
     else:
       call_workflow: notify
@@ -199,12 +197,10 @@ workflows:
         with:
           notify:
             - reply
-          notify_on_error: []
           message_type: $ctx.message_type,"normal"
           message: $ctx.reply_message,ctx.notification
       - call_workflow: notify
         with:
-          notify: $?ctx.slash_notify
           message_type: $ctx.message_type,"normal"
           message: $?ctx.notification
 
@@ -229,39 +225,23 @@ workflows:
         - >
           This workflow sends a status message to the channels listed in :code:`slash_notify`.  Used internally.
 
-    threads:
-      - unless_match:
-          - channel_ids: $ctx.channel_id
-          - slash_notify: $ctx.channel_fullname
-        call_workflow: workflow_status
-        with:
-          notify:
-            - reply
-          notify_on_error: []
-      - call_workflow: workflow_status
-        with:
-          notify: $?ctx.slash_notify
-          notify_on_error: []
+    call_workflow: workflow_status
+    with:
+      notify+:
+        - $ctx.channel_fullname
 
   slashcommand/prepare_notification_list:
     meta:
       description:
         - >
           This workflow constructs the notification list using :code:`slash_notify`. If the command is NOT issued from one of
-          the listed channels, a :code:`reply` is added to the list to ensure that the command invoker gets proper feedback.
+          the listed channels.
 
-    steps:
-      - call_workflow: channel_translate
-        with:
-          channel_names: $?ctx.slash_notify
-        export:
-          notify: $?ctx.slash_notify
-      - unless_match:
-          - channel_ids: $ctx.channel_id
-          - slash_notify: $ctx.channel_fullname
-        export:
-          notify+:
-            - reply
+    call_workflow: channel_translate
+    with:
+      channel_names: $?ctx.slash_notify
+    export:
+      notify: $?ctx.slash_notify
 
   slack_users:
     steps:
