@@ -11,3 +11,4 @@ includes:
   - jira.yaml
   - contexts.yaml
   - api_auth.yaml
+  - circleci.yaml

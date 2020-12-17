@@ -1,0 +1,157 @@
+---
+systems:
+  circleci:
+    description: |
+      This system enables Honeydipper to integrate with `circleci`, so Honeydipper can
+      trigger pipelines in `circleci`.
+
+    meta:
+      configurations:
+        - name: circle_token
+          description: The token for making API calls to `circleci`.
+        - nme: url
+          description: The base url of the API calls, defaults to :code:`https://circleci.com/api/v2`
+
+    data:
+      circle_token: _place_holder_
+      url: https://circleci.com/api/v2
+
+    functions:
+      api:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: '{{ .sysData.url }}/{{ .ctx.request_path }}'
+          header:
+            Circle-Token: $sysData.circle_token
+            Accept: application/json
+            Content-Type: application/json; charset=utf-8
+
+        description: >
+          This is a generic function to make a circleci API call with the configured token. This
+          function is meant to be used for defining other functions.
+
+      start_pipeline:
+        target:
+          system: circleci
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/project/{{ default "gh" .ctx.vcs }}/{{ .ctx.git_repo }}/pipeline'
+          method: POST
+          content:
+            branch: $ctx.git_branch
+            parameters: ':yaml:{{ set (default (dict) .ctx.pipeline_parameters) "via" (dict "honeydipper" "true") | toJson }}'
+
+        description: >
+          This function will trigger a pipeline in the given circleci project and branch.
+
+        meta:
+          inputs:
+            - name: vcs
+              description: The VCS system integrated with this circle project, :code:`github` (default) or :code:`bitbucket`.
+            - name: git_repo
+              description: The repo that the pipeline execution is for, e.g. :code:`myorg/myrepo`
+            - name: git_branch
+              description: The branch that the pipeline execution is on.
+            - name: pipeline_parameters
+              description: The parameters passed to the pipeline.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      driver: webhook
+                      if_match:
+                        url: /from_circle
+                      export:
+                        git_repo: $event.form.git_repo.0
+                        git_branch: $event.form.git_branch.0
+                        ci_workflow: $event.form.ci_workflow.0
+                    do:
+                      call_workflow: process_and_return_to_circle
+
+                workflows:
+                  process_and_return_to_circle:
+                    on_error: continue
+                    steps:
+                      - call_workflow: $ctx.ci_workflow
+                        export_on_success:
+                          pipeline_parameters:
+                            deploy_success: "true"
+                      - call_function: circleci.start_pipeline
+
+            - "Your :code:`circleci.yaml` might look like below"
+            - example: |
+                ---
+                jobs:
+                  version: 2
+                  deploy:
+                    unless: << pipeline.parameters.via.honeydipper >>
+                    steps:
+                      - ...
+                      - run: curl <honeydipper webhook> # trigger workflow on honeydipper
+                  continue_on_success:
+                    when: << pipeline.parameters.deploy_success >>
+                    steps:
+                      - ...
+                      - run: celebration
+                  continue_on_failure:
+                    when:
+                      and:
+                        - << pipeline.parameters.via.honeydipper >>
+                        - not: << pipeline.parameters.deploy_success >>
+                    steps:
+                      - ...
+                      - run: recovering
+                      - run: # return error here
+
+                workflows:
+                  version: 2
+                  deploy:
+                    jobs:
+                      - deploy
+                      - continue_on_success
+                      - continue_on_failure
+                  filters:
+                    branches:
+                      only: /^main$/
+            - |
+              For detailed information on conditional jobs and workflows please see the
+              `circleci support document <https://support.circleci.com/hc/en-us/articles/360043638052-Conditional-steps-in-jobs-and-conditional-workflows>`_.
+
+workflows:
+  circleci_pipeline:
+    call_function: circleci.start_pipeline
+
+    description: This workflows wrap around the :code:`circleci.start_pipeline` function so it can be used as a hook.
+
+    meta:
+      notes:
+        - For example, below workflow uses a hook to invoke the pipeline.
+        - example: |
+            ---
+            rules:
+              - when:
+                  driver: webhook
+                  if_match:
+                    url: /from_circle
+                  export:
+                    git_repo: $event.form.git_repo.0
+                    git_branch: $event.form.git_branch.0
+                    ci_workflow: $event.form.ci_workflow.0
+                do:
+                  call_workflow: process_and_return_to_circle
+
+            workflows:
+              process_and_return_to_circle:
+                with:
+                  hooks:
+                    on_exit+:
+                      - circleci_pipeline
+                steps:
+                  - call_workflow: $ctx.ci_workflow
+                    export_on_success:
+                      pipeline_parameters:
+                        deploy_success: "true"
