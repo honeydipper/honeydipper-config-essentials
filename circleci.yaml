@@ -9,7 +9,7 @@ systems:
       configurations:
         - name: circle_token
           description: The token for making API calls to `circleci`.
-        - nme: url
+        - name: url
           description: The base url of the API calls, defaults to :code:`https://circleci.com/api/v2`
 
     data:
