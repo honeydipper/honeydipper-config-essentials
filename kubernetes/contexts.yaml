@@ -28,6 +28,7 @@ contexts:
           shell_entry: [ "/bin/sh", "-c" ]
         tf:
           image: hashicorp/terraform:light
+          imagePullPolicy: Always
           command_prefix: []
           shell_entry: [ "/bin/sh", "-c" ]
         helm:

@@ -37,6 +37,9 @@
         {{- $processor := index $script_types (default "bash" .type) }}
         - name: step-{{ default $index .name }}
           image: {{ $processor.image }}
+          {{- with $processor.imagePullPolicy }}
+          imagePullPolicy: {{ . }}
+          {{- end }}
           workingDir: '{{ default "/honeydipper" .workingDir }}'
           env:
             {{- if (and (empty $env) (empty .env)) }}
