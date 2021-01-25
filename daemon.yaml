@@ -24,9 +24,23 @@ drivers:
           different components of Honeydipper system. It doesn't offer `rawActions` or
           `rawEvents` for workflow composing.
         meta:
-          configurations:
+          configurations: &redis
             - name: connection
-              description: The parameters used for connecting to the redis including `Addr`, `Password` and `DB`.
+              description: The parameters used for connecting to the redis including `Addr`, `Username`, `Password` and `DB`.
+            - name: connection.TLS.Enabled
+              description: Accept true/false. Use TLS to connect to the redis server, support TLS1.2 and above.
+            - name: connection.TLS.InsecureSkipVerify
+              description: Accept true/false. Skip verifying the server certificate. If enabled, TLS is susceptible to machine-in-the-middle attacks.
+            - name: connection.TLS.VerifyServerName
+              description: |
+                When connecting using an IP instead of DNS name, you can override the name used for verifying
+                against the server certificate. Or, use :code:`"*"` to accept any name or certificates without
+                a valid common name as DNS name, no subject altertive names defined.
+            - name: connection.TLS.CACerts
+              description: |
+                A list of CA certificates used for verifying the server certificate. These certificates are added on top
+                of system defined CA certificates. See `Here <https://pkg.go.dev/crypto/x509#SystemCertPool>`_ for description
+                on where the system defined CA certificates are.
           notes:
             - See below for an example
             - example: |
@@ -37,6 +51,14 @@ drivers:
                       Addr: 192.168.2.10:6379
                       DB: 2
                       Password: ENC[gcloud-kms,...masked]
+                      TLS:
+                        Enabled: true
+                        VerifyServerName: "*"
+                        CACerts:
+                          - |
+                            ----- BEGIN CERTIFICATE -----
+                            ...
+                            ----- END CERTIFICATE -----
 
       redispubsub:
         name: redispubsub
@@ -47,9 +69,7 @@ drivers:
           redispubsub driver is used internally to facilitate communications between
           different components of Honeydipper system.
         meta:
-          configurations:
-            - name: connection
-              description: The parameters used for connecting to the redis including `Addr`, `Password` and `DB`.
+          configurations: *redis
           notes:
             - See below for an example
             - example: |
@@ -60,6 +80,15 @@ drivers:
                       Addr: 192.168.2.10:6379
                       DB: 2
                       Password: ENC[gcloud-kms,...masked]
+                      TLS:
+                        Enabled: true
+                        VerifyServerName: "*"
+                        CACerts:
+                          - |
+                            ----- BEGIN CERTIFICATE -----
+                            ...
+                            ----- END CERTIFICATE -----
+
           rawActions:
             - name: send
               description: |
@@ -103,9 +132,7 @@ drivers:
           redislock driver provides RPC calls for the services to acquire locks for synchronize and
           coordinate between instances.
         meta:
-          configurations:
-            - name: connection
-              description: The parameters used for connecting to the redis including `Addr`, `Password` and `DB`.
+          configurations: *redis
           notes:
             - See below for an example
             - example: |
@@ -116,6 +143,15 @@ drivers:
                       Addr: 192.168.2.10:6379
                       DB: 2
                       Password: ENC[gcloud-kms,...masked]
+                      TLS:
+                        Enabled: true
+                        VerifyServerName: "*"
+                        CACerts:
+                          - |
+                            ----- BEGIN CERTIFICATE -----
+                            ...
+                            ----- END CERTIFICATE -----
+
             - This drive doesn't offer any raw actions as of now.
 
       api-broadcast:
@@ -129,9 +165,7 @@ drivers:
           offers a few functions through a `call_driver`. Once the `DipperCL` offers `call_feature`
           statement, we can consolidate the loading of the two drivers into one.
         meta:
-          configurations:
-            - name: connection
-              description: The parameters used for connecting to the redis including `Addr`, `Password` and `DB`.
+          configurations: *redis
           notes:
             - See below for an example
             - example: |
@@ -142,6 +176,15 @@ drivers:
                       Addr: 192.168.2.10:6379
                       DB: 2
                       Password: ENC[gcloud-kms,...masked]
+                      TLS:
+                        Enabled: true
+                        VerifyServerName: "*"
+                        CACerts:
+                          - |
+                            ----- BEGIN CERTIFICATE -----
+                            ...
+                            ----- END CERTIFICATE -----
+
             - This driver doesn't offer any actions or functions.
 
       auth-simple:
