@@ -228,7 +228,7 @@ workflows:
     call_workflow: workflow_status
     with:
       notify+:
-        - $ctx.channel_fullname
+        - $ctx.channel_id
 
   slashcommand/prepare_notification_list:
     meta:
