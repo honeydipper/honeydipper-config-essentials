@@ -310,9 +310,15 @@ workflows:
                     #     - U78JS2F
                     #     - '#public_channel1' # remain unchanged if missing from the map
 
-    export:
-      channel_ids: |-
+    with:
+      translated: |-
         :yaml:---
         {{- range default (list) .ctx.channel_names | uniq }}
         - "{{ if or (empty $.ctx.channel_map) (hasKey $.ctx.channel_map . | not) }}{{ . }}{{ else }}{{ index $.ctx.channel_map . }}{{ end }}"
+        {{- end }}
+    export:
+      channel_ids: |-
+        :yaml:---
+        {{- range default (list) .ctx.translated | uniq }}
+        - "{{ . }}"
         {{- end }}
