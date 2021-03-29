@@ -13,7 +13,9 @@ workflows:
         export:
           steps: |
             :yaml:---
-            {{- range .ctx.steps }}
+            {{- $steps := empty .ctx.berglas_files | ternary .ctx.steps (prepend .ctx.steps "berglas-files") }}
+            {{- $steps = empty .ctx.use_berglas | ternary $steps (prepend $steps "install-berglas") }}
+            {{- range $steps }}
             {{- if (typeIs "string" .) }}
             - {{ index $.ctx.predefined_steps . | toJson }}
             {{- else }}
@@ -114,6 +116,22 @@ workflows:
 
             Also supported are :code:`env` and :code:`volumes` for defining the environment variables and
             volumes specific to this step.
+        - name: generateName
+          description: The prefix for all jobs created by :code:`Honeydipper`, defaults to :code:`honeydipper-job-`.
+
+        - name: use_berglas
+          description: >
+            Indicates if the environment variables should be parsed by
+            :code:`Berglas` to fetch the secrets. See `Berglas website <https://github.com/GoogleCloudPlatform/berglas>`_ for
+            detail. This is done by prepend the :code:`berglas exec --` to the :code:`ENTRYPOINT` of the containers.
+
+        - name: berglas_files
+          description: >
+            Use :code:`Berglas` to fetch secret files. A list of objects, each has a :code:`file` and a :code:`secret` field.
+            Optionally, you can specify the :code:`owner`, :code:`mode` and :code:`dir_mode` for the file. This parameter can
+            be used alone without the :code:`use_berglas` flag. This is achieved by adding an :code:`initContainer` to run the
+            :code:`berglas access "$secret" > "$file"` commands.
+
         - name: env
           description: >
             A list of environment variables for all the steps.
@@ -219,6 +237,54 @@ workflows:
                       name: git_commit
                       workingDir: /honeydipper/repo
                       shell: git commit -m 'change' -a && git push
+
+        - An example with :code:`Berglas` decryption
+        - example: |
+            ---
+            workflows:
+              make_change:
+                call_workflow: run_kubernetes
+                with:
+                  use_berglas: true
+                  system: myrepo.k8s
+                  steps:
+                    - git_clone # predefined step
+                    - type: node
+                      workingDir: /honeydipper/repo
+                      shell: npm ci
+                      env:
+                        # Berglas way of accessing Google Secret Manager secrets.
+                        # assuming proper IAM permissions are granted to the service account.
+                        NPM_TOKEN: sm://my-gcp-project/my-secret-manager-secret
+
+        - Another example with :code:`Berglas` decryption for files. Pay attention to how the file ownership is mapped
+          to the :code:`runAsUser`.
+        - example: |
+            ---
+            workflows:
+              make_change:
+                call_workflow: run_kubernetes
+                with:
+                  system: myrepo.k8s
+                  steps:
+                    - use: git_clone
+                      env:
+                        - name: HOME
+                          value: /honeydipper/myuser
+                      workingDir: /honeydipper/myuser
+                      securityContext:
+                        runAsUser: 3001
+                        runAsGroup: 3001
+                        fsGroup: 3001
+                    - type: node
+                      workingDir: /honeydipper/myuser/repo
+                      shell: npm ci
+                  berglas_files:
+                    - file: /honeydipper/myuser/.ssh/id_rsa
+                      secret: sm://my-project/my-ssh-key
+                      owner: "3001:3001"
+                      mode: "600"
+                      dir_mode: "600"
 
     on_failure: exit
     steps:

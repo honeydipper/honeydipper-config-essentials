@@ -31,10 +31,14 @@
         {{- $script_types := index . 2 }}
         {{- $env := index . 3 }}
         {{- $volumes := index . 4 }}
+        {{- $useBerglas := and (ne $step.type "berglas") (index . 5 | empty | not) }}
+        {{- $berglasPrefix := list "/honeydipper/.bin/berglas" "exec" "--" }}
 
         {{- with $step }}
         {{- $useShell := not (empty .shell) }}
         {{- $processor := index $script_types (default "bash" .type) }}
+        {{- $shell_entry := $useBerglas | ternary (concat $berglasPrefix (default (list) $processor.shell_entry)) $processor.shell_entry }}
+        {{- $command_entry := $useBerglas | ternary (concat $berglasPrefix (default (list) $processor.command_entry)) $processor.command_entry }}
         - name: step-{{ default $index .name }}
           image: {{ $processor.image }}
           {{- with $processor.imagePullPolicy }}
@@ -54,8 +58,8 @@
             {{ template "volumeMounts" $volumes }}
             {{ template "volumeMounts" .volumes }}
           {{- if $useShell }}
-          {{-   if $processor.shell_entry }}
-          command: {{ $processor.shell_entry | toJson }}
+          {{-   if $shell_entry }}
+          command: {{ $shell_entry | toJson }}
           {{-   end }}
           {{-   if typeIs "string" .shell }}
           args: {{ append (default (list) $processor.shell_prefix) .shell | toJson }}
@@ -69,8 +73,8 @@
             {{-   end }}
           {{-   end }}
           {{- else }}
-          {{-   if $processor.command_entry }}
-          command: {{ $processor.command_entry | toJson }}
+          {{-   if $command_entry }}
+          command: {{ $command_entry | toJson }}
           {{-   end }}
           {{-   if typeIs "string" .command }}
           args: {{ append (default (list) $processor.command_prefix) .command | toJson }}
@@ -92,7 +96,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: "honeydipper-job-"
+  generateName: $ctx.generateName,"honeydipper-job-"
   labels:
     creator: honeydipper
     honeydipper-unique-identifier: "{{ $uniqueID }}"
@@ -107,18 +111,18 @@ spec:
       initContainers:
         {{- range $index, $step := . }}
         {{-   if empty $step.as_sidecar }}
-        {{-     template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{-     template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes $.ctx.use_berglas) }}
         {{-   end }}
         {{- end }}
       {{- end }}
       containers:
         {{- with (last .ctx.steps) }}
-        {{-   template "container" (list . $finalStepNum $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{-   template "container" (list . $finalStepNum $.ctx.script_types $.ctx.env $.ctx.volumes $.ctx.use_berglas) }}
         {{- end }}
         {{- with (initial .ctx.steps) }}
         {{-   range $index, $step := . }}
         {{-     if not (empty $step.as_sidecar) }}
-        {{-       template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes) }}
+        {{-       template "container" (list $step $index $.ctx.script_types $.ctx.env $.ctx.volumes $.ctx.use_berglas) }}
         {{-     end }}
         {{-   end }}
         {{- end }}

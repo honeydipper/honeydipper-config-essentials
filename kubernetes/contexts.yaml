@@ -24,23 +24,55 @@ contexts:
           shell_prefix: [ "bash", "-c" ]
         git:
           image: alpine/git:latest
-          command_prefix: []
+          command_entry: [ "git" ]
           shell_entry: [ "/bin/sh", "-c" ]
         tf:
           image: hashicorp/terraform:light
           imagePullPolicy: Always
-          command_prefix: []
+          command_entry: [ "/bin/terraform" ]
           shell_entry: [ "/bin/sh", "-c" ]
         helm:
           image: alpine/helm:latest
-          command_prefix: []
+          command_entry: [ "helm" ]
           shell_entry: [ "/bin/sh", "-c" ]
         gcloud:
           image: google/cloud-sdk:latest
-          command_prefix: []
+          command_prefix: [ "/bin/bash", "-c" ]
           shell_entry: [ "/bin/bash", "-c" ]
+        berglas:
+          image: us-docker.pkg.dev/berglas/berglas/berglas:latest
+          command_prefix: []
+          shell_entry: [ "/bin/sh", "-c" ]
 
       predefined_steps:
+        install-berglas:
+          name: install-berglas
+          type: berglas
+          shell: |
+            mkdir -p /honeydipper/.bin
+            cp /bin/berglas /honeydipper/.bin/berglas
+
+        berglas-files:
+          name: berglas-files
+          type: berglas
+          shell: |
+            {{- range .ctx.berglas_files }}
+            FILE="{{ .file }}"
+            DIR="$(dirname "$FILE")"
+            mkdir -p "$DIR"
+            berglas access "{{ .secret }}" > "$FILE"
+
+            {{- with .owner }}
+            chown "{{ . }}" "$FILE"
+            {{- end }}
+            {{- with .mode }}
+            chmod "{{ . }}" "$FILE"
+            {{- end }}
+            {{- with .dir_mode }}
+            chmod "{{ . }}" "$DIR"
+            {{- end }}
+            {{- end }}
+
         kms:
           name: kms
           type: gcloud
