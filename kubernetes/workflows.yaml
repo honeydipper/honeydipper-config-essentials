@@ -13,7 +13,8 @@ workflows:
         export:
           steps: |
             :yaml:---
-            {{- range .ctx.steps }}
+            {{- $steps := empty .ctx.berglas_files | ternary .ctx.steps (prepend .ctx.steps "berglas-files") }}
+            {{- range $steps }}
             {{- if (typeIs "string" .) }}
             - {{ index $.ctx.predefined_steps . | toJson }}
             {{- else }}
@@ -114,6 +115,21 @@ workflows:
 
             Also supported are :code:`env` and :code:`volumes` for defining the environment variables and
             volumes specific to this step.
+        - name: generateName
+          description: The prefix for all jobs created by :code:`Honeydipper`, defaults to :code:`honeydipper-job-`.
+
+        - name: berglas_files
+          description: |
+            Use :code:`Berglas` to fetch secret files. A list of objects, each
+            has a :code:`file` and a :code:`secret` field.  Optionally, you can
+            specify the :code:`owner`, :code:`mode` and :code:`dir_mode` for
+            the file. This is achieved by adding an :code:`initContainer` to
+            run the :code:`berglas access "$secret" > "$file"` commands.
+
+            :code:`Berglas` is a utility for handling secrets. See their
+            `github repo <https://github.com/GoogleCloudPlatform/berglas>`_ for
+            details.
+
         - name: env
           description: >
             A list of environment variables for all the steps.
@@ -219,6 +235,35 @@ workflows:
                       name: git_commit
                       workingDir: /honeydipper/repo
                       shell: git commit -m 'change' -a && git push
+
+        - An example with :code:`Berglas` decryption for files. Pay attention to how the file ownership is mapped
+          to the :code:`runAsUser`.
+        - example: |
+            ---
+            workflows:
+              make_change:
+                call_workflow: run_kubernetes
+                with:
+                  system: myrepo.k8s
+                  steps:
+                    - use: git_clone
+                      env:
+                        - name: HOME
+                          value: /honeydipper/myuser
+                      workingDir: /honeydipper/myuser
+                      securityContext:
+                        runAsUser: 3001
+                        runAsGroup: 3001
+                        fsGroup: 3001
+                    - type: node
+                      workingDir: /honeydipper/myuser/repo
+                      shell: npm ci
+                  berglas_files:
+                    - file: /honeydipper/myuser/.ssh/id_rsa
+                      secret: sm://my-project/my-ssh-key
+                      owner: "3001:3001"
+                      mode: "600"
+                      dir_mode: "600"
 
     on_failure: exit
     steps:

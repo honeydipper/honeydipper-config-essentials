@@ -92,7 +92,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: "honeydipper-job-"
+  generateName: $ctx.generateName,"honeydipper-job-"
   labels:
     creator: honeydipper
     honeydipper-unique-identifier: "{{ $uniqueID }}"
