@@ -37,7 +37,7 @@ contexts:
           shell_entry: [ "/bin/sh", "-c" ]
         gcloud:
           image: google/cloud-sdk:latest
-          command_prefix: [ "/bin/bash", "-c" ]
+          command_prefix: []
           shell_entry: [ "/bin/bash", "-c" ]
         berglas:
           image: us-docker.pkg.dev/berglas/berglas/berglas:latest
