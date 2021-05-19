@@ -88,7 +88,7 @@ systems:
                 call_function: dataflow.createJob
                 with:
                   job:
-                    gcsPath: gs://dataflow-templates//Cloud_Spanner_to_GCS_Avro
+                    gcsPath: gs://dataflow-templates/Cloud_Spanner_to_GCS_Avro
                     jobName: export-a-spanner-DB-to-gcs
                     parameters:
                       instanceId: my-spanner-instance
