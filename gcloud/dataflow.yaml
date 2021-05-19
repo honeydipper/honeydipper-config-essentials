@@ -1,0 +1,261 @@
+---
+systems:
+  dataflow:
+    description: |
+      This system provides a few functions to interact with Google dataflow jobs.
+
+    meta:
+      configurations:
+        - name: service_accounts.dataflow
+          description: The service account json key used to access the dataflow API, optional
+        - name: locations.dataflow
+          description: >
+            The default location to be used for new dataflow jobs, if missing
+            will use :code:`.sysData.locations.default`. And, can be overriden
+            using `.ctx.location`
+        - name: subnetworks.dataflow
+          description: >
+            The default subnetwork to be used for new dataflow jobs, if missing
+            will use :code:`.sysData.subnetworks.default`. And, can be
+            overriden using `.ctx.subnetwork`
+        - name: project
+          description: >
+            default project used to access the dataflow API if
+            :code:`.ctx.project` is not provided, optional
+
+      notes:
+        - The system can share data with a common configuration Google Cloud system that
+          contains the configuration.
+        - For example
+        - example: |
+            ---
+            systems:
+              dataflow:
+                extends:
+                  - gcloud-config
+              gcloud-config:
+                project: my-gcp-project
+                locations:
+                  default: us-central1
+                subnetworks:
+                  default: default
+                service_accounts:
+                  dataflow: ENC[gcloud-kms,xxxxxxx]
+
+    data:
+      joblinks:
+        dataflow_job:
+          url: "https://console.cloud.google.com/dataflow/jobs/{{ .sysData.locations.backup }}/{{ .data.job.id }}?project={{ .sysData.project }}"
+          text: See Dataflow job {{ .data.job.name }} in console
+
+    functions:
+      createJob:
+        driver: gcloud-dataflow
+        rawAction: createJob
+        parameters:
+          service_account: $?sysData.service_accounts.dataflow
+          project: $ctx.project,sysData.project
+          location: $ctx.location,sysData.locations.dataflow,sysData.locations.default
+          job: >-
+            :yaml:{{ merge (
+            dict "subnetwork" (coalesce .ctx.subnetwork .sysData.subnetworks.dataflow .sysData.subnetworks.default)
+            | dict "environment"
+            ) .ctx.job | toJson }}
+        export_on_success:
+          job: $data.job
+          links: $sysData.joblinks
+
+        description: >
+          Creates a dataflow job using a template.
+
+        meta:
+          inputs:
+            - name: project
+              description: Optional, in which project the job is created, defaults to the :code:`project` defined with the system
+            - name: location
+              description: Optional, the location for the job, defaults to the system configuration
+            - name: subnetwork
+              description: Optional, the subnetwork for the job, defaults to the system configuration
+            - name: job
+              description: Required, the data structure describe the :code:`CreateJobFromTemplateRequest`, see the `API document <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#CreateJobFromTemplateRequest>`_ for details.
+          exports:
+            - name: job
+              description: The job object, details `here <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#Job>`_
+
+          notes:
+            - For example
+            - example: |
+                call_function: dataflow.createJob
+                with:
+                  job:
+                    gcsPath: gs://dataflow-templates/Cloud_Spanner_to_GCS_Avro
+                    jobName: export-a-spanner-DB-to-gcs
+                    parameters:
+                      instanceId: my-spanner-instance
+                      databaseId: my-spanner-db
+                      outputDir: gs://my_spanner_export_bucket
+
+      getStatus:
+        driver: gcloud-dataflow
+        rawAction: waitForJob
+        parameters:
+          service_account: $?sysData.service_accounts.dataflow
+          project: $ctx.project,sysData.project
+          location: $ctx.job.location,data.job.location,ctx.location,sysData.locations.dataflow,sysData.locations.default
+          jobID: $ctx.job.id,data.job.id
+          timeout: $ctx.timeout,"1800"
+          interval: $ctx.interval,"15"
+        export:
+          jobStatus: $data.job.currentState,"unknown"
+        export_on_failure:
+          reason: $?labels.reason
+
+        description: >
+          Wait for the dataflow job to complete and return the status of the job.
+
+        meta:
+          inputs:
+            - name: project
+              description: Optional, in which project the job is created, defaults to the :code:`project` defined with the system
+            - name: location
+              description: Optional, the location for the job, defaults to the system configuration
+            - name: job
+              description: Optional, the data structure describe the :code:`Job`, see the `API document <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#Job>`_ for details, if not specified, will use the dataflow job information from previous :code:`createJob` call.
+            - name: timeout
+              description: Optional, if the job doesn't complete within the timeout, report error, defaults to :code:`1800` seconds
+            - name: interval
+              description: Optional, polling interval, defaults to :code:`15` seconds
+          exports:
+            - name: job
+              description: The job object, details `here <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#Job>`_
+
+          notes:
+            - For example
+            - example: |
+                steps:
+                  - call_function: dataflow.createJob
+                    with:
+                      job:
+                        gcsPath: gs://dataflow-templates//Cloud_Spanner_to_GCS_Avro
+                        jobName: export-a-spanner-DB-to-gcs
+                        parameters:
+                          instanceId: my-spanner-instance
+                          databaseId: my-spanner-db
+                          outputDir: gs://my_spanner_export_bucket
+                  - call_function: dataflow.getStatus
+
+      findJob:
+        driver: gcloud-dataflow
+        rawAction: findJobByName
+        parameters:
+          service_account: $?sysData.service_accounts.dataflow
+          project: $ctx.project,sysData.project
+          location: $ctx.location,sysData.locations.dataflow,sysData.locations.default
+          name: $ctx.jobNamePattern
+        export:
+          job: $?data.job
+
+        description: >
+          Find an active job with the given name pattern
+
+        meta:
+          inputs:
+            - name: project
+              description: Optional, in which project the job is created, defaults to the :code:`project` defined with the system
+            - name: location
+              description: Optional, the location for the job, defaults to the system configuration
+            - name: jobNamePattern
+              description: Required, a regex pattern used for match the job name
+          exports:
+            - name: job
+              description: The first active matching job object, details `here <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#Job>`_
+
+          notes:
+            - For example
+            - example: |
+                steps:
+                  - call_function: dataflow.findJob
+                    with:
+                      jobNamePattern: ^export-a-spanner-DB-to-gcs$
+                  - call_function: dataflow.getStatus
+
+      updateJob:
+        driver: gcloud-dataflow
+        rawAction: updateJob
+        parameters:
+          service_account: $?sysData.service_accounts.dataflow
+          project: $ctx.project,sysData.project
+          location: $ctx.job.location,data.job.location,ctx.location,sysData.locations.dataflow,sysData.locations.default
+          jobSpec:
+            id: $ctx.job.id,data.job.id
+            requestedState: JOB_STATE_DRAINING
+
+        description: >
+          Update a running dataflow job
+
+        meta:
+          inputs:
+            - name: project
+              description: Optional, in which project the job is created, defaults to the :code:`project` defined with the system
+            - name: location
+              description: Optional, the location for the job, defaults to the system configuration
+            - name: jobSpec
+              description: Required, a job object with a :code:`id` and the fields for updating.
+
+          notes:
+            - For example
+            - example: |
+                steps:
+                  - call_function: dataflow.findJob
+                    with:
+                      jobNamePattern: ^export-a-spanner-DB-to-gcs$
+                  - call_function: dataflow.updateJob
+                    with:
+                      jobSpec:
+                        id: $ctx.job.id
+                        requestedState: JOB_STATE_DRAINING
+                  - call_function: dataflow.getStatus
+
+workflows:
+  drainDataflowJob:
+    steps:
+      - call_function: '{{ .ctx.system }}.findJob'
+        with:
+          jobNamePattern: $ctx.jobNamePattern
+      - call_function: '{{ .ctx.system }}.updateJob'
+        with:
+          jobSpec:
+            id: $ctx.job.id
+            requestedState: JOB_STATE_DRAINING
+      - call_function: '{{ .ctx.system }}.getStatus'
+
+    description: Draining an active dataflow job, including finding the job
+                 with a regex name pattern, requesting draining and waiting
+                 for the job to complete.
+
+    meta:
+      inputs:
+        - name: system
+          description: The dataflow system used for draining the job
+        - name: jobNamePattern
+          description: Required, a regex pattern used for match the job name
+      exports:
+        - name: job
+          description: The job object, details `here <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#Job>`_
+        - name: reason
+          description: If the job fails, the reason for the failure as reported by the API.
+
+      notes:
+        - For example
+        - example: |
+            ---
+            rules:
+              - when:
+                  source:
+                    system: webhook
+                    trigger: request
+                do:
+                  call_workflow: drainDataflowJob
+                  with:
+                    system: dataflow-sandbox
+                    jobNamePatttern: ^my-job-[0-9-]*$

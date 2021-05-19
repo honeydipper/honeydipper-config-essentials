@@ -11,10 +11,3 @@ systems:
             log:
               url: "https://console.cloud.google.com/logs/viewer?project={{ .params.source.project }}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22{{ .params.source.project }}%22%0Aresource.labels.location%3D%22{{ .params.source.location }}%22%0Aresource.labels.cluster_name%3D%22{{ .params.source.cluster }}%22%0Aresource.labels.namespace_name%3D%22{{ default `default` .params.namespace }}%22%0Alabels.%22k8s-pod%2Fjob-name%22%3D%22{{ .data.metadata.name }}%22"
               text: View Kubernetes job logs in Stackdriver
-
-  dataflow:
-    data:
-      joblinks:
-        dataflow_job:
-          url: "https://console.cloud.google.com/dataflow/jobs/{{ .sysData.locations.backup }}/{{ .data.job.id }}?project={{ .sysData.project }}"
-          text: See Dataflow job {{ .data.job.name }} in console

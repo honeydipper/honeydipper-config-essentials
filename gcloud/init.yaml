@@ -3,4 +3,6 @@ includes:
   - drivers.yaml
   - contexts.yaml
   - workflows.yaml
-  - systems.yaml
+
+  - gke.yaml
+  - dataflow.yaml
