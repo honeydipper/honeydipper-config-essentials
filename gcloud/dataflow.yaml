@@ -186,8 +186,8 @@ systems:
           service_account: $?sysData.service_accounts.dataflow
           project: $ctx.project,sysData.project
           location: $ctx.job.location,data.job.location,ctx.location,sysData.locations.dataflow,sysData.locations.default
+          jobID: $ctx.job.id,data.job.id
           jobSpec:
-            id: $ctx.job.id,data.job.id
             requestedState: JOB_STATE_DRAINING
 
         description: >
@@ -212,7 +212,6 @@ systems:
                   - call_function: dataflow.updateJob
                     with:
                       jobSpec:
-                        id: $ctx.job.id
                         requestedState: JOB_STATE_DRAINING
                   - call_function: dataflow.getStatus
 
@@ -225,7 +224,6 @@ workflows:
       - call_function: '{{ .ctx.system }}.updateJob'
         with:
           jobSpec:
-            id: $ctx.job.id
             requestedState: JOB_STATE_DRAINING
       - call_function: '{{ .ctx.system }}.getStatus'
 
