@@ -15,6 +15,8 @@ rules:
       source:
         system: slack_bot
         trigger: slashcommand
+      parameters:
+        verifySystem: true
     do:
       context: _slashcommands
       call_workflow: slashcommand
