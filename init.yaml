@@ -12,3 +12,4 @@ includes:
   - contexts.yaml
   - api_auth.yaml
   - circleci.yaml
+  - pagerduty.yaml

@@ -143,6 +143,8 @@ systems:
         meta:
           description:
             - This function gets the current on-call persons for the given schedule.
+            - highlight: Use the `opsgenie_whoisoncall`_ workflow instead.
+              type: important
 
           inputs:
             - name: scheduleId
@@ -359,3 +361,73 @@ workflows:
     meta:
       description:
         - This workflow wraps around the :code:`opsgenie.users` function and handles paging to get all users from Opsgenie.
+
+  opsgenie_whoisoncall:
+    description: get opsgenie on call table
+    steps:
+      - call_function: opsgenie.schedules
+      - call_workflow: opsgenie_users
+      - export:
+          email_lookup: |
+            :yaml:---
+            {{ range .ctx.users }}
+            "{{ .username }}": {{ .fullName }}
+            {{ end }}
+      - iterate: $ctx.schedules
+        iterate_as: schedule
+        steps:
+          - if_any:
+              - '{{ empty .ctx.schedule_pattern }}'
+              - '{{ contains (lower .ctx.schedule_pattern) (lower .ctx.schedule.name) }}'
+            call_function: opsgenie.whoisoncall
+            with:
+              scheduleId: $ctx.schedule.id
+              scheduleIdType: id
+            export:
+              on_call_table: |
+                :yaml:---
+                {{ .ctx.schedule.name }}: {{ $sep := "" }}{{ range .ctx.result.onCallRecipients }}
+                  {{- $sep }}
+                  {{- if hasKey $.ctx.email_lookup . }}{{ index $.ctx.email_lookup . }}{{ else }}{{ . }}{{ end }}{{ $sep = "," }}
+                {{- end }}
+    no_export:
+      - schedules
+      - users
+      - email_lookup
+
+    meta:
+      description:
+        - This workflow wraps around multiple api calls to :code:`opsgenie` and produce a `on_call_table` datastructure.
+      inputs:
+        - name: schedule_pattern
+          description: Optional, the keyword used for filtering the on call schedules.
+      exports:
+        - name: on_call_table
+          description: A map from on call schedule names to lists of users.
+      notes:
+        - This is usually used for showing the on-call table in response to slash commands.
+        - For example
+        - example: |
+            ---
+            workflows:
+              show_on_calls:
+                with:
+                  alert_system: opsgenie
+                no_export:
+                  - '*'
+                steps:
+                  - call: '{{ .ctx.alert_system }}_whoisoncall'
+                  - call: notify
+                    with:
+                      notify*:
+                        - reply
+                      response_type: in_channel
+                      blocks:
+                        - type: section
+                          text:
+                            type: mrkdn
+                            text: |
+                              *===== On call users ======*
+                              {{- range $name, $users := .ctx.on_call_table }}
+                              *{{ $name }}*: {{ join ", " $users }}
+                              {{- end }}
