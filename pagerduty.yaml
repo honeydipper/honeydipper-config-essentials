@@ -1,0 +1,315 @@
+---
+systems:
+  pagerduty:
+    description: |
+      This system enables Honeydipper to integrate with :code:`pagerduty`, so Honeydipper can
+      react to pagerduty alerts and take actions through pagerduty API.
+
+    meta:
+      configurations:
+        - name: API_KEY
+          description: The API key used for making API calls to :code:`pagerduty`
+        - name: signatureSecret
+          description: The secret used for validating webhook requests from :code:`pagerduty`
+        - name: path
+          description: The path portion of the webhook url, by default :code:`/pagerduty`
+
+      notes:
+        - For example
+        - example: |
+            ---
+            systems:
+              pagerduty:
+                data:
+                  API_KEY: ENC[gcloud-kms,...masked...]
+                  signatureSecret: ENC[gcloud-kms,...masked...]
+                  path: "/webhook/pagerduty"
+        - Assuming the domain name for the webhook server is :code:`myhoneydipper.com', you should
+          configure the webhook in your pagerduty integration with url like below
+        - |
+          .. code-block::
+
+             https://myhoneydipper.com/webhook/pagerduty
+
+    data:
+      API_KEY: _place_holder_
+      path: "/pagerduty"
+      signatureHeader: X-PagerDuty-Signature
+      signatureSecret: _place_holder_
+
+    triggers:
+      alert:
+        driver: webhook
+        if_match:
+          method: POST
+          url: $sysData.path
+          json:
+            event:
+              event_type: incident.triggered
+        export:
+          alert_message: $event.json.event.data.title
+          alert_alias: $event.json.event.data.title
+          alert_Id: $event.json.event.data.id
+          alert_service: $event.json.event.data.service.summary
+          alert_system: "pagerduty"
+          alert_url: $event.json.event.data.html_url
+          _event_id: $event.json.event.data.id
+          _event_detail: |-
+            ```{{ .event.json.event.data.title }}
+            service: {{ .event.json.event.data.service.summary }}```
+          _event_url: $event.json.event.data.html_url
+          links:
+            alert:
+              text: alert {{ .event.json.event.data.id }}
+              url: $event.json.event.data.html_url
+            service:
+              text: service {{ .event.json.event.data.service.summary }}
+              url: $event.json.event.data.service.html_url
+
+        parameters:
+          verifySystem: true
+
+        description: This event is triggered when an pagerduty incident is raised.
+        meta:
+          matching_parameters:
+            - name: .json.event.data.title
+              description: This field can used to match alert with only certain messages
+            - name: .json.event.data.service.summary
+              description: This field is to match only the alerts with certain service
+          exports:
+            - name: alert_message
+              description: This context variable will be set to the detailed message of the alert.
+            - name: alert_service
+              description: This context variable will be set to the service of the alert.
+            - name: alert_Id
+              description: This context variable will be set to the short alert ID.
+            - name: alert_system
+              description: This context variable will be set to the constant string, :code:`pagerduty`
+            - name: alert_url
+              description: This context variable will be set to the url of the alert, used for creating links
+          notes:
+            - Pagerduty manages all the alerts through incidents. Although the trigger is named :code:`alert` for compatibility reason, it actually
+              matches an incident.
+            - See below snippet for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: pagerduty
+                        trigger: alert
+                      if_match:
+                        json:
+                          data:
+                            title: :regex:^test-alert.*$
+                    do:
+                      call_workflow: notify
+                      with:
+                        message: 'The alert url is {{ .ctx.alert_url }}'
+
+    functions:
+      api:
+        driver: web
+        rawAction: request
+        parameters:
+          header:
+            Accept: application/vnd.pagerduty+json;version=2
+            Content-Type: application/json
+            Authorization: Token token={{ .sysData.API_KEY }}
+          retry: 2
+
+      snooze:
+        target:
+          system: pagerduty
+          function: api
+        parameters:
+          URL: https://api.pagerduty.com/incidents/{{ .ctx.alert_Id }}/snooze
+          method: POST
+          content:
+            duration: $ctx.duration
+        export:
+          incident: $data.json.incident
+
+        description: >
+          snooze pagerduty incident
+
+        meta:
+          inputs:
+            - name: alert_Id
+              description: The ID of the incident to be snoozed
+            - name: duration
+              description: For how long the incident should be snoozed, a number of seconds
+          exports:
+            - name: incident
+              description: On success, returns the updated incident object
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: pagerduty
+                        trigger: alert
+                      if_match:
+                        json:
+                          title: :regex:test-alert
+                    do:
+                      call_function: pagerduty.snooze
+                      with:
+                        # alert_Id is exported from the event
+                        duration: 1200
+
+      getEscalationPolicies:
+        target:
+          system: pagerduty
+          function: api
+        parameters:
+          URL: https://api.pagerduty.com/escalation_policies
+          method: GET
+          form:
+            limit: "100"
+            offset: $ctx.offset,"0"
+            query: $?ctx.tag_name
+        export:
+          escalation_policies+: |
+            :yaml:---
+            {{- range .data.json.escalation_policies }}
+            {{- if contains (default "" $.ctx.schedule_pattern | lower) (lower .summary) }}
+              - {{ . | toJson }}
+            {{- end }}
+            {{- end }}
+          escalation_policy_ids+: |
+            :yaml:---
+            {{- range .data.json.escalation_policies }}
+            {{- if contains (default "" $.ctx.schedule_pattern | lower) (lower .summary) }}
+              - {{ .id }}
+            {{- end }}
+            {{- end }}
+          offset: '{{ add (default 0 .ctx.offset) (len .data.json.escalation_policies) }}'
+          EOL: '{{ if ne (len .data.json.escalation_policies) 100 }}true{{ end }}'
+
+      whoisoncall:
+        target:
+          system: pagerduty
+          function: api
+        parameters:
+          URL: https://api.pagerduty.com/oncalls
+          method: GET
+          form: |
+            :yaml:---
+            earliest: "true"
+            limit: "100"
+            {{- with .ctx.escalation_policy_ids }}
+            "escalation_policy_ids[]": {{ toJson . }}
+            {{- end }}
+            {{- with .ctx.offset }}
+            offset: {{ . }}
+            {{- end }}
+        export:
+          oncalls+: $data.json.oncalls
+          offset: '{{ add (default 0 .ctx.offset) (len .data.json.oncalls) }}'
+          EOL: '{{ if ne (len .data.json.oncalls) 100 }}true{{ end }}'
+
+        meta:
+          description:
+            - This function gets the current on-call persons for the given schedule.
+            - highlight: This function only fetches first 100 schedules when listing. Use `pagerduty_whoisoncall`_ workflow instead.
+              type: important
+
+          inputs:
+            - name: escalation_policy_ids
+              description: An array of IDs of the escalation policies; if missing, list all.
+          exports:
+            - name: result
+              description: a list of data structure contains the schedule details. See `API <https://developer.pagerduty.com/api-reference/reference/REST/openapiv3.json/paths/~1oncalls/get>`_ for detail.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  until:
+                    - $?ctx.EOL
+                  steps:
+                    - call_function: pagerduty.whoisoncall
+                  no_export:
+                    - offset
+                    - EOL
+
+workflows:
+  pagerduty_whoisoncall:
+    description: get pagerduty on call table
+    steps:
+      - until:
+          - $?ctx.EOL
+        steps:
+          - call_function: pagerduty.getEscalationPolicies
+        no_export:
+          - offset
+          - EOL
+          - escalation_policies
+      - if:
+          - $?ctx.escalation_policy_ids
+        steps:
+          - until:
+              - $?ctx.EOL
+            steps:
+              - call_function: pagerduty.whoisoncall
+            no_export:
+              - offset
+              - EOL
+    export:
+      on_call_table: |
+        :yaml:---
+        {{- $table := dict }}
+        {{- range (default list .ctx.oncalls) }}
+        {{-   if int .escalation_level | eq 1 }}
+        {{-     $users := default list ( index $table .escalation_policy.summary ) }}
+        {{-     $users = append $users .user.summary }}
+        {{-     $_ := set $table .escalation_policy.summary $users }}
+        {{-   end }}
+        {{- end }}
+        {{ $table | toJson }}
+    no_export:
+      - oncalls
+
+    meta:
+      description:
+        - This workflow wraps around multiple api calls to :code:`pagerduty` and produce a `on_call_table` datastructure.
+      inputs:
+        - name: tag_name
+          description: Optional, the keyword used for filtering the on tags
+        - name: schedule_pattern
+          description: Optional, the keyword used for filtering the on-call escalation policies.
+      exports:
+        - name: on_call_table
+          description: A map from on call schedule names to lists of users.
+      notes:
+        - This is usually used for showing the on-call table in response to slash commands.
+        - For example
+        - example: |
+            ---
+            workflows:
+              show_on_calls:
+                with:
+                  alert_system: pagerduty
+                no_export:
+                  - '*'
+                steps:
+                  - call: '{{ .ctx.alert_system }}_whoisoncall'
+                  - call: notify
+                    with:
+                      notify*:
+                        - reply
+                      response_type: in_channel
+                      blocks:
+                        - type: section
+                          text:
+                            type: mrkdn
+                            text: |
+                              *===== On call users ======*
+                              {{- range $name, $users := .ctx.on_call_table }}
+                              *{{ $name }}*: {{ join ", " $users }}
+                              {{- end }}
