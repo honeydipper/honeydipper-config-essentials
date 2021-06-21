@@ -205,7 +205,7 @@ systems:
             "escalation_policy_ids[]": {{ toJson . }}
             {{- end }}
             {{- with .ctx.offset }}
-            offset: {{ . }}
+            offset: "{{ . }}"
             {{- end }}
         export:
           oncalls+: $data.json.oncalls
