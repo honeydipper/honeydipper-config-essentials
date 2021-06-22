@@ -247,7 +247,7 @@ workflows:
         steps:
           - call_function: pagerduty.getEscalationPolicies
             export:
-              escalation_policy_ids+: $ctx.result_ids
+              escalation_policy_ids+: $?ctx.result_ids
         no_export:
           - offset
           - EOL
