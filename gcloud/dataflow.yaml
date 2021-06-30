@@ -216,6 +216,54 @@ systems:
                   - call_function: dataflow.getStatus
 
 workflows:
+  cancelDataflowJob:
+    unless:
+      - $?ctx.no_cancelling
+    steps:
+      - call_function: '{{ .ctx.system }}.updateJob'
+        with:
+          jobSpec:
+            requestedState: JOB_STATE_CANCELLED
+      - call_function: '{{ .ctx.system }}.getStatus'
+        with:
+          timeout: $?ctx.cancelling_timeout
+
+    description: Cancel an active dataflow job, and wait for the job to quit.
+
+    meta:
+      inputs:
+        - name: system
+          description: The dataflow system used for draining the job
+        - name: job
+          description: Required, a job object returned from previous :code:`findJob` or :code:`getStatus` functions,
+            details `here <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#Job>`_
+        - name: cancelling_timeout
+          description: Optional, time in seconds for waiting for the job to quit, default 1800
+      exports:
+        - name: job
+          description: The updated job object, details `here <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#Job>`_
+        - name: reason
+          description: If the job fails, the reason for the failure as reported by the API.
+
+      notes:
+        - For example
+        - example: |
+            ---
+            rules:
+              - when:
+                  source:
+                    system: webhook
+                    trigger: request
+                do:
+                  steps:
+                    - call_function: dataflow-sandbox.findJob
+                      with:
+                        jobNamePatttern: ^my-job-[0-9-]*$
+                    - call_workflow: cancelDataflowJob
+                      with:
+                        system: dataflow-sandbox
+                        # job object is automatically exported from previous step
+
   drainDataflowJob:
     steps:
       - call_function: '{{ .ctx.system }}.findJob'
@@ -226,6 +274,10 @@ workflows:
           jobSpec:
             requestedState: JOB_STATE_DRAINING
       - call_function: '{{ .ctx.system }}.getStatus'
+        with:
+          timeout: $?ctx.draining_timeout
+          hooks:
+            on_error: cancelDataflowJob
 
     description: Draining an active dataflow job, including finding the job
                  with a regex name pattern, requesting draining and waiting
@@ -237,6 +289,12 @@ workflows:
           description: The dataflow system used for draining the job
         - name: jobNamePattern
           description: Required, a regex pattern used for match the job name
+        - name: draining_timeout
+          description: Optional, draining timeout in seconds, default 1800
+        - name: no_cancelling
+          description: Optional, unless specified, the job will be cancelled after draining timeout
+        - name: cancelling_timeout
+          description: Optional, time in seconds for waiting for the job to quit, default 1800
       exports:
         - name: job
           description: The job object, details `here <https://pkg.go.dev/google.golang.org/api/dataflow/v1b3#Job>`_
