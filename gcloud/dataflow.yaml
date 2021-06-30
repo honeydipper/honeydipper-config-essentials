@@ -187,8 +187,7 @@ systems:
           project: $ctx.project,sysData.project
           location: $ctx.job.location,data.job.location,ctx.location,sysData.locations.dataflow,sysData.locations.default
           jobID: $ctx.job.id,data.job.id
-          jobSpec:
-            requestedState: JOB_STATE_DRAINING
+          jobSpec: $ctx.jobSpec
 
         description: >
           Update a running dataflow job
