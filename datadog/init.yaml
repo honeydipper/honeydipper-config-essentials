@@ -94,3 +94,71 @@ drivers:
   datadog-emitter:
     useHostPort: true
     statsdPort: "8125"
+
+systems:
+  datadog:
+    description: |
+      This system enables Honeydipper to integrate with `datadog`, so Honeydipper can
+      emit metrics using workflows or functions.
+
+      The system doesn't take authentication configuration, but uses configuration from the
+      :code:`datadog-emitter` driver. See the driver for details.
+
+    meta:
+      configurations:
+        - name: heartbeat_metric
+          description: Uses this metric to track all heartbeats with different tags.
+
+    functions:
+      heartbeat:
+        driver: 'feature:emitter'
+        rawAction: counter_increment
+        parameters:
+          name: '{{ .sysData.heartbeat_metric }}'
+          tags:
+            - heartbeat:{{ .ctx.heartbeat }}
+
+        description: >
+          This function will send a heartbeat request to datadog.
+
+        meta:
+          inputs:
+            - name: heartbeat
+              description: The name of the heartbeat used for tagging.
+
+      increment:
+        driver: 'feature:emitter'
+        rawAction: counter_increment
+        parameters:
+          name: $ctx.metric
+          tags: $?ctx.tags
+
+        description: >
+          This function will increment a counter metric.
+
+        meta:
+          inputs:
+            - name: metric
+              description: The name of the metric.
+            - name: tags
+              description: Optional, a list of strings as tags for the metric.
+
+      set:
+        driver: 'feature:emitter'
+        rawAction: gauge_set
+        parameters:
+          name: $ctx.metric
+          tags: $?ctx.tags
+          value: $ctx.value
+
+        description: >
+          This function will set a gauge metric.
+
+        meta:
+          inputs:
+            - name: metric
+              description: The name of the metric.
+            - name: tags
+              description: Optional, a list of strings as tags for the metric.
+            - name: value
+              description: The value of the metric.
