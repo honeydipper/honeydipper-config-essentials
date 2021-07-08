@@ -225,20 +225,15 @@ workflows:
         - >
           This workflow sends a status message to the channels listed in :code:`slash_notify`.  Used internally.
 
-    if_match:
-      channel_name:
-        - privategroup
-        - directmessage
-    steps:
-      - call_workflow: workflow_status
+    threads:
+      - unless_match:
+          - channel_ids: $ctx.channel_id
+          - slash_notify: $ctx.channel_fullname
+        call_workflow: workflow_status
         with:
-          notify+:
-            - $ctx.channel_id
-    else:
-      call_workflow: workflow_status
-      with:
-        notify+:
-          - $ctx.channel_fullname
+          notify:
+            - reply
+      - call_workflow: workflow_status
 
   slashcommand/prepare_notification_list:
     meta:
