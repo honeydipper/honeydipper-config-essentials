@@ -19,7 +19,7 @@ systems:
               codeclimate:
                 data:
                   api_key: ENC[gcloud-kms,...masked...]
-                  url: "https://api.codeclimate.com/v1/"
+                  url: "https://api.codeclimate.com/v1"
         - |
           To configure the integration in CodeClimate,
 
@@ -28,7 +28,7 @@ systems:
 
     data:
       api_key: _place_holder_
-      url: https://api.codeclimate.com/v1/
+      url: https://api.codeclimate.com/v1
 
     functions:
       api:
@@ -67,7 +67,7 @@ systems:
           system: codeclimate
           function: api
         parameters:
-          URL: '{{ .sysData.url }}/orgs/{{ .ctx.org }}/repos'
+          URL: '{{ .sysData.url }}/orgs/{{ .ctx.org_id }}/repos'
           method: POST
           content: '{"data":{"type":"repos","attributes":{"url":"https://github.com/{{ .ctx.org }}/{{ .ctx.repo }}"}}}'
 
@@ -76,7 +76,9 @@ systems:
 
         meta:
           inputs:
+            - name: org_id
+              description: Code Climate organization ID
             - name: org
-              description: Github organization
+              description: Github organization name
             - name: repo
               description: Github repository name
