@@ -1,0 +1,27 @@
+workflows:
+  codeclimate/add_public_repo:
+    description: Add a public Github repository to Code Climate
+    with:
+      repo: |-
+        {{- with .ctx.repo | trim | splitList "/" | last | trimPrefix "@" }}
+        {{- if empty . }}{{ fail "Please specify a repo" }}{{ end -}}
+        {{ . }}
+        {{- end }}
+    steps:
+      - call_function: codeclimate.add_public_repo
+
+  codeclimate/add_private_repo:
+    description: Add a private Github repository to Code Climate
+    with:
+      org: |-
+        {{- with .ctx.org | trim | trimPrefix "@" }}
+        {{- if empty . }}{{ fail "Please specify a Github organization" }}{{ end -}}
+        {{ . }}
+        {{- end }}
+      repo: |-
+        {{- with .ctx.repo | trim | splitList "/" | last }}
+        {{- if empty . }}{{ fail "Please specify a repo" }}{{ end -}}
+        {{ . }}
+        {{- end }}
+    steps:
+      - call_function: codeclimate.add_private_repo

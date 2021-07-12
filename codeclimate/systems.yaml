@@ -1,0 +1,82 @@
+---
+systems:
+  codeclimate:
+    description: |
+      This system enables Honeydipper to integrate with `CodeClimate`.
+
+    meta:
+      configurations:
+        - name: api_key
+          description: The token for authenticating with CodeClimate
+        - name: url
+          description: The CodeClimate API URL
+
+      notes:
+        - For example
+        - example: |
+            ---
+            systems:
+              codeclimate:
+                data:
+                  api_key: ENC[gcloud-kms,...masked...]
+                  url: "https://api.codeclimate.com/v1/"
+        - |
+          To configure the integration in CodeClimate,
+
+          1. navigate to :code:`User Settings` => :code:`API Access`
+          2. generate a new token, and record it as :code:`api_key` in system data
+
+    data:
+      api_key: _place_holder_
+      url: https://api.codeclimate.com/v1/
+
+    functions:
+      api:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: '{{ .sysData.url }}/{{ .ctx.request_path }}'
+          header:
+            Authorization: 'Token token={{ .sysData.api_key }}'
+            Accept: application/json
+            Content-Type: application/json
+
+        description: >
+          This is a generic function to make a circleci API call with the configured token. This
+          function is meant to be used for defining other functions.
+
+      add_public_repo:
+        target:
+          system: codeclimate
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/github/repos'
+          method: POST
+          content: '{"data":{"type":"repos","attributes":{"url":"https://github.com/{{ .ctx.repo }}"}}}'
+
+        description: >
+          Add a GitHub open source repository to Code Climate.
+
+        meta:
+          inputs:
+            - name: repo
+              description: The repo to add, e.g. :code:`myuser/myrepo`
+
+      add_private_repo:
+        target:
+          system: codeclimate
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/orgs/{{ .ctx.org }}/repos'
+          method: POST
+          content: '{"data":{"type":"repos","attributes":{"url":"https://github.com/{{ .ctx.org }}/{{ .ctx.repo }}"}}}'
+
+        description: >
+          Add a private GitHub repository to Code Climate.
+
+        meta:
+          inputs:
+            - name: org
+              description: Github organization
+            - name: repo
+              description: Github repository name
