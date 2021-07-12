@@ -1,0 +1,4 @@
+---
+includes:
+  - systems.yaml
+  - workflows.yaml
