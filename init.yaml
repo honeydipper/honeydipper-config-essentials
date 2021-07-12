@@ -13,3 +13,4 @@ includes:
   - api_auth.yaml
   - circleci.yaml
   - pagerduty.yaml
+  - codeclimate/init.yaml
