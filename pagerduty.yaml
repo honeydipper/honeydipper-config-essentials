@@ -35,7 +35,6 @@ systems:
       API_KEY: _place_holder_
       path: "/pagerduty"
       signatureHeader: X-PagerDuty-Signature
-      signatureSecret: _place_holder_
 
     triggers:
       alert:
