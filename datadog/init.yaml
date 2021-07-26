@@ -114,11 +114,10 @@ systems:
         driver: 'feature:emitter'
         rawAction: counter_increment
         parameters:
-          name: '{{ .sysData.heartbeat_metric }}'
+          name: '{{ .sysData.heartbeat_metric }}.{{ .ctx.heartbeat_owner }}'
           tags:
             - 'heartbeat:{{ .ctx.heartbeat }}'
             - 'expires:{{ default "24h" .ctx.heartbeat_expires }}'
-            - 'owner:{{ .ctx.heartbeat_owner }}'
 
         description: >
           This function will send a heartbeat request to datadog.
@@ -126,11 +125,11 @@ systems:
         meta:
           inputs:
             - name: heartbeat
-              description: The name of the heartbeat used for tagging.
+              description: The prefix of the heartbeat metric name used for tagging.
             - name: heartbeat_expires
               description: Tag the metric with expiring duration, used for creating monitors.
             - name: heartbeat_owner
-              description: Tag the metric with the owner.
+              description: The owner of the heartbeat, used as the suffix of the metric name.
 
       increment:
         driver: 'feature:emitter'
