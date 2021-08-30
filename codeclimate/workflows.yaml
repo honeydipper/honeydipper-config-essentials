@@ -28,5 +28,12 @@ workflows:
         {{- if empty . }}{{ fail "Please specify a repo name" }}{{ end -}}
         {{ . }}
         {{- end }}
+      test_reporter_id: |-
+        {{- with .ctx.test_reporter_id | trim }}
+        {{ . }}
+        {{- end }}
     steps:
       - call_function: codeclimate.add_private_repo
+      - if:
+          - $?ctx.test_reporter_id
+        call_function: codeclimate.add_test_reporter_id
