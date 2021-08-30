@@ -91,19 +91,18 @@ systems:
             - name: repo
               description: Github repository name
 
-      add_test_reporter_id:
+      get_repo_info:
         target:
           system: codeclimate
           function: api
         parameters:
-          URL: '{{ .sysData.url }}/project/gh/{{ .ctx.org }}/{{ .ctx.repo }}/envvar'
-          method: POST
-          content:
-            name: CC_TEST_REPORTER_ID
-            value: $ctx.test_reporter_id
+          URL: '{{ .sysData.url }}/repos?github_slug={{ .ctx.org }}/{{ .ctx.repo }}'
+          method: GET
+        export:
+          repo_info: $data.json.data[0]
 
         description: >
-          Add CC_TEST_REPORTER_ID env var to a project.
+          Get repository information
 
         meta:
           inputs:
@@ -111,5 +110,3 @@ systems:
               description: Github organization name
             - name: repo
               description: Github repository name
-            - name: test_reporter_id
-              description: Test Reporter ID
