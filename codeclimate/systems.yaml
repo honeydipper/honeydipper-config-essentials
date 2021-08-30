@@ -52,7 +52,11 @@ systems:
         parameters:
           URL: '{{ .sysData.url }}/github/repos'
           method: POST
-          content: '{"data":{"type":"repos","attributes":{"url":"https://github.com/{{ .ctx.repo }}"}}}'
+          content:
+            data:
+              type: repos
+              attributes:
+                url: 'https://github.com/{{ .ctx.repo }}'
 
         description: >
           Add a GitHub open source repository to Code Climate.
@@ -69,7 +73,11 @@ systems:
         parameters:
           URL: '{{ .sysData.url }}/orgs/{{ .ctx.org_id }}/repos'
           method: POST
-          content: '{"data":{"type":"repos","attributes":{"url":"https://github.com/{{ .ctx.org }}/{{ .ctx.repo }}"}}}'
+          content:
+            data:
+              type: repos
+              attributes:
+                url: 'https://github.com/{{ .ctx.org }}/{{ .ctx.repo }}'
 
         description: >
           Add a private GitHub repository to Code Climate.
@@ -82,3 +90,26 @@ systems:
               description: Github organization name
             - name: repo
               description: Github repository name
+
+      add_test_reporter_id:
+        target:
+          system: codeclimate
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/project/gh/{{ .ctx.org }}/{{ .ctx.repo }}/envvar'
+          method: POST
+          content:
+            name: CC_TEST_REPORTER_ID
+            value: $ctx.test_reporter_id
+
+        description: >
+          Add CC_TEST_REPORTER_ID env var to a project.
+
+        meta:
+          inputs:
+            - name: org
+              description: Github organization name
+            - name: repo
+              description: Github repository name
+            - name: test_reporter_id
+              description: Test Reporter ID
