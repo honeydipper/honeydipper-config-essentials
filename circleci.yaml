@@ -31,6 +31,31 @@ systems:
           This is a generic function to make a circleci API call with the configured token. This
           function is meant to be used for defining other functions.
 
+      add_env_var:
+        target:
+          system: circleci
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/project/{{ default "gh" .ctx.vcs }}/{{ .ctx.git_repo }}/envvar'
+          method: POST
+          content:
+            name: $ctx.name
+            value: $ctx.value
+
+        description: >
+          Add env var to a project.
+
+        meta:
+          inputs:
+            - name: vcs
+              description: The VCS system integrated with this circle project, :code:`github` (default) or :code:`bitbucket`.
+            - name: git_repo
+              description: The repo that the pipeline execution is for, e.g. :code:`myorg/myrepo`
+            - name: name
+              description: Env var name
+            - name: value
+              description: Env var value
+
       start_pipeline:
         target:
           system: circleci

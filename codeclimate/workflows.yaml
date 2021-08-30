@@ -28,12 +28,11 @@ workflows:
         {{- if empty . }}{{ fail "Please specify a repo name" }}{{ end -}}
         {{ . }}
         {{- end }}
-      test_reporter_id: |-
-        {{- with .ctx.test_reporter_id | trim }}
-        {{ . }}
-        {{- end }}
     steps:
       - call_function: codeclimate.add_private_repo
-      - if:
-          - $?ctx.test_reporter_id
-        call_function: codeclimate.add_test_reporter_id
+      - call_function: codeclimate.get_repo_info
+      - call_function: circleci.add_env_var
+        with:
+          name: CC_TEST_REPORTER_ID
+          value: $ctx.repo_info.attributes.test_reporter_id
+          git_repo: "{{ .ctx.org_id }}/{{ .ctx.repo }}"
