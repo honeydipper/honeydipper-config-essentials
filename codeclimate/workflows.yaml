@@ -14,7 +14,7 @@ workflows:
     description: Add a private Github repository to Code Climate
     with:
       test_reporter_id: |-
-        {{ with .ctx.repo_info.attributes.test_reporter_id || trim }}
+        {{ with .ctx.test_reporter_id || trim }}
         {{ if not empty. }}{{ fail "Repo has already been added to Code Climate"}}{{ end -}}
       org_id: |-
         {{- with .ctx.org_id | trim }}
@@ -34,6 +34,9 @@ workflows:
     steps:
       - call_function: codeclimate.get_repo_info
       - call_function: codeclimate.add_private_repo
+        with:
+          name: test_reporter_id
+          value: $ctx.repo_info.attributes.test_reporter_id
       - call_function: codeclimate.get_repo_info
       - call_function: circleci.add_env_var
         with:
