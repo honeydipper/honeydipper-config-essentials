@@ -99,7 +99,7 @@ systems:
           URL: '{{ .sysData.url }}/repos?github_slug={{ .ctx.org }}/{{ .ctx.repo }}'
           method: GET
         export:
-          repo_info: $data.json.data[0]
+          repo_info: $?data.json.data[0]
 
         description: >
           Get repository information
