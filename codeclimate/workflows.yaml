@@ -33,11 +33,11 @@ workflows:
         {{- end }}
     steps:
       - call_function: codeclimate.get_repo_info
-      - call_function: codeclimate.add_private_repo
-        with:
-          name: test_reporter_id
-          value: $ctx.repo_info.attributes.test_reporter_id
-      - call_function: codeclimate.get_repo_info
+      - unless:
+        - $?ctx.repo_info
+      steps:
+        - call_function: codeclimate.add_private_repo
+        - call_function: codeclimate.get_repo_info
       - call_function: circleci.add_env_var
         with:
           name: CC_TEST_REPORTER_ID
