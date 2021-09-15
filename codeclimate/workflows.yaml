@@ -31,7 +31,7 @@ workflows:
     steps:
       - call_function: codeclimate.get_repo_info
       - unless:
-        - $?ctx.repo_info
+        - $?ctx.repo_info.attributes
         steps:
           - call_function: codeclimate.add_private_repo
           - call_function: codeclimate.get_repo_info
