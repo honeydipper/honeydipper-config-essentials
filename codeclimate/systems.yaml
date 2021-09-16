@@ -10,6 +10,10 @@ systems:
           description: The token for authenticating with CodeClimate
         - name: url
           description: The CodeClimate API URL
+        - name: org
+          description: For private repos, this is the default org name
+        - name: org_id
+          description: For private repos, this is the default org ID
 
       notes:
         - For example
@@ -29,6 +33,8 @@ systems:
     data:
       api_key: _place_holder_
       url: https://api.codeclimate.com/v1
+      org: _place_holder_
+      org_id: _place_holder_
 
     functions:
       api:
@@ -71,13 +77,13 @@ systems:
           system: codeclimate
           function: api
         parameters:
-          URL: '{{ .sysData.url }}/orgs/{{ .ctx.org_id }}/repos'
+          URL: '{{ .sysData.url }}/orgs/{{ coalesce .ctx.org_id .sysData.org_id }}/repos'
           method: POST
           content:
             data:
               type: repos
               attributes:
-                url: 'https://github.com/{{ .ctx.org }}/{{ .ctx.repo }}'
+                url: 'https://github.com/{{ coalesce .ctx.org .sysData.org }}/{{ .ctx.repo }}'
 
         description: >
           Add a private GitHub repository to Code Climate.
@@ -85,9 +91,9 @@ systems:
         meta:
           inputs:
             - name: org_id
-              description: Code Climate organization ID
+              description: Code Climate organization ID, if missing use pre-configured :code:`sysData.org_id`
             - name: org
-              description: Github organization name
+              description: Github organization name, if missing use pre-configured :code:`sysData.org`
             - name: repo
               description: Github repository name
 
@@ -96,7 +102,7 @@ systems:
           system: codeclimate
           function: api
         parameters:
-          URL: '{{ .sysData.url }}/repos?github_slug={{ .ctx.org }}/{{ .ctx.repo }}'
+          URL: '{{ .sysData.url }}/repos?github_slug={{ coalesce .ctx.org .sysData.org }}/{{ .ctx.repo }}'
           method: GET
         export:
           repo_info: $?data.json.data[0]
@@ -107,6 +113,6 @@ systems:
         meta:
           inputs:
             - name: org
-              description: Github organization name
+              description: Github organization name, if missing use pre-configured :code:`sysData.org`
             - name: repo
               description: Github repository name

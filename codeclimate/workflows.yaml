@@ -13,16 +13,6 @@ workflows:
   codeclimate/add_private_repo:
     description: Add a private Github repository to Code Climate
     with:
-      org_id: |-
-        {{- with .ctx.org_id | trim }}
-        {{- if empty . }}{{ fail "Please specify a Code Climate organization ID" }}{{ end -}}
-        {{ . }}
-        {{- end }}
-      org: |-
-        {{- with .ctx.repo | trim | trimPrefix "https://github.com/" | splitList "/" | first | trimPrefix "@" }}
-        {{- if empty . }}{{ fail "Please specify a Github organization name" }}{{ end -}}
-        {{ . }}
-        {{- end }}
       repo: |-
         {{- with .ctx.repo | trim | trimPrefix "https://github.com/" | splitList "/" | last }}
         {{- if empty . }}{{ fail "Please specify a repo name" }}{{ end -}}
@@ -39,4 +29,3 @@ workflows:
         with:
           name: CC_TEST_REPORTER_ID
           value: $ctx.repo_info.attributes.test_reporter_id
-          git_repo: "{{ .ctx.org_id }}/{{ .ctx.repo }}"

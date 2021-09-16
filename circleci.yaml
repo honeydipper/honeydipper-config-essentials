@@ -11,10 +11,13 @@ systems:
           description: The token for making API calls to `circleci`.
         - name: url
           description: The base url of the API calls, defaults to :code:`https://circleci.com/api/v2`
+        - name: org
+          description: The default org name
 
     data:
       circle_token: _place_holder_
       url: https://circleci.com/api/v2
+      org: _place_holder_
 
     functions:
       api:
@@ -36,7 +39,7 @@ systems:
           system: circleci
           function: api
         parameters:
-          URL: '{{ .sysData.url }}/project/{{ default "gh" .ctx.vcs }}/{{ .ctx.git_repo }}/envvar'
+          URL: '{{ .sysData.url }}/project/{{ default "gh" .ctx.vcs }}/{{ coalesce .ctx.git_repo (print .sysData.org "/" .ctx.repo) }}/envvar'
           method: POST
           content:
             name: $ctx.name
@@ -50,7 +53,9 @@ systems:
             - name: vcs
               description: The VCS system integrated with this circle project, :code:`github` (default) or :code:`bitbucket`.
             - name: git_repo
-              description: The repo that the pipeline execution is for, e.g. :code:`myorg/myrepo`
+              description: The repo that the env var is for, e.g. :code:`myorg/myrepo`, takes precedent over :code:`repo`.
+            - name: repo
+              description: The repo name that the env var is for, without the org, e.g. :code:`myrepo`
             - name: name
               description: Env var name
             - name: value
@@ -61,7 +66,7 @@ systems:
           system: circleci
           function: api
         parameters:
-          URL: '{{ .sysData.url }}/project/{{ default "gh" .ctx.vcs }}/{{ .ctx.git_repo }}/pipeline'
+          URL: '{{ .sysData.url }}/project/{{ default "gh" .ctx.vcs }}/{{ coalesce .ctx.git_repo  (print .sysData.org "/" .ctx.repo) }}/pipeline'
           method: POST
           content:
             branch: $ctx.git_branch
@@ -75,7 +80,9 @@ systems:
             - name: vcs
               description: The VCS system integrated with this circle project, :code:`github` (default) or :code:`bitbucket`.
             - name: git_repo
-              description: The repo that the pipeline execution is for, e.g. :code:`myorg/myrepo`
+              description: The repo that the pipeline execution is for, e.g. :code:`myorg/myrepo`, takes precedent over :code:`repo`.
+            - name: repo
+              description: The repo name that the pipeline execution is for, without the org, e.g. :code:`myrepo`
             - name: git_branch
               description: The branch that the pipeline execution is on.
             - name: pipeline_parameters
