@@ -105,7 +105,10 @@ systems:
           URL: '{{ .sysData.url }}/repos?github_slug={{ coalesce .ctx.org .sysData.org }}/{{ .ctx.repo }}'
           method: GET
         export:
-          repo_info: $?data.json.data[0]
+          result_json: ':yaml:{{ .data.body }}'
+        export_on_success:
+          repo_info: $?ctx.result_json.data.0
+
 
         description: >
           Get repository information
