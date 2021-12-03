@@ -65,6 +65,8 @@ systems:
               {{ end }}
             response_type: '{{ default "ephemeral" .ctx.response_type }}'
             blocks: $?ctx.blocks
+            text: $?ctx.text
+            mrkdwn: :yaml:{{ default "true" .ctx.mrkdwn }}
 
       reply:
         target:
