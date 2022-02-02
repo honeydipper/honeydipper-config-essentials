@@ -209,6 +209,11 @@ workflows:
             Creating the job based on the definition of a cronjob, in the form of :code:`namespace/cronjob`. If the namespace
             is omitted, the current namespace where the job is being created will be used for looking up the cronjob.
 
+        - name: job_creator
+          description: >
+            The value for the :code:`creator` label, defaults to :code:`honeydipper`. It is useful when you want to target the
+            jobs created through this workflow using :code:`kubectl` commands with :code:`-l` option.
+
       exports:
         - name: log
           description: The logs of the job organized in map by container and by pod
