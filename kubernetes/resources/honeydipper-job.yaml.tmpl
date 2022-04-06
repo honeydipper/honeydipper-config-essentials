@@ -41,6 +41,12 @@
           imagePullPolicy: {{ . }}
           {{- end }}
           workingDir: '{{ default "/honeydipper" .workingDir }}'
+          {{- with .resources }}
+          resources:
+            {{- range $k, $v := . }}
+            {{ $k }}: {{ $v | toJson }}
+            {{- end }}
+          {{- end }}
           env:
             {{- if (and (empty $env) (empty .env)) }}
             []
@@ -147,6 +153,7 @@ spec:
         {{ . | toJson }}
       {{- end }}
   backoffLimit: {{ default 0 .ctx.k8s_job_backoffLimit }}
+  parallelism: {{ default 1 .ctx.parallelism }}
   {{- with .ctx.timeout }}
   activeDeadlineSeconds: {{ . }}
   {{- end }}
