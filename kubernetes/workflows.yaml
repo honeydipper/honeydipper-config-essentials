@@ -153,6 +153,10 @@ workflows:
 
             Also supported is an optional :code:`securtyContext` field for defining the image security context.
 
+        - name: resources
+          description: >
+            Used for specifying how much of each resource a container needs. See k8s resource management for containers for detail.
+
         - name: predefined_steps
           description: >
             A map of predefined steps. Use the name of the predefined step in :code:`steps` list to easily define a step without
@@ -193,6 +197,10 @@ workflows:
           description: >
             By default, the job will not retry if the pod fails (:code:`backoffLimit` set to 0), you can use this
             to override the setting for the job.
+
+        - name: parallelism
+          description: >
+            Parallel job execution by setting this to a non-negative integer. If left unset, it will default to 1.
 
       exports:
         - name: log
