@@ -100,13 +100,13 @@ kind: Job
 metadata:
   generateName: {{ default "honeydipper-job-" $.ctx.generateName }}
   labels:
-    creator: honeydipper
+    creator: {{ default "honeydipper" $.ctx.job_creator }}
     honeydipper-unique-identifier: "{{ $uniqueID }}"
 spec:
   template:
     metadata:
       labels:
-        creator: honeydipper
+        creator: {{ default "honeydipper" $.ctx.job_creator }}
         honeydipper-unique-identifier: "{{ $uniqueID }}"
     spec:
       {{- with (initial .ctx.steps) }}

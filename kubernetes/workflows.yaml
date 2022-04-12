@@ -13,7 +13,7 @@ workflows:
         export:
           steps: |
             :yaml:---
-            {{- $steps := empty .ctx.berglas_files | ternary .ctx.steps (prepend .ctx.steps "berglas-files") }}
+            {{- $steps := empty .ctx.berglas_files | ternary .ctx.steps (prepend (default (list) .ctx.steps) "berglas-files") }}
             {{- range $steps }}
             {{- if (typeIs "string" .) }}
             - {{ index $.ctx.predefined_steps . | toJson }}
@@ -24,6 +24,8 @@ workflows:
             - {{ toJson . }}
             {{- end }}
             {{- end }}
+            {{- else }}
+            []
             {{- end }}
           env: |
             :yaml:---
@@ -201,6 +203,16 @@ workflows:
         - name: parallelism
           description: >
             Parallel job execution by setting this to a non-negative integer. If left unset, it will default to 1.
+
+        - name: fromCronJob
+          description: >
+            Creating the job based on the definition of a cronjob, in the form of :code:`namespace/cronjob`. If the namespace
+            is omitted, the current namespace where the job is being created will be used for looking up the cronjob.
+
+        - name: job_creator
+          description: >
+            The value for the :code:`creator` label, defaults to :code:`honeydipper`. It is useful when you want to target the
+            jobs created through this workflow using :code:`kubectl` commands with :code:`-l` option.
 
       exports:
         - name: log

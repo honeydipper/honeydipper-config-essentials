@@ -125,6 +125,7 @@ systems:
           source: $sysData.source
           namespace: $?sysData.namespace
           job: $ctx.job
+          fromCronJob: $?ctx.fromCronJob
         export:
           jobid: $data.metadata.name
           links: $?sysData.types.{{ .sysData.source.type }}.joblinks
@@ -139,6 +140,11 @@ systems:
           inputs:
             - name: job
               description: The job data structure following the specification for a run-to-completion job manifest yaml file.
+
+            - name: fromCronJob
+              description: >
+                Creating the job based on the definition of a cronjob, in the form of :code:`namespace/cronjob`. If the namespace
+                is omitted, the current namespace where the job is being created will be used for looking up the cronjob.
 
           exports:
             - name: jobid
