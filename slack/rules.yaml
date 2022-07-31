@@ -5,11 +5,13 @@ rules:
         system: slack_bot
         trigger: interact
     do:
-      call_workflow: resume_workflow
       with:
         resume_token: $ctx.slack_payload.callback_id,ctx.slack_payload.actions.0.block_id
         labels_status: success
         resume_payload: $ctx.slack_payload
+      if:
+        - '{{ hasPrefix "/" .ctx.resume_token }}'
+      call_workflow: resume_workflow
       context: mute
 
   - when:
