@@ -214,6 +214,11 @@ workflows:
             The value for the :code:`creator` label, defaults to :code:`honeydipper`. It is useful when you want to target the
             jobs created through this workflow using :code:`kubectl` commands with :code:`-l` option.
 
+        - name: on_job_start
+          description: >
+            If specified, a workflow specified by :code:`on_job_start` will be executed once the job is created. This is useful for
+            sending notifications with job name, links to the log etc.
+
       exports:
         - name: log
           description: The logs of the job organized in map by container and by pod
@@ -290,6 +295,11 @@ workflows:
       - call_workflow: start_kube_job
       - on_failure: continue
         steps:
+          - if:
+              - $?ctx.on_job_start
+            call_workflow: $ctx.on_job_start
+            no_export:
+              - '*'
           - call_function: '{{ .ctx.system }}.waitForJob'
             with:
               retry: $ctx.k8s_job_wait_retry,"2"
