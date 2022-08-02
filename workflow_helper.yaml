@@ -204,11 +204,12 @@ workflows:
     call_driver: redispubsub.send
     with:
       broadcastSubject: resume_session
-      key: $ctx.resume_token
       labels:
         status: $ctx.labels_status
         reason: $?ctx.labels_reason
-      payload: $?ctx.resume_payload
+      data:
+        payload: $?ctx.resume_payload
+        key: $ctx.resume_token
 
   snooze_alert:
     description: snooze an alert
