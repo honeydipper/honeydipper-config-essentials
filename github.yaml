@@ -420,6 +420,7 @@ systems:
         export:
           git_repo: $event.json.repository.full_name
           git_ref: $event.json.ref
+          git_commit_full: $event.json.head_commit.id
           git_commit: '{{ .event.json.head_commit.id | trunc 7 }}'
           commits: $event.json.commits
           _event_id: '{{ .event.json.head_commit.id | trunc 7 }}'
