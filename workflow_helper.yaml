@@ -24,6 +24,9 @@ workflows:
           description: >
             A map from message_type to color codes. This should usually be defined in default context
             so it can be shared.
+        - name: update
+          description: >
+            Set to true to update a previous message identified with :code:`ts`.
       notes:
         - This workflow wraps around :code:`say` and :code:`reply` method, and allows multiple recipients.
         - For example
@@ -61,8 +64,10 @@ workflows:
         cases:
           "reply":
             call_function: '{{ .ctx.chat_system }}.reply'
+          "update_response":
+            call_function: '{{ .ctx.chat_system }}.update_response'
         default:
-          call_function: '{{ .ctx.chat_system }}.say'
+          call_function: '{{ .ctx.chat_system }}.{{ empty .ctx.update |ternary "say" "update_message" }}'
     no_export:
       - notify
       - channel_ids

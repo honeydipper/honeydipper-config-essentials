@@ -68,6 +68,15 @@ systems:
             text: $?ctx.text
             mrkdwn: :yaml:{{ default "true" .ctx.mrkdwn }}
 
+      update_response:
+        target:
+          system: slack
+          function: send_message
+        parameters:
+          URL: $ctx.response_url
+          content:
+            replace_original: true
+
       reply:
         target:
           system: slack
@@ -111,6 +120,17 @@ systems:
                           special: "#e432ad2e"
                         message_type: normal
                         message: I received your request.
+
+      update_message:
+        target:
+          system: slack
+          function: send_message
+        parameters:
+          URL: https://slack.com/api/chat.update
+          content:
+            channel: $ctx.channel_id
+            ts: $ctx.ts
+
       say:
         target:
           system: slack
@@ -119,6 +139,8 @@ systems:
           URL: $sysData.url
           content:
             channel: $ctx.channel_id
+        export:
+          ts: $?data.json.ts
 
         description: >
           This function send a message to a slack channel slack incoming webhook. It is recommended to use
@@ -318,7 +340,27 @@ systems:
               description: The payload of the interactive response
 
     functions:
+      send_message:
+        parameters:
+          header:
+            Authorization: 'Bearer {{ .sysData.token }}'
+
+      update_message:
+        parameters:
+          header:
+            Authorization: 'Bearer {{ .sysData.token }}'
+
+      update_response:
+        parameters:
+          header:
+            Authorization: 'Bearer {{ .sysData.token }}'
+
       say:
+        parameters:
+          header:
+            Authorization: 'Bearer {{ .sysData.token }}'
+
+      reply:
         parameters:
           header:
             Authorization: 'Bearer {{ .sysData.token }}'
