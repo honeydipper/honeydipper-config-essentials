@@ -14,9 +14,14 @@ contexts:
         gcloud_auth:
           type: gcloud
           name: google-auth
-          shell: gcloud auth activate-service-account --key-file=/etc/gcloud/service-account.json
+          shell: gcloud auth activate-service-account --key-file=/honeydipper/.config/gcloud/secret/service-account.json
+
+        gcloud_auth_with_k8s_secret:
+          type: gcloud
+          name: google-auth
+          shell: gcloud auth activate-service-account --key-file=/honeydipper/.config/gcloud/secret/service-account.json
           volumes:
-            - mountPath: /etc/gcloud/service-account.json
+            - mountPath: /honeydipper/.config/gcloud/secret/service-account.json
               subPath: service-account.json
               volume:
                 name: gcloud-service-credentials
