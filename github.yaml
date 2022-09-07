@@ -410,6 +410,84 @@ systems:
           This is a catch all event for github webhook requests. It is not to be used
           directly, instead should be used as source for defining other triggers.
 
+      commit_status:
+        source:
+          system: github
+          trigger: hit
+        if_match:
+          headers:
+            X-Github-Event: status
+          json:
+            state: success
+        export:
+          git_repo: $event.json.repository.full_name
+          branches: $event.json.branches
+          git_commit: '{{ .event.json.sha | trunc 7 }}'
+          git_commit_full: $event.json.sha
+          git_commit_message: $event.json.commit.commit.message
+          git_status_state: $event.json.state
+          git_status_context: $event.json.context
+          git_status_description: $event.json.description
+          _event_id: '{{ .event.json.sha | trunc 7 }}'
+          _event_url: $event.json.target_url
+          _event_detail: |-
+
+            *Repo: {{ .event.json.repository.full_name }}*
+            • `{{ .event.json.sha | trunc 7 }}` *{{ .event.json.context }}: {{ .event.json.state }}*
+            {{ .event.json.description }}
+
+        description: This is triggered when a **github** commit status is updated.
+        meta:
+          matching_parameters:
+            - name: .json.repository.full_name
+              description: Specify this in the :code:`when` section of the rule using :code:`if_match`, to filter the events for the repo
+            - name: .json.branches.name
+              description: This field is to match only the status events happened on certain branches
+            - name: .json.context
+              description: "This field is to match only the status events with certain check name, e.g. :code:`ci/circleci: yamllint`"
+            - name: .json.state
+              description: This field is to match only the status events with certain state, :code:`pending`, :code:`success`(default), :code:`failure` or :code:`error`
+          exports:
+            - name: git_repo
+              description: This context variable will be set to the name of the repo, e.g. :code:`myorg/myrepo`
+            - name: branches
+              description: A list of branches that contain the commit
+            - name: git_commit
+              description: This context variable will be set to the short (7 characters) commit hash of the head commit of the push
+            - name: git_status_state
+              description: This context variable will be set to the state of the status, e.g. :code:`pending`, :code:`success`, :code:`failure` or :code:`error`
+            - name: git_status_context
+              description: "This context variable will be set to the name of the status, e.g. :code:`ci/circleci: yamllint`"
+            - name: git_status_description
+              description: This context variable will be set to the description of the status, e.g. :code:`Your tests passed on CircleCI!`
+          notes:
+            - See below snippet for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: github
+                        trigger: commit_status
+                      if_match:
+                        json:
+                          repository:
+                            full_name: myorg/myrepo # .json.repository.full_name
+                          branches:
+                            name: main              # .json.branches.name
+                          context: mycheck          # .json.context
+                          state: success            # .json.state
+                    do:
+                      call_workflow: do_something
+                      # following context variables are available
+                      #   git_repo
+                      #   branches
+                      #   git_commit
+                      #   git_status_state
+                      #   git_status_context
+                      #   git_status_description
+                      #
+
       push:
         source:
           system: github
