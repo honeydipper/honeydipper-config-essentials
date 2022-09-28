@@ -63,19 +63,19 @@ systems:
                 color: '{{ index .ctx.chat_colors .ctx.message_type }}'
                 text: {{ .ctx.message | toJson }}
               {{ end }}
-            response_type: '{{ default "ephemeral" .ctx.response_type }}'
             blocks: $?ctx.blocks
             text: $?ctx.text
             mrkdwn: :yaml:{{ default "true" .ctx.mrkdwn }}
 
-      update_response:
+      add_response:
         target:
           system: slack
           function: send_message
         parameters:
           URL: $ctx.response_url
           content:
-            replace_original: true
+            replace_original: false
+            response_type: '{{ default "ephemeral" .ctx.response_type }}'
 
       reply:
         target:
@@ -83,6 +83,9 @@ systems:
           function: send_message
         parameters:
           URL: $ctx.response_url
+          content:
+            replace_original: true
+            response_type: '{{ default "ephemeral" .ctx.response_type }}'
 
         description: >
           This function send a reply message to a slash command request. It is recommended to use
@@ -350,7 +353,7 @@ systems:
           header:
             Authorization: 'Bearer {{ .sysData.token }}'
 
-      update_response:
+      add_response:
         parameters:
           header:
             Authorization: 'Bearer {{ .sysData.token }}'
