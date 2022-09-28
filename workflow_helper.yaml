@@ -64,8 +64,8 @@ workflows:
         cases:
           "reply":
             call_function: '{{ .ctx.chat_system }}.reply'
-          "update_response":
-            call_function: '{{ .ctx.chat_system }}.update_response'
+          "add_response":
+            call_function: '{{ .ctx.chat_system }}.add_response'
         default:
           call_function: '{{ .ctx.chat_system }}.{{ empty .ctx.update |ternary "say" "update_message" }}'
     no_export:
