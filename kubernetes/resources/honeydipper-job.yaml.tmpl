@@ -13,10 +13,10 @@
 {{- define "expandEnvironments" }}
             {{- if kindIs "map" . }}
             {{- range $k, $v := . }}
-            {{- if typeIs "string" $v }}
-            - {{ dict "name" $k "value" $v | toJson }}
-            {{- else }}
+            {{- if kindIs "map" $v }}
             - {{ set (deepCopy $v) "name" $k | toJson }}
+            {{- else }}
+            - {{ dict "name" $k "value" $v | toJson }}
             {{- end }}
             {{- end }}
             {{- else }}
