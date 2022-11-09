@@ -1,6 +1,33 @@
 ---
 contexts:
   _default:
+    inject_misc_steps:
+      predefined_steps:
+        berglas-files:
+          shell: |-
+            {{- $berglas_files := default (list) .ctx.berglas_files }}
+            {{- range .ctx.steps }}
+            {{- with .berglas_files }}
+            {{- $berglas_files = concat $berglas_files . }}
+            {{- end }}
+            {{- end }}
+            {{- range $berglas_files }}
+            FILE="{{ .file }}"
+            DIR="$(dirname "$FILE")"
+            mkdir -p "$DIR"
+            berglas access "{{ .secret }}" > "$FILE"
+
+            {{- with .mode }}
+            chmod "{{ . }}" "$FILE"
+            {{- end }}
+            {{- with .owner }}
+            chown "{{ . }}" "$FILE"
+            {{- end }}
+            {{- with .dir_mode }}
+            chmod "{{ . }}" "$DIR"
+            {{- end }}
+            {{- end }}
+
     start_kube_job:
       script_types:
         python3:
