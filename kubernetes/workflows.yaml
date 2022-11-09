@@ -1,5 +1,26 @@
 ---
 workflows:
+  inject_misc_steps:
+    meta:
+      notes:
+        - >
+          This workflow injects some helpful steps into the k8s job before
+          making the API to create the job, based on the processed job
+          definitions. It is not recommended to use this workflow directly.
+          Instead, use :code:`run_kubernetes` to leverage
+          all the predefined context variables.
+
+    steps:
+      - description: decrypting berglas_files
+        with:
+          prepend_steps:
+            - $ctx.predefined_steps.berglas-files
+          prepend_steps+: $ctx.steps
+        unless:
+          - '{{ index .ctx.prepend_steps 0 "shell" | empty }}'
+        export:
+          steps*: $ctx.prepend_steps
+
   start_kube_job:
     meta:
       notes:
@@ -48,22 +69,7 @@ workflows:
             {{- else }}
             []
             {{- end }}
-      - description: collecting berglas_files
-        export:
-          berglas_files: |
-            :yaml:---
-            {{- $berglas_files := default (list) .ctx.berglas_files }}
-            {{- range .ctx.steps }}
-            {{- with .berglas_files }}
-            {{- $berglas_files = concat $berglas_files . }}
-            {{- end }}
-            {{- end }}
-            {{ $berglas_files | toJson }}
-      - description: injecting berglas_files step
-        unless:
-          - "{{ empty .ctx.berglas_files }}"
-        export:
-          steps: ':yaml:{{ index .ctx.predefined_steps "berglas-files" | prepend .ctx.steps | toJson }}'
+      - call_workflow: inject_misc_steps
       - description: build job manifest file
         export:
           jobTemplate: "@:resources/honeydipper-job.yaml.tmpl"
@@ -81,7 +87,6 @@ workflows:
       - env
       - volumes
       - jobTemplate
-      - berglas_files
 
   use_local_kubeconfig:
     meta:
