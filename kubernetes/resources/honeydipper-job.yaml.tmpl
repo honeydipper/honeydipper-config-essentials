@@ -90,8 +90,12 @@
             {{-   end }}
           {{-   end }}
           {{- end }}
+          {{- with $step.securityContext }}
+          securityContext: {{ . | toJson }}
+          {{- else }}
           {{- with $processor.securityContext }}
           securityContext: {{ . | toJson }}
+          {{- end }}
           {{- end }}
           {{- end }}
 {{- end }}
