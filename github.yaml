@@ -398,6 +398,100 @@ systems:
                     export:
                       circleci_conf: :yaml:{{ .ctx.file_content }}
 
+      mergeBranch:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/merges'
+          method: POST
+          content:
+            base: $ctx.base_branch
+            head: $ctx.head_branch
+            commit_message: $ctx.commit_message
+        export_on_success:
+          merge_commit_sha: $data.json.sha
+
+        description: >
+          This function will merge the head branch into base branch with a merge commit.
+
+        meta:
+          inputs:
+            - name: git_repo
+              description: The repo where the merge operation takes place, e.g. :code:`myorg/myrepo`
+            - name: base_branch
+              description: The base branch to merge into, no :code:`refs/heads/` prefix, e.g. :code:`main` or :code:`staging` etc.
+            - name: head_branch
+              description: The head branch where the changes are, e.g. :code:`my-patch`, :code:`fix-issue-123` etc.
+            - name: commit_message
+              description: The message for the merge commit. for example :code:`merged by Honeydipepr`
+
+          exports:
+            - name: merge_commit_sha
+              description: The sha for the merge commit.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  merge_work_branch:
+                    call_function: github.mergeBranch
+                    with:
+                      git_repo: myorg/mybranch
+                      base_branch: main
+                      head_branch: mywork
+                      commit_messga: |
+                        chore(release): release
+
+                        Work is done. Released!
+
+      updateRef:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/git/{{ .ctx.git_ref }}'
+          method: PATCH
+          content:
+            sha: $ctx.git_commit_full
+            force: false
+
+        description: >
+          This function will update the ref to point to a new commit, in other words, push the new commit into the branch.
+          No force push is allowed, so there is no overwriting.
+
+        meta:
+          inputs:
+            - name: git_repo
+              description: The repo where the update takes place, e.g. :code:`myorg/myrepo`
+            - name: git_ref
+              description: The ref/branch to be updated, must with prefix :code:`refs/heads/`, e.g. :code:`refs/heads/main` or :code:`refs/heads/staging` etc.
+            - name: git_commit_full
+              description: The git commit full sha for the new commit.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  releaseStagingToMain:
+                    with:
+                      git_repo: myorg/mybranch
+                    steps:
+                      - call_function: github.mergeBranch
+                        with:
+                          base_branch: main
+                          head_branch: staging
+                          commit_messga: |
+                            chore(release): release
+
+                            Test is done. Released!
+                      - call_function: github.updateRef
+                        with:
+                          git_ref: refs/heads/staging
+                          git_commit_full: $ctx.merge_commit_sha
+
     triggers:
       hit:
         driver: webhook
