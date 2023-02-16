@@ -410,7 +410,7 @@ systems:
             head: $ctx.head_branch
             commit_message: $ctx.commit_message
         export_on_success:
-          merge_commit_sha: $data.json.sha
+          merge_commit_sha: $data.json.sha,""
 
         description: >
           This function will merge the head branch into base branch with a merge commit.
