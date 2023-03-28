@@ -66,8 +66,8 @@ systems:
             blocks: $?ctx.blocks
             text: $?ctx.text
             mrkdwn: :yaml:{{ default "true" .ctx.mrkdwn }}
-          export:
-            slack_success: '{{ if empty .data.json.ok }}{{ toJson .data | fail }}{{ end }}'
+        export:
+          slack_success: '{{ if empty .data.json.ok }}{{ toJson .data | fail }}{{ end }}'
 
       add_response:
         target:
