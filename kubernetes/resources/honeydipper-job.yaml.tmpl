@@ -159,7 +159,7 @@ spec:
   backoffLimit: {{ default 0 .ctx.k8s_job_backoffLimit }}
   parallelism: {{ default 1 .ctx.parallelism }}
   {{- with .ctx.timeout }}
-  activeDeadlineSeconds: {{ . }}
+  activeDeadlineSeconds: {{ . | int | add 60 }}
   {{- end }}
   {{- with .ctx.cleanupAfter }}
   TTLSecondsAfterFinished: {{ . }}
