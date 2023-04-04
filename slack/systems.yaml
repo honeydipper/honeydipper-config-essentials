@@ -67,7 +67,7 @@ systems:
             text: $?ctx.text
             mrkdwn: :yaml:{{ default "true" .ctx.mrkdwn }}
         export:
-          slack_success: '{{ with .data.json }}{{ with .error }}{{ fail . }}{{ end }}{{ end }}'
+          slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | fail }}{{ end }}{{ end }}'
 
       add_response:
         target:

@@ -32,43 +32,99 @@ workflows:
     steps:
       - description: interpolating predefined variables
         export:
-          steps: |
-            :yaml:---
-            {{- range .ctx.steps }}
-            {{- if (typeIs "string" .) }}
-            - {{ index $.ctx.predefined_steps . | toJson }}
-            {{- else }}
-            {{- if not (empty .use) }}
-            - {{ index $.ctx.predefined_steps .use | merge (omit . "use") | toJson }}
-            {{- else }}
-            - {{ toJson . }}
-            {{- end }}
-            {{- end }}
-            {{- else }}
-            []
-            {{- end }}
-          env: |
-            :yaml:---
-            {{- range .ctx.env }}
-            {{- if (typeIs "string" .) }}
-            - {{ index $.ctx.predefined_env . | toJson }}
-            {{- else }}
-            - {{ toJson . }}
-            {{- end }}
-            {{- else }}
-            []
-            {{- end }}
-          volumes: |
-            :yaml:---
-            {{- range .ctx.volumes }}
-            {{- if (typeIs "string" .) }}
-            - {{ index $.ctx.predefined_volumes . | toJson }}
-            {{- else }}
-            - {{ toJson . }}
-            {{- end }}
-            {{- else }}
-            []
-            {{- end }}
+          steps: |-
+            {{ $newSteps := list }}
+            {{ range $_, $currentStep := .ctx.steps }}
+            {{   if (typeIs "string" $currentStep) }}
+            {{     $currentStep = index $.ctx.predefined_steps $currentStep }}
+            {{   end }}
+
+            {{   with $currentStep.use }}
+            {{     $currentStep = merge (omit $currentStep "use") (index $.ctx.predefined_steps .) }}
+            {{   end }}
+
+            {{   with $currentStep.env }}
+            {{     $newEnv := list }}
+            {{     range $key, $currentEnv := . }}
+            {{       if not (typeIs "string" $key) }}
+            {{         if (typeIs "string" $currentEnv) }}
+            {{           $key = $currentEnv }}
+            {{           $currentEnv = index $.ctx.predefined_env $key }}
+            {{         end }}
+            {{       end }}
+            {{       with $currentEnv }}
+            {{         if (typeIs "string" .) }}
+            {{           $currentEnv = dict "name" $key "value" . }}
+            {{         else if (len . | eq 1) }}
+            {{           $currentEnv = dict "name" (keys .| first) "value" (values .| first) }}
+            {{         else }}
+            {{           $_ := set $currentEnv "name" (dig "name" $key .) }}
+            {{         end }}
+            {{         $newEnv = append $newEnv $currentEnv }}
+            {{       end }}
+            {{     end }}
+            {{     $_ := set $currentStep "env" $newEnv }}
+            {{   end }}
+
+            {{   with $currentStep.volumes }}
+            {{     $newVolumes := list }}
+            {{     range $key, $currentVol := . }}
+            {{       if not (typeIs "string" $key) }}
+            {{         if (typeIs "string" $currentVol) }}
+            {{           $key = $currentVol }}
+            {{           $currentVol = index $.ctx.predefined_volumes $key }}
+            {{         end }}
+            {{       end }}
+            {{       with $currentVol }}
+            {{         $_ := set $currentVol.volume "name" (dig "name" $key .volume) }}
+            {{         $newVolumes = append $newVolumes $currentVol }}
+            {{       end }}
+            {{     end }}
+            {{     $_ := set $currentStep "volumes" $newVolumes }}
+            {{   end }}
+
+            {{   $newSteps = append $newSteps $currentStep }}
+            {{ end }}
+            {{ return $newSteps }}
+
+          env: |-
+            {{ $newEnv := list }}
+            {{ range $key, $currentEnv := .ctx.env }}
+            {{   if not (typeIs "string" $key) }}
+            {{     if (typeIs "string" $currentEnv) }}
+            {{       $key = $currentEnv }}
+            {{       $currentEnv = index $.ctx.predefined_env $key }}
+            {{     end }}
+            {{   end }}
+            {{   with $currentEnv }}
+            {{     if (typeIs "string" .) }}
+            {{       $currentEnv = dict "name" $key "value" . }}
+            {{     else if (len . | eq 1) }}
+            {{       $currentEnv = dict "name" (keys .| first) "value" (values .| first) }}
+            {{     else }}
+            {{       $_ := set $currentEnv "name" (dig "name" $key .) }}
+            {{     end }}
+            {{     $newEnv = append $newEnv $currentEnv }}
+            {{   end }}
+            {{ end }}
+            {{ return $newEnv }}
+
+          volumes: |-
+            {{ $newVolumes := list }}
+            {{ range $key, $currentVol := .ctx.volumes }}
+            {{   if not (typeIs "string" $key) }}
+            {{     if (typeIs "string" $currentVol) }}
+            {{       $key = $currentVol }}
+            {{       $currentVol = index $.ctx.predefined_volumes $key }}
+            {{     end }}
+            {{   end }}
+            {{   with $currentVol }}
+            {{     $_ := set $currentVol.volume "name" (dig "name" $key .volume) }}
+            {{     $newVolumes = append $newVolumes $currentVol }}
+            {{   end }}
+            {{ end }}
+            {{ return $newVolumes }}
+
       - call_workflow: inject_misc_steps
       - description: build job manifest file
         export:
