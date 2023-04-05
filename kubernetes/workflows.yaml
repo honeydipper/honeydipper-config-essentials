@@ -53,7 +53,7 @@ workflows:
             {{         end }}
             {{       end }}
             {{       with $currentEnv }}
-            {{         if (typeIs "string" .) }}
+            {{         if not (kindIs "map" .) }}
             {{           $currentEnv = dict "name" $key "value" . }}
             {{         else if (len . | eq 1) }}
             {{           $currentEnv = dict "name" (keys .| first) "value" (values .| first) }}
@@ -97,7 +97,7 @@ workflows:
             {{     end }}
             {{   end }}
             {{   with $currentEnv }}
-            {{     if (typeIs "string" .) }}
+            {{     if not (kindIs "map" .) }}
             {{       $currentEnv = dict "name" $key "value" . }}
             {{     else if (len . | eq 1) }}
             {{       $currentEnv = dict "name" (keys .| first) "value" (values .| first) }}
