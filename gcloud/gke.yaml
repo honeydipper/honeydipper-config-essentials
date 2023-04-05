@@ -6,8 +6,11 @@ systems:
         gcloud-gke:
           joblinks:
             k8s_job:
-              url: "https://console.cloud.google.com/kubernetes/job/{{ .params.source.location }}/{{ .params.source.cluster }}/default/{{ .data.metadata.name }}?project={{ .params.source.project }}&tab=details&duration=PT1H&pod_summary_list_tablesize=20&service_list_datatablesize=20"
+              url: "https://console.cloud.google.com/kubernetes/job/{{ .params.source.location }}/{{ .params.source.cluster }}/{{ default `default` .params.namespace }}/{{ .data.metadata.name }}/details?project={{ .params.source.project }}"
               text: See Kubernetes job {{ .data.metadata.name }} in console
             log:
-              url: "https://console.cloud.google.com/logs/query?project={{ .params.source.project }}&query=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22{{ .params.source.project }}%22%0Aresource.labels.location%3D%22{{ .params.source.location }}%22%0Aresource.labels.cluster_name%3D%22{{ .params.source.cluster }}%22%0Aresource.labels.namespace_name%3D%22{{ default `default` .params.namespace }}%22%0Alabels.%22k8s-pod%2Fjob-name%22%3D%22{{ .data.metadata.name }}%22"
+              url: "https://console.cloud.google.com/logs/query?\
+                project={{ .params.source.project }}&\
+                query=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22{{ .params.source.project }}%22%0Aresource.labels.location%3D%22{{ .params.source.location }}%22%0Aresource.labels.cluster_name%3D%22{{ .params.source.cluster }}%22%0Aresource.labels.namespace_name%3D%22{{ default `default` .params.namespace }}%22%0Alabels.%22k8s-pod%2Fjob-name%22%3D%22{{ .data.metadata.name }}%22&\
+                cursorTimestamp={{ dateInZone `2006-01-02T15:04:05.999999999Z` (now) `UTC` }}"
               text: View Kubernetes job logs in Stackdriver
