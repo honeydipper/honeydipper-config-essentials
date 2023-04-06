@@ -11,6 +11,6 @@ systems:
             log:
               url: "https://console.cloud.google.com/logs/query;\
                 query=resource.type%3D\"k8s_container\"%0Aresource.labels.project_id%3D\"{{ .params.source.project }}\"%0Aresource.labels.location%3D\"{{ .params.source.location }}\"%0Aresource.labels.cluster_name%3D\"{{ .params.source.cluster }}\"%0Aresource.labels.namespace_name%3D\"{{ default `default` .params.namespace }}\"%0Alabels.\"k8s-pod%2Fjob-name\"%3D\"{{ .data.metadata.name }}\";\
-                timeRange={{ $ts := (dateInZone `2006-01-02T15:04:05.999999999Z` (now) `UTC`) }}{{ ts }}%2F{{ ts }}--PT1H?\
+                timeRange={{ $ts := (dateInZone `2006-01-02T15:04:05.999999999Z` (now) `UTC`) }}{{ $ts }}%2F{{ $ts }}--PT1H?\
                 project={{ .params.source.project }}"
               text: View Kubernetes job logs in Stackdriver
