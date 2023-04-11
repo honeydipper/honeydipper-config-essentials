@@ -375,8 +375,6 @@ workflows:
           - if:
               - $?ctx.on_job_start
             call_workflow: $ctx.on_job_start
-            no_export:
-              - '*'
           - call_function: '{{ .ctx.system }}.waitForJob'
             with:
               retry: $ctx.k8s_job_wait_retry,"2"
