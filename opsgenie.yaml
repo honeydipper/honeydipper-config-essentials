@@ -45,7 +45,7 @@ systems:
         parameters:
           URL: https://api.opsgenie.com/v2/alerts/{{ .ctx.alert_Id }}/snooze?identifierType=tiny
           header:
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
             Authorization: GenieKey {{ .sysData.API_KEY }}
           method: POST
           content:

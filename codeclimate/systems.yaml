@@ -45,7 +45,7 @@ systems:
           header:
             Authorization: 'Token token={{ .sysData.api_key }}'
             Accept: application/json
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
         description: >
           This is a generic function to make a circleci API call with the configured token. This
