@@ -113,7 +113,7 @@ systems:
         parameters:
           header:
             Accept: application/vnd.pagerduty+json;version=2
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
             Authorization: Token token={{ .sysData.API_KEY }}
           retry: 2
 
