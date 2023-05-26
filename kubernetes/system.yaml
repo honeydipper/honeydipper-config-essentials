@@ -260,3 +260,77 @@ systems:
                       - call_workflow: my-k8s-cluster.getJobLog
                         with:
                           job: $ctx.jobid
+
+      createPVC:
+        driver: kubernetes
+        rawAction: createPVC
+        parameters:
+          source: $sysData.source
+          namespace: $?sysData.namespace
+          pvc: $ctx.pvc
+        export:
+          pvc_name: $?data.metadata.name
+          pvc_status: $?data.status
+
+        description: >
+          This function creates a Persistent Volume Claim.
+
+        meta:
+          inputs:
+            - name: pvc
+              description: The PersistentVolumeClaim specification.
+
+          exports:
+            - name: pvc_name
+              description: The name of the pvc
+            - name: pvc_status
+              description: The status of the pvc
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflow:
+                  generate_pvc:
+                    steps:
+                      - call_function: my-k8s-cluster.createPVC
+                        with:
+                          pvc:
+                            apiVersion: v1
+                            kind: PersistentVolumeClaim
+                            metadata:
+                              name: pvc-demo
+                            spec:
+                              accessModes:
+                                - ReadWriteOnce
+                              resources:
+                                requests:
+                                  storage: 30Gi
+                              storageClassName: standard-rwo
+
+      deletePVC:
+        driver: kubernetes
+        rawAction: deletePVC
+        parameters:
+          source: $sysData.source
+          namespace: $?sysData.namespace
+          pvc: $ctx.pvc_name
+
+        description: >
+          This function deletes a Persistent Volume Claim.
+
+        meta:
+          inputs:
+            - name: pvc_name
+              description: The name of the PersistentVolumeClaim.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflow:
+                  cleanup_pvc:
+                    steps:
+                      - call_function: my-k8s-cluster.deletePVC
+                        with:
+                          pvc_name: pvc-demo
