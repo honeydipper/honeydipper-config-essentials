@@ -72,7 +72,7 @@ systems:
             parse: $?ctx.parse
             reply_broadcast: $?ctx.reply_broadcast
             unfurl_links: $?ctx.unfurl_links
-            unfurl_media: $?ctx.unfurl_media 
+            unfurl_media: $?ctx.unfurl_media
             username: $?ctx.username
         export:
           slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | fail }}{{ end }}{{ end }}'
