@@ -66,6 +66,14 @@ systems:
             blocks: $?ctx.blocks
             text: $?ctx.text
             mrkdwn: :yaml:{{ default "true" .ctx.mrkdwn }}
+            icon_emoji: $?ctx.icon_emoji
+            link_names: $?ctx.link_names
+            metadata: $?ctx.metadata
+            parse: $?ctx.parse
+            reply_broadcast: $?ctx.reply_broadcast
+            unfurl_links: $?ctx.unfurl_links
+            unfurl_media: $?ctx.unfurl_media
+            username: $?ctx.username
         export:
           slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | fail }}{{ end }}{{ end }}'
 
