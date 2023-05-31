@@ -135,7 +135,11 @@ spec:
       restartPolicy: Never
       volumes:
         - name: workdir
+        {{- with .ctx.workdir_volume }}
+          {{- toYaml . | nindent 10 }}
+        {{- else }}
           emptyDir: {}
+        {{- end }}
         {{- range .ctx.volumes }}
         - {{ toJson .volume }}
         {{- end }}
@@ -155,6 +159,9 @@ spec:
       {{- with .ctx.tolerations }}
       tolerations:
         {{ . | toJson }}
+      {{- end }}
+      {{- with .ctx.pod_securityContext }}
+      securityContext: {{ . | toJson }}
       {{- end }}
   backoffLimit: {{ default 0 .ctx.k8s_job_backoffLimit }}
   parallelism: {{ default 1 .ctx.parallelism }}
