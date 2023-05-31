@@ -666,3 +666,6 @@ drivers:
 
   gcloud-kms:
     keyname: _place_holder_
+
+  gcloud-logging:
+    _place_holder_: _place_holder_
