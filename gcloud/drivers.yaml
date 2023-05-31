@@ -11,6 +11,7 @@ drivers:
         - name: "driver:gcloud-gke"
         - name: "driver:gcloud-dataflow"
         - name: "driver:gcloud-spanner"
+        - name: "driver:gcloud-logging"
     drivers:
       gcloud-spanner:
         name: gcloud-spanner
@@ -607,6 +608,61 @@ drivers:
                           - call_driver: gcloud-dataflow.getJob
                             with:
                               jobID: $data.job.Id
+
+      gcloud-logging:
+        name: gcloud-logging
+        type: builtin
+        handlerData:
+          shortName: gcloud-logging
+
+        meta:
+          description:
+            - >
+              This driver enables Honeydipper to natively send logs to GCP
+
+          configurations:
+            - name: loggers
+              description: >-
+                Mapping loggers to their configurations, if needed; support
+                only one field in the configuration as of now,
+                :code:`service_account`. Loggers without configurations will
+                attempt to use default account.
+
+          notes:
+            - For example
+            - example: |
+                ---
+                drivers:
+                  gcloud-logging:
+                    loggers:
+                      my_log:
+                        service_account: LOOKUP[gcloud-secret,...secret...]
+                      "my_project|my_log":
+                        service_account: LOOKUP[gcloud-secret,...secret...]
+
+          rawActions:
+            - name: log
+              description: send logs to GCP
+              parameters:
+                - name: severity
+                  description: The serverity of the log entry, default to :code:`info`
+                - name: logger
+                  description: The logger path, in the form of :code:`project|logger_nbame`, or :code:`logger_name` if using GCE metadata for project ID.
+                - name: payload
+                  description: The payload of the log entry, string, struct or a map
+              notes:
+                - See below for a simple example
+                - example: |
+                      ...
+                        call_driver: gcloud-logging.log
+                        with:
+                          severity: info
+                          logger: my_log
+                          payload:
+                            country: US
+                            state: CA
+                            city: Los Angeles
+                            sales: 12000
 
   gcloud-kms:
     keyname: _place_holder_
