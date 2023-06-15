@@ -522,6 +522,7 @@ systems:
           git_status_state: $event.json.state
           git_status_context: $event.json.context
           git_status_description: $event.json.description
+          github_commit_status: $event.json
           _event_id: '{{ .event.json.sha | trunc 7 }}'
           _event_url: $event.json.target_url
           _event_detail: |-
