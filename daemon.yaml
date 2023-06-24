@@ -187,6 +187,12 @@ drivers:
 
             - This driver doesn't offer any actions or functions.
 
+      auth-gcp-iap:
+        name: auth-gcp-iap
+        type: builtin
+        handlerData:
+          shortName: auth-gcp-iap
+
       auth-simple:
         name: auth-simple
         type: builtin
