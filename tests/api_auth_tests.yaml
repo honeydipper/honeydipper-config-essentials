@@ -4,29 +4,46 @@ policies:
   - |-
     g, user1, viewer
     g, user2, editor
-    p, user3, personal, GET
+    p, user3, personal, GET, auth-simple
 
 tests:
   - name: basic_test
     subject: user1
     object: event
     action: GET
+    provider: auth-simple
     result: true
 
   - name: deny_unauthorized_user
     subject: someone
     object: something
     action: GET
+    provider: auth-simple
     result: false
 
   - name: deny_viewer_write
     subject: user1
     object: something
     action: PUT
+    provider: auth-simple
     result: false
 
   - name: custom_acl_rule
     subject: user3
     object: personal
     action: GET
+    provider: auth-simple
+    result: true
+
+  - name: deny_missing_provider
+    subject: user1
+    object: event
+    action: GET
+    result: false
+
+  - name: accept_from_iap
+    subject: someone@somewhere.net
+    object: event
+    action: PUT
+    provider: auth-gcp-iap
     result: true
