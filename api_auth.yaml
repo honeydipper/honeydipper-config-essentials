@@ -9,10 +9,10 @@ drivers:
             models:
               - |
                 [request_definition]
-                r = sub, obj, act
+                r = sub, obj, act, provider
 
                 [policy_definition]
-                p = sub, obj, act
+                p = sub, obj, act, provider
 
                 [role_definition]
                 g = _, _
@@ -23,24 +23,33 @@ drivers:
                 e = some(where (p.eft == allow))
 
                 [matchers]
-                m = (r.sub == p.sub && r.obj == p.obj && r.act == p.act) \
-                  || (g(r.sub, p.sub) && g2(r.obj, p.obj) && r.act == p.act) \
-                  || (g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act) \
-                  || (r.sub == p.sub && g2(r.obj, p.obj) && r.act == p.act) \
-                  || (r.sub == p.sub && r.obj == p.obj && g3(r.act, p.act)) \
-                  || (g(r.sub, p.sub) && g2(r.obj, p.obj) && g3(r.act, p.act)) \
-                  || (g(r.sub, p.sub) && r.obj == p.obj && g3(r.act, p.act)) \
-                  || (r.sub == p.sub && g2(r.obj, p.obj) && g3(r.act, p.act)) \
-                  || (r.sub == p.sub && r.obj == p.obj && g3(r.act, 'read') && p.act == 'write') \
-                  || (g(r.sub, p.sub) && g2(r.obj, p.obj) && g3(r.act, 'read') && p.act == 'write') \
-                  || (g(r.sub, p.sub) && r.obj == p.obj && g3(r.act, 'read') && p.act == 'write') \
-                  || (r.sub == p.sub && g2(r.obj, p.obj) && g3(r.act, 'read') && p.act == 'write') \
-                  || (g(r.sub, p.sub) && p.obj == 'everything' && r.act == p.act) \
-                  || (r.sub == p.sub && p.obj == 'everything' && r.act == p.act) \
-                  || (g(r.sub, p.sub) && p.obj == 'everything' && g3(r.act, p.act)) \
-                  || (r.sub == p.sub && p.obj == 'everything' && g3(r.act, p.act)) \
-                  || (g(r.sub, p.sub) && p.obj == 'everything' && g3(r.act, 'read') && p.act == 'write') \
-                  || (r.sub == p.sub && p.obj == 'everything' && g3(r.act, 'read') && p.act == 'write') \
+                m = (r.sub == p.sub && r.obj == p.obj && r.act == p.act && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && g2(r.obj, p.obj) && r.act == p.act && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act && r.provider == p.provider) \
+                  || (r.sub == p.sub && g2(r.obj, p.obj) && r.act == p.act && r.provider == p.provider) \
+                  || (r.sub == p.sub && r.obj == p.obj && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && g2(r.obj, p.obj) && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && r.obj == p.obj && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (r.sub == p.sub && g2(r.obj, p.obj) && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (r.sub == p.sub && r.obj == p.obj && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && g2(r.obj, p.obj) && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && r.obj == p.obj && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
+                  || (r.sub == p.sub && g2(r.obj, p.obj) && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && p.obj == 'everything' && r.act == p.act && r.provider == p.provider) \
+                  || (r.sub == p.sub && p.obj == 'everything' && r.act == p.act && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && p.obj == 'everything' && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (r.sub == p.sub && p.obj == 'everything' && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (g(r.sub, p.sub) && p.obj == 'everything' && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
+                  || (r.sub == p.sub && p.obj == 'everything' && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && r.obj == p.obj && r.act == p.act && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && g2(r.obj, p.obj) && r.act == p.act && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && r.obj == p.obj && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && g2(r.obj, p.obj) && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && r.obj == p.obj && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && g2(r.obj, p.obj) && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && p.obj == 'everything' && r.act == p.act && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && p.obj == 'everything' && g3(r.act, p.act) && r.provider == p.provider) \
+                  || (p.sub == 'everyone' && p.obj == 'everything' && g3(r.act, 'read') && p.act == 'write' && r.provider == p.provider) \
                   || (r.sub == 'admin')
 
             policies:
@@ -51,5 +60,6 @@ drivers:
                 g3, PUT, write
 
                 # define basic policy effects
-                p, viewer, everything, read
-                p, editor, everything, write
+                p, viewer, everything, read, auth-simple
+                p, editor, everything, write, auth-simple
+                p, everyone, everything, write, auth-gcp-iap
