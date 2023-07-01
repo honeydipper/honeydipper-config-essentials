@@ -15,6 +15,8 @@ systems:
             must carry a form field **Token** in the post body or url query that matches the value
         - name: path
           description: The path portion of the webhook url, by default :code:`/github/push`
+        - name: tokenSource
+          description: This is used for authentication with oauth2 jwt. The name maps to an entry defined in :code:`token_sources` of the **web** driver.
 
       notes:
         - For example
@@ -45,9 +47,10 @@ systems:
         parameters:
           URL: https://api.github.com/{{ .ctx.resource_path }}
           header:
-            Authorization: token {{ coalesce .ctx.github_oauth_token .sysData.oauth_token }}
+            Authorization: Bearer {{ coalesce .ctx.github_oauth_token .sysData.oauth_token }}
             Accept: application/vnd.github.v3+json
             Content-Type: application/json; charset=utf-8
+          tokenSource: $?sysData.tokenSource
 
         description: >
           This is a generic function to make a github API call with the configured oauth_token. This
@@ -196,7 +199,6 @@ systems:
           URL: 'https://api.github.com/user/installations/{{ .ctx.installationid }}/repositories/{{ .ctx.repoid }}'
           method: PUT
           header:
-            Authorization: token {{ .sysData.oauth_token }}
             Accept: application/vnd.github.v3+json, application/vnd.github.machine-man-preview+json
             Content-Type: application/json; charset=utf-8
 
@@ -237,7 +239,6 @@ systems:
           URL: 'https://api.github.com/user/installations/{{ .ctx.installationid }}/repositories/{{ .ctx.repoid }}'
           method: DELETE
           header:
-            Authorization: token {{ .sysData.oauth_token }}
             Accept: application/vnd.github.v3+json, application/vnd.github.machine-man-preview+json
             Content-Type: application/json; charset=utf-8
 
