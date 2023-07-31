@@ -139,10 +139,10 @@ systems:
           system: slack
           function: send_message
         parameters:
-          URL: https://slack.com/api/chat.update
+          URL: '{{ if dig "ts" .ctx.channel_id "" .ctx | empty }}{{ .sysData.url }}{{ else }}https://slack.com/api/chat.update{{ end }}'
           content:
             channel: $ctx.channel_id
-            ts: $ctx.ts
+            ts: $?ctx.ts.{{ .ctx.channel_id }}
 
       say:
         target:
@@ -153,7 +153,7 @@ systems:
           content:
             channel: $ctx.channel_id
         export:
-          ts: $?data.json.ts
+          ts: '{{ with .data.json.ts }}{{ dict $.ctx.channel_id . | return }}{{ else }}{{ dict | return }}{{ end }}'
 
         description: >
           This function send a message to a slack channel slack incoming webhook. It is recommended to use
