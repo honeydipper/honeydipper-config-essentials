@@ -75,7 +75,7 @@ systems:
             unfurl_media: $?ctx.unfurl_media
             username: $?ctx.username
         export:
-          slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | fail }}{{ end }}{{ end }}'
+          slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | cat "channel" .ctx.channel_id | fail }}{{ end }}{{ end }}'
 
       add_response:
         target:
