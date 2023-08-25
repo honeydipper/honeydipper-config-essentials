@@ -12,6 +12,7 @@ drivers:
         - name: "driver:gcloud-dataflow"
         - name: "driver:gcloud-spanner"
         - name: "driver:gcloud-logging"
+        - name: "driver:gcloud-storage"
     drivers:
       gcloud-spanner:
         name: gcloud-spanner
