@@ -664,6 +664,131 @@ drivers:
                             city: Los Angeles
                             sales: 12000
 
+      gcloud-storage:
+        name: gcloud-storage
+        type: builtin
+        handlerData:
+          shortName: gcloud-storage
+
+        meta:
+          description:
+            - >
+              This driver enables Honeydipper to read and write files to GCS.
+
+          rawActions:
+            - name: fetchFile
+              description: download a file from GCS.
+              parameters:
+                - name: service_account
+                  description: Optioanl, the json key for the service account, use ENC or LOOKUP to protect is.
+                - name: bucket
+                  description: The name of the bucket.
+                - name: fileObject
+                  description: The full path name of the file.
+                - name: fileType
+                  description: Optional, if set, use this to verify the content-type header
+              returns:
+                - name: file_content
+                  description: >
+                    The content of the file.
+              notes:
+                - See below for a simple example
+                - example: |
+                      ...
+                        call_driver: gcloud-storage.fetchFile
+                        with:
+                          bucket: foo
+                          fileObject: bar
+
+            - name: listBuckets
+              description: list all the buckets.
+              parameters:
+                - name: service_account
+                  description: Optioanl, the json key for the service account, use ENC or LOOKUP to protect is.
+              returns:
+                - name: buckets
+                  description: >
+                    a list of strings representing the bucket names.
+              notes:
+                - See below for a simple example
+                - example: |
+                      ...
+                        call_driver: gcloud-storage.listBuckets
+
+            - name: listFiles
+              description: list files with certain prefix.
+              parameters:
+                - name: service_account
+                  description: Optional, the json key for the service account, use ENC or LOOKUP to protect is.
+                - name: prefix
+                  description: Optional, prefix, or path of the files to be listed.
+                - name: delimiter
+                  description: Optional, path delimiter.
+              returns:
+                - name: files
+                  description: >
+                    a list of strings representing the file names.
+                - name: prefixes
+                  description: >
+                    a list of strings representing the subdirectory names.
+              notes:
+                - See below for a simple example
+                - example: |
+                      ...
+                        call_driver: gcloud-storage.listFiles
+                        with:
+                          bucket: bar
+                          prefix: foo
+
+            - name: getAttrs
+              description: get file attributes.
+              parameters:
+                - name: service_account
+                  description: Optional, the json key for the service account, use ENC or LOOKUP to protect is.
+                - name: bucket
+                  description: The name of the bucket.
+                - name: fileObject
+                  description: The full path name of the file.
+              returns:
+                - name: attrs
+                  description: >
+                    The attributes of the file, see `API referece <https://pkg.go.dev/cloud.google.com/go/storage#ObjectAttrs>`_ for detail.
+                - name: exists
+                  description: >
+                    a boolean value indicates if the file exists or not.
+              notes:
+                - See below for a simple example
+                - example: |
+                      ...
+                        call_driver: gcloud-storage.getAttrs
+                        with:
+                          bucket: foo
+                          fileObject: bar/mydata
+
+            - name: writeFile
+              description: write content to a file.
+              parameters:
+                - name: service_account
+                  description: Optional, the json key for the service account, use ENC or LOOKUP to protect is.
+                - name: bucket
+                  description: The name of the bucket.
+                - name: fileObject
+                  description: The full path name of the file.
+                - name: fileType
+                  description: Optional, the content-type attribute of the file.
+                - name: content
+                  description: The full path name of the file.
+              notes:
+                - The content could be a bytes array, a string or anything else. For non-string values, it will be json (default) or yaml encoded based on the fileType.
+                - example: |
+                      ...
+                        call_driver: gcloud-storage.writeFile
+                        with:
+                          bucket: foo
+                          fileObject: bar/mydata.json
+                          content:
+                            foo: bar
+
   gcloud-kms:
     keyname: _place_holder_
 
