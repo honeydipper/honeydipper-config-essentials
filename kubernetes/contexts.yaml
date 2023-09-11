@@ -23,6 +23,9 @@ contexts:
             {{- with .owner }}
             chown "{{ . }}" "$FILE"
             {{- end }}
+            {{- with .dir_owner }}
+            chown "{{ . }}" "$DIR"
+            {{- end }}
             {{- with .dir_mode }}
             chmod "{{ . }}" "$DIR"
             {{- end }}

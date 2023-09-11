@@ -55,7 +55,7 @@
             {{ template "expandEnvironments" .env }}
             {{- end }}
           volumeMounts:
-            - mountPath: /honeydipper
+            - mountPath: {{ default "/honeydipper" .mountPath }}
               name: workdir
             {{ template "volumeMounts" $volumes }}
             {{ template "volumeMounts" .volumes }}
