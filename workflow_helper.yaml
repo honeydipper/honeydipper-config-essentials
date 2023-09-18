@@ -68,6 +68,12 @@ workflows:
             call_function: '{{ .ctx.chat_system }}.add_response'
         default:
           call_function: '{{ .ctx.chat_system }}.{{ empty .ctx.update |ternary "say" "update_message" }}'
+        export_on_failure: &slack_status_detail
+          status_detail: |
+            ```
+            {{ .ctx.message | toJson }}
+            ```
+        export_on_error: *slack_status_detail
     no_export:
       - notify
       - channel_ids
