@@ -172,22 +172,56 @@ systems:
             offset: $ctx.offset,"0"
             query: $?ctx.tag_name
         export:
-          result: |
-            :yaml:---
+          result+: |
+            {{- $policies := list }}
             {{- range .data.json.escalation_policies }}
             {{- if contains (default "" $.ctx.schedule_pattern | lower) (lower .summary) }}
-              - {{ . | toJson }}
+            {{- $policies = append $policies . }}
             {{- end }}
             {{- end }}
-          result_ids: |
-            :yaml:---
+            {{- return $policies }}
+          result_ids+: |
+            {{- $ids := list }}
             {{- range .data.json.escalation_policies }}
             {{- if contains (default "" $.ctx.schedule_pattern | lower) (lower .summary) }}
-              - {{ .id }}
+            {{- $ids = append $ids .id }}
             {{- end }}
             {{- end }}
+            {{- return $ids }}
           offset: '{{ add (default 0 .ctx.offset) (len .data.json.escalation_policies) }}'
-          EOL: '{{ if ne (len .data.json.escalation_policies) 100 }}true{{ end }}'
+          EOL: '{{ .data.json.more | not }}'
+
+      getEscalationPolicyIDsByTag:
+        target:
+          system: pagerduty
+          function: api
+        parameters:
+          URL: https://api.pagerduty.com/tags/{{ .ctx.tag_id }}/escalation_policies
+          method: GET
+          form:
+            limit: "100"
+            offset: $ctx.offset,"0"
+        export:
+          result+: |
+            {{ $ids := list }}
+            {{ range .data.json.escalation_policies }}
+            {{   $ids = append $ids .id }}
+            {{ end }}
+            {{ return $ids }}
+          offset: '{{ add (default 0 .ctx.offset) (len .data.json.escalation_policies) }}'
+          EOL: '{{ .data.json.more | not }}'
+
+      getTagId:
+        target:
+          system: pagerduty
+          function: api
+        parameters:
+          URL: https://api.pagerduty.com/tags
+          method: GET
+          form:
+            query: $ctx.tag_name
+        export:
+          tag_id: $data.json.tags.0.id
 
       whoisoncall:
         target:
@@ -207,9 +241,9 @@ systems:
             offset: "{{ . }}"
             {{- end }}
         export:
-          result: $?data.json.oncalls
+          result+: $?data.json.oncalls
           offset: '{{ add (default 0 .ctx.offset) (len .data.json.oncalls) }}'
-          EOL: '{{ if ne (len .data.json.oncalls) 100 }}true{{ end }}'
+          EOL: '{{ .data.json.more | not }}'
 
         meta:
           description:
@@ -241,45 +275,62 @@ workflows:
   pagerduty_whoisoncall:
     description: get pagerduty on call table
     steps:
+      - call_function: pagerduty.getTagId
       - until:
           - $?ctx.EOL
         steps:
-          - call_function: pagerduty.getEscalationPolicies
-            export:
-              escalation_policy_ids+: $?ctx.result_ids
+          - call_function: pagerduty.getEscalationPolicyIDsByTag
         no_export:
           - offset
           - EOL
-          - escalation_policies
           - result
-          - result_ids
+        export:
+          escalation_policy_ids: $ctx.result
       - if:
-          - $?ctx.escalation_policy_ids
+          - $?ctx.fuzzy
         steps:
           - until:
               - $?ctx.EOL
             steps:
-              - call_function: pagerduty.whoisoncall
-                export:
-                  oncalls+: $ctx.result
+              - call_function: pagerduty.getEscalationPolicies
             no_export:
               - offset
               - EOL
               - result
+              - result_ids
+            export:
+              escalation_policy_ids+: $ctx.result_ids
+      - if:
+          - $?ctx.escalation_policy_ids
+        steps:
+          - iterate: '{{ .ctx.escalation_policy_ids | uniq | chunk 20 | return }}'
+            iterate_as: escalation_policy_ids
+            steps:
+              - until:
+                  - $?ctx.EOL
+                steps:
+                  - call_function: pagerduty.whoisoncall
+                export:
+                  oncalls+: $ctx.result
+                no_export:
+                  - offset
+                  - EOL
+                  - result
     export:
       on_call_table: |
-        :yaml:---
         {{- $table := dict }}
-        {{- range (default list .ctx.oncalls) }}
-        {{-   if int .escalation_level | eq 1 }}
-        {{-     $users := default list ( index $table .escalation_policy.summary ) }}
+        {{- range (default (list) .ctx.oncalls) }}
+        {{-   if and (int .escalation_level | eq 1) (contains (default "" $.ctx.schedule_pattern | lower) (lower .escalation_policy.summary)) }}
+        {{-     $users := default (list) ( index $table .escalation_policy.summary ) }}
         {{-     $users = append $users .user.summary }}
         {{-     $_ := set $table .escalation_policy.summary $users }}
         {{-   end }}
         {{- end }}
-        {{ $table | toJson }}
+        {{ return $table }}
     no_export:
       - oncalls
+      - escalation_policy_ids
+      - tag_id
 
     meta:
       description:
