@@ -143,6 +143,17 @@ systems:
           content:
             channel: $ctx.channel_id
             ts: $?ctx.ts.{{ .ctx.channel_id }}
+        export:
+          ts: |
+            {{ with dig "ts" .ctx.channel_id .ctx }}
+            {{   dict | return }}
+            {{ else }}
+            {{   with .data.json.ts }}
+            {{     dict $.ctx.channel_id . | return }}
+            {{   else }}
+            {{     dict | return }}
+            {{   end }}
+            {{ end }}
 
       say:
         target:
