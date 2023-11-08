@@ -145,7 +145,7 @@ systems:
             ts: $?ctx.ts.{{ .ctx.channel_id }}
         export:
           ts: |
-            {{ with dig "ts" .ctx.channel_id .ctx }}
+            {{ with dig "ts" .ctx.channel_id "" .ctx }}
             {{   dict | return }}
             {{ else }}
             {{   with .data.json.ts }}
