@@ -112,6 +112,8 @@ spec:
       labels:
         creator: {{ default "honeydipper" $.ctx.job_creator }}
         honeydipper-unique-identifier: "{{ $uniqueID }}"
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       {{- with (initial .ctx.steps) }}
       initContainers:
