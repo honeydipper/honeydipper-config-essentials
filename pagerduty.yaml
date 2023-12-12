@@ -240,6 +240,10 @@ systems:
             {{- with .ctx.offset }}
             offset: "{{ . }}"
             {{- end }}
+            {{- with .ctx.time_shift }}
+            since: "{{ now | date_modify . | ISO8601 }}"
+            until: "{{ now | date_modify . | ISO8601 }}"
+            {{- end }}
         export:
           result+: $?data.json.oncalls
           offset: '{{ add (default 0 .ctx.offset) (len .data.json.oncalls) }}'
