@@ -347,7 +347,7 @@ workflows:
       on_call_table: |
         {{- $table := dict }}
         {{- range (default (list) .ctx.oncalls) }}
-        {{-   if and (int .escalation_level | eq 1) (contains (default "" $.ctx.schedule_pattern | lower) (lower .escalation_policy.summary)) }}
+        {{-   if int .escalation_level | eq 1 }}
         {{-     $users := default (list) ( index $table .escalation_policy.summary ) }}
         {{-     $users = append $users .user.summary }}
         {{-     $_ := set $table .escalation_policy.summary $users }}
