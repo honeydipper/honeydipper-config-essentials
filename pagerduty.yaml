@@ -309,6 +309,11 @@ workflows:
               - result_ids
             export:
               escalation_policy_ids+: $ctx.result_ids
+      - call_workflow: notify
+        with:
+          notify*:
+            - reply
+          message: 'escalation_policy_ids is {{ .ctx.escalation_policy_ids | uniq | toJson }}'
       - if:
           - $?ctx.escalation_policy_ids
         steps:
