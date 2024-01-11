@@ -337,12 +337,12 @@ workflows:
                         {{- end }}
 
                         end
-                    export:
-                      oncalls+: $ctx.result
-                    no_export:
-                      - offset
-                      - EOL
-                      - result
+                export:
+                  oncalls+: $ctx.result
+                no_export:
+                  - offset
+                  - EOL
+                  - result
           - call_workflow: notify
             with:
               notify*:
