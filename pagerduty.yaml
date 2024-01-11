@@ -330,6 +330,11 @@ workflows:
                   - offset
                   - EOL
                   - result
+      - call_workflow: notify
+        with:
+          notify*:
+            - reply
+          message: 'escalation_policy_ids is {{ .ctx.oncalls | toJson }}'
     export:
       on_call_table: |
         {{- $table := dict }}
