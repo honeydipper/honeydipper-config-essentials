@@ -330,7 +330,9 @@ workflows:
                         - "#sre-team-staging"
                       message: |
                         {{ .ctx.EOL }}
-                        {{ .ctx.result | toJson }}
+                        {{ range .ctx.result }}
+                        *{{ .escalation_policy.summary }}* ( {{ .escalation_level }} ): {{ .user.summary }}
+                        {{- end }}
 
                         end
                 export:
