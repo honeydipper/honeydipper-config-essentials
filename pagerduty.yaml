@@ -331,7 +331,9 @@ workflows:
                       message: |
                         {{ .ctx.EOL }}
                         {{ range .ctx.result }}
-                        *{{ .escalation_policy.summary }}* ( {{ .escalation_level }} ): {{ .user.summary }}
+                        {{- if int .escalation_level | eq 1 }}
+                        *{{ .escalation_policy.summary }}* : {{ .user.summary }}
+                        {{- end }}
                         {{- end }}
 
                         end
