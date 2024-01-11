@@ -309,17 +309,17 @@ workflows:
               - result_ids
             export:
               escalation_policy_ids+: $ctx.result_ids
-      - call_workflow: notify
-        with:
-          notify*:
-            - reply
-          message: 'escalation_policy_ids is {{ .ctx.escalation_policy_ids | uniq | toJson }}'
       - if:
           - $?ctx.escalation_policy_ids
         steps:
           - iterate: '{{ .ctx.escalation_policy_ids | uniq | chunk 20 | return }}'
             iterate_as: escalation_policy_ids
             steps:
+              - call_workflow: notify
+                with:
+                  notify*:
+                    - reply
+                  message: 'escalation_policy_ids is {{ .ctx.escalation_policy_ids | toJson }}'
               - until:
                   - $?ctx.EOL
                 steps:
