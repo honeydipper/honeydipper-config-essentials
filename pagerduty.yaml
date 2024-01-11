@@ -339,6 +339,8 @@ workflows:
             {{- range (default (list) .ctx.oncalls) }}
             *{{ .escalation_policy.summary }}* ( {{ .escalation_level }} ): {{ .user.summary }}
             {{- end }}
+
+            The end
     export:
       on_call_table: |
         {{- $table := dict }}
