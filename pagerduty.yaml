@@ -328,24 +328,17 @@ workflows:
                     with:
                       notify*:
                         - reply
-                      message: '{{ .ctx.EOL }}'
+                      message: |
+                        {{ .ctx.EOL }}
+                        {{ .ctx.result | toJson }}
+
+                        end
                 export:
                   oncalls+: $ctx.result
                 no_export:
                   - offset
                   - EOL
                   - result
-              - call_workflow: notify
-                with:
-                  notify*:
-                    - reply
-                  message: | 
-                    escalation_policy_ids is
-                    {{- range (default (list) .ctx.oncalls) }}
-                    *{{ .escalation_policy.summary }}* ( {{ .escalation_level }} ): {{ .user.summary }}
-                    {{- end }}
-
-                    The end
     export:
       on_call_table: |
         {{- $table := dict }}
