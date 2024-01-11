@@ -343,19 +343,19 @@ workflows:
                   - offset
                   - EOL
                   - result
-              - call_workflow: notify
-                with:
-                  notify*:
-                    - "#sre-team-staging"
-                  message: |
-                    *all*
-                    {{ range .ctx.oncalls }}
-                    {{- if int .escalation_level | eq 1 }}
-                    *{{ .escalation_policy.summary }}* : {{ .user.summary }}
-                    {{- end }}
-                    {{- end }}
+          - call_workflow: notify
+            with:
+              notify*:
+                - "#sre-team-staging"
+              message: |
+                *all*
+                {{ range .ctx.oncalls }}
+                {{- if int .escalation_level | eq 1 }}
+                *{{ .escalation_policy.summary }}* : {{ .user.summary }}
+                {{- end }}
+                {{- end }}
 
-                    end
+                end
     export:
       on_call_table: |
         {{- $table := dict }}
