@@ -293,7 +293,7 @@ workflows:
       - call_workflow: notify
         with:
           notify*:
-            - D04LC8RGFV1
+            - "#sre-team-staging"
           message: 'tag_id is {{ .ctx.tag_id }}'
       - if:
           - $?ctx.fuzzy
@@ -318,7 +318,7 @@ workflows:
               - call_workflow: notify
                 with:
                   notify*:
-                    - D04LC8RGFV1
+                    - "#sre-team-staging"
                   message: 'escalation_policy_ids is {{ .ctx.escalation_policy_ids | toJson }}'
               - until:
                   - $?ctx.EOL
@@ -327,7 +327,7 @@ workflows:
                   - call_workflow: notify
                     with:
                       notify*:
-                        - D04LC8RGFV1
+                        - "#sre-team-staging"
                       message: |
                         {{ .ctx.EOL }}
                         {{ .ctx.result | toJson }}
@@ -382,7 +382,7 @@ workflows:
                   - call: notify
                     with:
                       notify*:
-                        - D04LC8RGFV1
+                        - "#sre-team-staging"
                       response_type: in_channel
                       blocks:
                         - type: section
