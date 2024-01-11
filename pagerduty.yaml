@@ -290,6 +290,11 @@ workflows:
           - result
         export:
           escalation_policy_ids: $ctx.result
+      - call_workflow: notify
+        with:
+          notify*:
+            - reply
+          message: 'tag_id is {{ .ctx.tag_id }}'
       - if:
           - $?ctx.fuzzy
         steps:
