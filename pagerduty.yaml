@@ -334,7 +334,13 @@ workflows:
         with:
           notify*:
             - reply
-          message: 'escalation_policy_ids is {{ .ctx.oncalls | toJson }}'
+          message: | 
+            escalation_policy_ids is
+            {{- range (default (list) .ctx.oncalls) }}
+            {{- if int .escalation_level | eq 1 }}
+            {{ .escalation_policy.summary }}: {{ .user.summary }}
+            {{- end }}
+            {{- end }}
     export:
       on_call_table: |
         {{- $table := dict }}
