@@ -337,9 +337,7 @@ workflows:
           message: | 
             escalation_policy_ids is
             {{- range (default (list) .ctx.oncalls) }}
-            {{- if int .escalation_level | eq 1 }}
-            {{ .escalation_policy.summary }}: {{ .user.summary }}
-            {{- end }}
+            *{{ .escalation_policy.summary }}* ( {{ .escalation_level }} ): {{ .user.summary }}
             {{- end }}
     export:
       on_call_table: |
