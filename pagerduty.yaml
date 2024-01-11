@@ -330,17 +330,17 @@ workflows:
                   - offset
                   - EOL
                   - result
-      - call_workflow: notify
-        with:
-          notify*:
-            - reply
-          message: | 
-            escalation_policy_ids is
-            {{- range (default (list) .ctx.oncalls) }}
-            *{{ .escalation_policy.summary }}* ( {{ .escalation_level }} ): {{ .user.summary }}
-            {{- end }}
+              - call_workflow: notify
+                with:
+                  notify*:
+                    - reply
+                  message: | 
+                    escalation_policy_ids is
+                    {{- range (default (list) .ctx.oncalls) }}
+                    *{{ .escalation_policy.summary }}* ( {{ .escalation_level }} ): {{ .user.summary }}
+                    {{- end }}
 
-            The end
+                    The end
     export:
       on_call_table: |
         {{- $table := dict }}
