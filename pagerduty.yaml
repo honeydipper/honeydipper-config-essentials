@@ -324,8 +324,6 @@ workflows:
                   - $?ctx.EOL
                 steps:
                   - call_function: pagerduty.whoisoncall
-                    export:
-                      oncalls+: $ctx.result
                   - call_workflow: notify
                     with:
                       notify*:
@@ -338,7 +336,11 @@ workflows:
                         {{- end }}
                         {{- end }}
 
+                        {{ len .ctx.result }}
+
                         end
+                export:
+                  oncalls+: $ctx.result
                 no_export:
                   - offset
                   - EOL
