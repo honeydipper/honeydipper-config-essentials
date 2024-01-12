@@ -172,7 +172,7 @@ systems:
             offset: $ctx.offset,"0"
             query: $?ctx.tag_name
         export:
-          result+: |
+          partial_result: |
             {{- $policies := list }}
             {{- range .data.json.escalation_policies }}
             {{- if contains (default "" $.ctx.schedule_pattern | lower) (lower .summary) }}
@@ -180,7 +180,7 @@ systems:
             {{- end }}
             {{- end }}
             {{- return $policies }}
-          result_ids+: |
+          partial_result_ids+: |
             {{- $ids := list }}
             {{- range .data.json.escalation_policies }}
             {{- if contains (default "" $.ctx.schedule_pattern | lower) (lower .summary) }}
@@ -202,7 +202,7 @@ systems:
             limit: "100"
             offset: $ctx.offset,"0"
         export:
-          result+: |
+          partial_result: |
             {{ $ids := list }}
             {{ range .data.json.escalation_policies }}
             {{   $ids = append $ids .id }}
@@ -245,7 +245,7 @@ systems:
             until: "{{ now | date_modify . | ISO8601 }}"
             {{- end }}
         export:
-          result+: $?data.json.oncalls
+          partial_result: $?data.json.oncalls
           offset: '{{ add (default 0 .ctx.offset) (len .data.json.oncalls) }}'
           EOL: '{{ .data.json.more | not }}'
 
@@ -284,10 +284,13 @@ workflows:
           - $?ctx.EOL
         steps:
           - call_function: pagerduty.getEscalationPolicyIDsByTag
+            export:
+              result+: $ctx.partial_result
         no_export:
           - offset
           - EOL
           - result
+          - partial_result
         export:
           escalation_policy_ids: $ctx.result
       - if:
@@ -297,11 +300,16 @@ workflows:
               - $?ctx.EOL
             steps:
               - call_function: pagerduty.getEscalationPolicies
+                export:
+                  result+: $ctx.partial_result
+                  result_ids+: $ctx.partial_result_ids
             no_export:
               - offset
               - EOL
               - result
               - result_ids
+              - partial_result
+              - partial_result_ids
             export:
               escalation_policy_ids+: $ctx.result_ids
       - if:
@@ -314,12 +322,15 @@ workflows:
                   - $?ctx.EOL
                 steps:
                   - call_function: pagerduty.whoisoncall
+                    export:
+                      result+: $ctx.partial_result
                 export:
                   oncalls+: $ctx.result
                 no_export:
                   - offset
                   - EOL
                   - result
+                  - partial_result
     export:
       on_call_table: |
         {{- $table := dict }}
