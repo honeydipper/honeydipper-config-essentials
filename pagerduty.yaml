@@ -323,7 +323,8 @@ workflows:
               - until:
                   - $?ctx.EOL
                 steps:
-                  - call_function: pagerduty.whoisoncall
+                  - steps:
+                    - call_function: pagerduty.whoisoncall
                   - call_workflow: notify
                     with:
                       notify*:
