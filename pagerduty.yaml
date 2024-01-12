@@ -343,6 +343,12 @@ workflows:
                   - offset
                   - EOL
                   - result
+              - call_workflow: notify
+                with:
+                  notify*:
+                    - "#sre-team-staging"
+                  message: 'length of oncalls {{ len .ctx.oncalls }}'
+
           - call_workflow: notify
             with:
               notify*:
