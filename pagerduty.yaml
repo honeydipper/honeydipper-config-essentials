@@ -323,6 +323,12 @@ workflows:
               - until:
                   - $?ctx.EOL
                 steps:
+                  - call_workflow: notify
+                    with:
+                      notify*:
+                        - "#sre-team-staging"
+                      message: |
+                        Pre call result len {{ default (list) .ctx.result | len }}
                   - steps:
                     - call_function: pagerduty.whoisoncall
                   - call_workflow: notify
