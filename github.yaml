@@ -447,6 +447,52 @@ systems:
 
                         Work is done. Released!
 
+      getCommit:
+        target:
+          system: github
+          function: api
+        parameters:
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/commits/{{ .ctx.git_ref | trimPrefix "refs/" }}'
+          method: GET
+        export_on_success:
+          git_commit_full: $data.json.sha
+          git_commit: '{{ .data.json.sha | trunc 7 }}'
+          git_commit_message: $data.json.commit.message
+          git_commit_info: $data.json
+
+        description: >
+          This function will get the commit info for a git ref, a commmit hash, a branch or a tag.
+
+        meta:
+          inputs:
+            - name: git_repo
+              description: The repo where the commit is for, e.g. :code:`myorg/myrepo`
+            - name: git_ref
+              description: A commit hash, a branch ref or a tag ref, with or without prefix :code:`refs/`, e.g. :code:`refs/heads/main` or :code:`/tags/v1.1.1` etc.
+
+          exports:
+            - name: git_commit_full
+              description: The git commit full sha for the new commit.
+            - name: git_commit
+              description: The short git commit sha for the commit.
+            - name: git_commit_message
+              description: The commit message for the commit.
+            - name: git_commit_info
+              description: The whole commit info data structure.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflows:
+                  getCommitInfo:
+                    with:
+                      git_repo: myorg/myrepo
+                    steps:
+                      - call_function: github.getCommit
+                        with:
+                          git_ref: heads/mybranch
+
       updateRef:
         target:
           system: github
@@ -656,6 +702,61 @@ systems:
                         - git_repo: myorg/myfork
                           git_ref: ref/heads/mybranch
                       call_workflow: do_something
+
+      release_published:
+        source:
+          system: github
+          trigger: hit
+        if_match:
+          headers:
+            X-Github-Event: release
+          json:
+            action: published
+        export:
+          git_repo: $event.json.repository.full_name
+          git_tag: $event.json.release.tag_name
+          _event_id: $event.json.release.tag_name
+          _event_url: $event.json.release.url
+          _event_detail: |-
+
+            *Repo: {{ .event.json.repository.full_name }}*
+            *Release: {{ .event.json.release.name }}*
+            {{ .event.json.release.body }}
+
+        description: This is triggered when a new release is published.
+        meta:
+          matching_parameters:
+            - name: .json.repository.full_name
+              description: This field is to match only the pull requests from certain repo
+            - name: .json.release.tag_name
+              description: >
+                This field can be used for pattern matching the tag names. Note that, It does not include the
+                prefix :code:`ref/heads/` (different from push event).
+          exports:
+            - name: git_repo
+              description: This context variable will be set to the name of the repo, e.g. :code:`myorg/myrepo`
+            - name: git_tag
+              description: This context variable will be set to the name of the tag, e.g. :code:`v1.3.3`
+          notes:
+            - See below snippet for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      source:
+                        system: github
+                        trigger: release_published
+                      if_match:
+                        json:
+                          repository:
+                            full_name: myorg/myrepo # .json.repository.full_name
+                          release:
+                            tag_name: ':regex:v[0-9]*[02468]\.' # matching only even major version number
+                    do:
+                      call_workflow: do_something
+                      # following context variables are available
+                      #   git_repo
+                      #   git_tag
 
       pull_request:
         source:
