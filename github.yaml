@@ -452,7 +452,7 @@ systems:
           system: github
           function: api
         parameters:
-          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/commits/{{ .ctx.git_ref | trimPrefix "refs/" }}'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/commits/{{ .ctx.git_ref }}'
           method: GET
         export_on_success:
           git_commit_full: $data.json.sha
@@ -468,7 +468,7 @@ systems:
             - name: git_repo
               description: The repo where the commit is for, e.g. :code:`myorg/myrepo`
             - name: git_ref
-              description: A commit hash, a branch ref or a tag ref, with or without prefix :code:`refs/`, e.g. :code:`refs/heads/main` or :code:`/tags/v1.1.1` etc.
+              description: A commit hash, a branch ref or a tag ref, with prefix :code:`refs/`, e.g. :code:`refs/heads/main` etc.
 
           exports:
             - name: git_commit_full
