@@ -165,7 +165,7 @@ spec:
       {{- with .ctx.pod_securityContext }}
       securityContext: {{ . | toJson }}
       {{- end }}
-  backoffLimit: {{ default 0 .ctx.k8s_job_backoffLimit }}
+  backoffLimit: {{ default 1 .ctx.k8s_job_backoffLimit }}
   parallelism: {{ default 1 .ctx.parallelism }}
   {{- with .ctx.timeout }}
   activeDeadlineSeconds: {{ . }}
