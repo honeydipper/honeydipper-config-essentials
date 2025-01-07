@@ -1,0 +1,74 @@
+---
+drivers:
+  daemon:
+    features:
+      global:
+        - name: 'driver:vault'
+          requires: true
+    drivers:
+      vault:
+        name: vault
+        type: builtin
+        handlerData:
+          shortName: hd-driver-vault
+        meta:
+          description:
+            - >
+              This driver enables Honeydipper to query secret data stored in Hashcorp Vault.
+
+            - >
+              It can be used in :code:`DipperCL` :code:`LOOKUP[<driver>,<key>]` interpolation. It can also be used with RPC calls in :code:`Go` code.
+
+            - example: |
+                ### configure the vault instance in driver data
+                drivers:
+                  vault:
+                    data:
+                      addr: https://my-vault:8200
+                      token: '{%"{%"%} .env.VAULT_TOKEN {%"%}"%}'
+
+                # or if using k8s auth
+                    data:
+                      addr: https://my-vault:8200
+                      k8sRole: my-k8s-role
+
+                # you can configure multiple vault instances
+                drivers:
+                  vault:
+                    data:
+                      vault1:
+                        addr: https://vault1:8200
+                        token: '{%"{%"%} .env.VAULT1_TOKEN {%"%}"%}'
+                      vault2:
+                        addr: https://vault2:8200
+                        k8sRole: my-k8s-role
+
+                # accessing it in DipperCL
+                workflows:
+                  do_something:
+                    with:
+                      secret-data: LOOKUP[vault,/secret/data/file#secret-data]
+
+                      # if using a certain version
+                      secret-data: LOOKUP[vault,/secret/data/file#key@12]
+
+                      # specify the vault instance if multiple are configured
+                      secret-data: LOOKUP[vault,vault1:/secret/data/file#key]
+
+          RPCs:
+            - name: lookup
+              description: Lookup a secret in vault
+              parameters:
+                - name: '*'
+                  description: the payload is a byte array of text identifying the secret in the vault
+              returns:
+                - name: '*'
+                  description: the payload is the secret value
+              notes:
+                - See below for an example
+                - |
+
+                  .. code:: go
+
+                    retbytes, err := driver.RPCCallRaw("driver:vault", "lookup", []byte("vault1:/secret/data/file#key"))
+
