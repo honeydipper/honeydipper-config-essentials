@@ -4,7 +4,7 @@ drivers:
     features:
       global:
         - name: 'driver:vault'
-          requires: true
+          required: true
     drivers:
       vault:
         name: vault
