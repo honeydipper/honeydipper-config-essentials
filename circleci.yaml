@@ -153,6 +153,29 @@ systems:
               For detailed information on conditional jobs and workflows please see the
               `circleci support document <https://support.circleci.com/hc/en-us/articles/360043638052-Conditional-steps-in-jobs-and-conditional-workflows>`_.
 
+      create_context:
+        target:
+          system: circleci
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/context'
+          method: POST
+          content:
+            name: $ctx.circleci_context_name
+            owner:
+              id: '{{ default "gh" .sysData.vcs }}/{{ .sysData.org }}'
+              type: '$sysData.owner-type,"organization"'
+        export:
+          circleci_context: $data.json
+
+        description: >
+          This function will create a new context with the given name.
+
+        meta:
+          inputs:
+            - name: circleci_context_name
+              description: The name of the context to create.
+
       list_context:
         target:
           system: circleci
@@ -345,13 +368,20 @@ workflows:
                   circleci_system: my_circleci
 
   circleci_get_context:
-    call_workflow: circleci_list_context
-    export:
-      circleci_context: '{{ $ret := .nil }}{{ range .ctx.circleci_contexts }}{{ if eq .name $.ctx.circleci_context_name }}{{ $ret = . }}{{ end }}{{ end }}{{ return $ret }}'
+    steps:
+      - call_workflow: circleci_list_context
+        export:
+          circleci_context: '{{ $ret := .nil }}{{ range .ctx.circleci_contexts }}{{ if eq .name $.ctx.circleci_context_name }}{{ $ret = . }}{{ end }}{{ end }}{{ return $ret }}'
+      - if:
+          - '{{ empty .ctx.circleci_context }}'
+          - '{{ not (empty .ctx.circleci_create_missing_context) }}'
+        call_function: '{{ default "circleci" .ctx.circleci_system }}.create_context'
 
     description: >
       This workflows wrap around the :code:`circleci.list_context` function so
-      get the detail of a context with name :code:`circleci_context_name`.
+      get the detail of a context with name :code:`circleci_context_name`. You
+      can use :code:`circleci_create_missing_context` flag to ensure a context
+      is created if needed.
     meta:
       notes:
         - For example,
