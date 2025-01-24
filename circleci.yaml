@@ -163,7 +163,7 @@ systems:
           content:
             name: $ctx.circleci_context_name
             owner:
-              id: '{{ default "gh" .sysData.vcs }}/{{ .sysData.org }}'
+              slug: '{{ default "gh" .sysData.vcs }}/{{ .sysData.org }}'
               type: '$sysData.owner-type,"organization"'
         export:
           circleci_context: $data.json
