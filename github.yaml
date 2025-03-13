@@ -545,7 +545,7 @@ systems:
         if_match:
           method: POST
           form:
-            token: '{{ .sysData.token }}'
+            token: $?sysData.token
           url: '{{ .sysData.path }}'
         description: >
           This is a catch all event for github webhook requests. It is not to be used
