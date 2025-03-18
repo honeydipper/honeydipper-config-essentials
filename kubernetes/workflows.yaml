@@ -35,16 +35,19 @@ workflows:
           steps: |-
             {{ $newSteps := list }}
             {{ range $_, $currentStep := .ctx.steps }}
+            {{   $tmpl := dict }}
             {{   if (typeIs "string" $currentStep) }}
             {{     $currentStep = index $.ctx.predefined_steps $currentStep }}
             {{   end }}
 
             {{   with $currentStep.use }}
-            {{     $currentStep = merge (omit $currentStep "use") (index $.ctx.predefined_steps .) }}
+            {{     $tmpl = (index $.ctx.predefined_steps .) }}
+            {{     $currentStep = merge (omit $currentStep "use") $tmpl }}
             {{   end }}
 
-            {{   with $currentStep.env }}
-            {{     $newEnv := list }}
+            {{   $addedEnv := dict }}
+            {{   $newEnv := list }}
+            {{   range (list $currentStep.env $tmpl.env | compact) }}
             {{     range $key, $currentEnv := . }}
             {{       if not (typeIs "string" $key) }}
             {{         if (typeIs "string" $currentEnv) }}
@@ -60,14 +63,18 @@ workflows:
             {{         else }}
             {{           $_ := set $currentEnv "name" (dig "name" $key .) }}
             {{         end }}
-            {{         $newEnv = append $newEnv $currentEnv }}
+            {{         if hasKey $addedEnv $currentEnv.name | not }}
+            {{           $newEnv = append $newEnv $currentEnv }}
+            {{           $_ : = set $addedEnv $currentEnv.name true }}
+            {{         end }}
             {{       end }}
             {{     end }}
-            {{     $_ := set $currentStep "env" $newEnv }}
             {{   end }}
+            {{   $_ := set $currentStep "env" $newEnv }}
 
-            {{   with $currentStep.volumes }}
-            {{     $newVolumes := list }}
+            {{   $addedVolumes := dict }}
+            {{   $newVolumes := list }}
+            {{   range (list $currentStep.volumes $tmpl.volumes | compact) }}
             {{     range $key, $currentVol := . }}
             {{       if not (typeIs "string" $key) }}
             {{         if (typeIs "string" $currentVol) }}
@@ -77,11 +84,14 @@ workflows:
             {{       end }}
             {{       with $currentVol }}
             {{         $_ := set $currentVol.volume "name" (dig "name" $key .volume) }}
-            {{         $newVolumes = append $newVolumes $currentVol }}
+            {{         if hasKey $addedVolumes $currentVol.mountPath }}
+            {{           $newVolumes = append $newVolumes $currentVol }}
+            {{           $_ : = set $addedVolumes $currentVol.mountPath true }}
+            {{         end }}
             {{       end }}
             {{     end }}
-            {{     $_ := set $currentStep "volumes" $newVolumes }}
             {{   end }}
+            {{   $_ := set $currentStep "volumes" $newVolumes }}
 
             {{   $newSteps = append $newSteps $currentStep }}
             {{ end }}
