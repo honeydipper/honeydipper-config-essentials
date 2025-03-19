@@ -84,7 +84,7 @@ workflows:
             {{       end }}
             {{       with $currentVol }}
             {{         $_ := set $currentVol.volume "name" (dig "name" $key .volume) }}
-            {{         if hasKey $addedVolumes $currentVol.mountPath }}
+            {{         if hasKey $addedVolumes $currentVol.mountPath | not }}
             {{           $newVolumes = append $newVolumes $currentVol }}
             {{           $_ := set $addedVolumes $currentVol.mountPath true }}
             {{         end }}
