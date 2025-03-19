@@ -65,7 +65,7 @@ workflows:
             {{         end }}
             {{         if hasKey $addedEnv $currentEnv.name | not }}
             {{           $newEnv = append $newEnv $currentEnv }}
-            {{           $_ : = set $addedEnv $currentEnv.name true }}
+            {{           $_ := set $addedEnv $currentEnv.name true }}
             {{         end }}
             {{       end }}
             {{     end }}
@@ -86,7 +86,7 @@ workflows:
             {{         $_ := set $currentVol.volume "name" (dig "name" $key .volume) }}
             {{         if hasKey $addedVolumes $currentVol.mountPath }}
             {{           $newVolumes = append $newVolumes $currentVol }}
-            {{           $_ : = set $addedVolumes $currentVol.mountPath true }}
+            {{           $_ := set $addedVolumes $currentVol.mountPath true }}
             {{         end }}
             {{       end }}
             {{     end }}
