@@ -153,6 +153,148 @@ systems:
               For detailed information on conditional jobs and workflows please see the
               `circleci support document <https://support.circleci.com/hc/en-us/articles/360043638052-Conditional-steps-in-jobs-and-conditional-workflows>`_.
 
+      create_context:
+        target:
+          system: circleci
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/context'
+          method: POST
+          content:
+            name: $ctx.circleci_context_name
+            owner:
+              slug: '{{ default "gh" .sysData.vcs }}/{{ .sysData.org }}'
+              type: '$sysData.owner-type,"organization"'
+        export:
+          circleci_context: $data.json
+
+        description: >
+          This function will create a new context with the given name.
+
+        meta:
+          inputs:
+            - name: circleci_context_name
+              description: The name of the context to create.
+
+      list_context:
+        target:
+          system: circleci
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/context'
+          method: GET
+          form:
+            owner-slug: '{{ default "gh" .sysData.vcs }}/{{ .sysData.org }}'
+            owner-type: '$sysData.owner-type,"organization"'
+            page-token: $?ctx.circleci-api-page-token
+        export:
+          circleci_contexts_page: $?data.json.items
+          circleci-api-page-token: $?data.json.next_page_token
+
+        description: >
+          This function will return a list of contexts owned by the owner.
+          Please use the workflow to manage the pagination.
+
+        meta:
+          inputs:
+            - name: circleci-api-page-token
+              description: Continue the query after a page break.
+
+      put_context_variable:
+        target:
+          system: circleci
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/context/{{ with .ctx.circleci_context }}{{ .id }}{{ else }}{{ .ctx.circleci_context_id }}{{ end }}/environment-variable/{{ .ctx.circleci_var.name }}'
+          method: PUT
+          content:
+            value: '$ctx.circleci_var.value'
+
+        description: >
+          This function will add a new secret variable to the named context.
+
+        meta:
+          inputs:
+            - name: circleci_context.id
+              description: The UUID of the context in your org.
+            - name: circleci_context_id
+              description: The UUID of the context in your org, only used when :code:`circleci_context.id` is not available.
+            - name: circleci_var.name
+              description: The name of the variable.
+            - name: circleci_var.value
+              description: The value of the variable.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      driver: webhook
+                      if_match:
+                        url: /from_circle
+                      export:
+                        circleci_context_id: $event.form.context.0
+                        circleci_var:
+                          name: $event.form.var.0
+                          value: $event.form.value.0
+                    do:
+                      call_workflow: add_variable_circle
+
+                workflows:
+                  add_variable_circle:
+                    call_function: circleci.put_context_variable
+
+      put_project_variable:
+        target:
+          system: circleci
+          function: api
+        parameters:
+          URL: '{{ .sysData.url }}/project/{{ default "gh" .ctx.vcs }}/{{ coalesce .ctx.git_repo  (print .sysData.org "/" .ctx.repo) }}/envvar'
+          method: POST
+          content:
+            name: '$ctx.circleci_var.name'
+            value: '$ctx.circleci_var.value'
+
+        description: >
+          This function will add a new secret variable to the named context.
+
+        meta:
+          inputs:
+            - name: vcs
+              description: The VCS system integrated with this circle project, :code:`github` (default) or :code:`bitbucket`.
+            - name: git_repo
+              description: The repo that the secret variable is for, e.g. :code:`myorg/myrepo`, takes precedent over :code:`repo`.
+            - name: repo
+              description: The repo name that the secret variable is for, without the org, e.g. :code:`myrepo`
+            - name: circleci_var.name
+              description: The name of the variable.
+            - name: circleci_var.value
+              description: The value of the variable.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                rules:
+                  - when:
+                      driver: webhook
+                      if_match:
+                        url: /from_circle
+                      export:
+                        git_repo: $event.form.git_repo.0
+                        circleci_var:
+                          name: $event.form.var.0
+                          value: $event.form.value.0
+                    do:
+                      call_workflow: add_variable_circle
+
+                workflows:
+                  add_variable_circle:
+                    call_function: circleci.put_project_variable
+                    with:
+                      vcs: gh
+
 workflows:
   circleci_pipeline:
     call_function: circleci.start_pipeline
@@ -187,3 +329,82 @@ workflows:
                     export_on_success:
                       pipeline_parameters:
                         deploy_success: "true"
+
+  circleci_list_context:
+    no_export:
+      - circleci_end_of_list
+      - circleci-api-page-token
+      - circleci_contexts_page
+    until_match:
+      circleci_end_of_list: "true"
+    steps:
+      - call_function: '{{ default "circleci" .ctx.circleci_system }}.list_context'
+        export:
+          circleci_end_of_list: '{{ get .ctx "circleci-api-page-token" | empty }}'
+          circleci_contexts+: $?ctx.circleci_contexts_page
+
+    description: >
+      This workflows wrap around the :code:`circleci.list_context` function so
+      multiple page of results can be combined.
+    meta:
+      notes:
+        - For example,
+        - example: |
+            ---
+            system:
+              my_circleci:
+                extends:
+                  - circleci
+                data:
+                  token: xxx
+                  org: myorg
+                  vcs: gh
+                  owner-type: account
+
+            workflows:
+              test:
+                call_workflow: circleci_list_context
+                with:
+                  circleci_system: my_circleci
+
+  circleci_get_context:
+    steps:
+      - call_workflow: circleci_list_context
+        export:
+          circleci_context: '{{ $ret := .nil }}{{ range .ctx.circleci_contexts }}{{ if eq .name $.ctx.circleci_context_name }}{{ $ret = . }}{{ end }}{{ end }}{{ return $ret }}'
+      - if:
+          - '{{ empty .ctx.circleci_context }}'
+          - '{{ not (empty .ctx.circleci_create_missing_context) }}'
+        call_function: '{{ default "circleci" .ctx.circleci_system }}.create_context'
+
+    description: >
+      This workflows wrap around the :code:`circleci.list_context` function so
+      get the detail of a context with name :code:`circleci_context_name`. You
+      can use :code:`circleci_create_missing_context` flag to ensure a context
+      is created if needed.
+    meta:
+      notes:
+        - For example,
+        - example: |
+            ---
+            system:
+              my_circleci:
+                extends:
+                  - circleci
+                data:
+                  token: xxx
+                  org: myorg
+                  vcs: gh
+                  owner-type: account
+
+            workflows:
+              with:
+                circleci_system: my_circleci
+                circleci_context_name: my_context
+              steps:
+                - call_workflow: circleci_get_context
+                - call_function: my_circleci.put_context_variable
+                  with:
+                    circle_var:
+                      name: foo
+                      value: bar
