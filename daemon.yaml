@@ -6,6 +6,7 @@ drivers:
         eventbus: redisqueue
         locker: redislock
         api-broadcast: api-broadcast
+        cache: redis-cache
     features:
       global:
         - name: "eventbus"
@@ -13,6 +14,7 @@ drivers:
         - name: "driver:redispubsub"
         - name: locker
         - name: api-broadcast
+        - name: cache
     drivers:
       redisqueue:
         name: redisqueue
@@ -153,6 +155,36 @@ drivers:
                             ----- END CERTIFICATE -----
 
             - This drive doesn't offer any raw actions as of now.
+
+      redis-cache:
+        name: redis-cache
+        type: builtin
+        handlerData:
+          shortName: redis-cache
+        description: |
+          redis-cache driver is used internally to enabling caching
+          capabilities for daemon and drivers. It offers a few RPCs for the
+          other parts of the system to take advantage of the cache.
+        meta:
+          configurations: *redis
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  redis-cache:
+                    connection:
+                      Addr: 192.168.2.10:6379
+                      DB: 2
+                      Password: ENC[gcloud-kms,...masked]
+                      TLS:
+                        Enabled: true
+                        VerifyServerName: "*"
+                        CACerts:
+                          - |
+                            ----- BEGIN CERTIFICATE -----
+                            ...
+                            ----- END CERTIFICATE -----
 
       api-broadcast:
         name: api-broadcast
