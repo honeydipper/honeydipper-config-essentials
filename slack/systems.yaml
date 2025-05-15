@@ -358,6 +358,9 @@ systems:
         if_match:
           method: POST
           url: $sysData.events_path
+          ":except:":
+            json:
+              type: url_verification
 
         description:
           This is a catch all trigger for all slack events.
