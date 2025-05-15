@@ -21,3 +21,19 @@ rules:
     do:
       context: _slashcommands
       call_workflow: slashcommand
+
+  # responding to ignored events
+  - when:
+      source:
+        system: slack_bot
+        trigger: events
+    do:
+      context: mute
+
+  # responding to slack event url verification
+  - when:
+      source:
+        system: slack_bot
+        trigger: event_verification
+    do:
+      context: mute
