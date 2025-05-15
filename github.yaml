@@ -70,7 +70,7 @@ systems:
           method: POST
           content: $ctx.PR_content
         export:
-          PR: '{{ .data.json }}'
+          PR: '{{ return .data.json }}'
 
         description: >
           This function will create a pull request with given infomation

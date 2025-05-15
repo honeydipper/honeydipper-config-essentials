@@ -2,7 +2,7 @@
 contexts:
   _default:
     notify:
-      chat_system: slack_bot
+      chat_system-: slack_bot
       chat_colors:
         success: good
         error: danger

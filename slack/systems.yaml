@@ -74,6 +74,7 @@ systems:
             unfurl_links: $?ctx.unfurl_links
             unfurl_media: $?ctx.unfurl_media
             username: $?ctx.username
+            thread_ts: $?ctx.thread_ts
         export:
           slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | fail }}{{ end }}{{ end }}'
 
@@ -164,7 +165,7 @@ systems:
           content:
             channel: $ctx.channel_id
         export:
-          ts: '{{ with .data.json.ts }}{{ dict $.ctx.channel_id . | return }}{{ else }}{{ dict | return }}{{ end }}'
+          ts: '{{ with .data.json.ts }}{{ dict $.data.json.channel . | return }}{{ else }}{{ dict | return }}{{ end }}'
 
         description: >
           This function send a message to a slack channel slack incoming webhook. It is recommended to use
