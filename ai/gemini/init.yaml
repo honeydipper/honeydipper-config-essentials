@@ -1,0 +1,183 @@
+---
+drivers:
+  daemon:
+    features:
+      operator:
+        - name: "driver:gemini"
+
+    drivers:
+      gemini:
+        name: gemini
+        type: builtin
+        handlerData:
+          shortName: hd-driver-gemini
+
+        description: |
+          the gemini driver integrates Google Gemini into Honeydipper,
+          providing the standard set of AI chat functions.
+        meta:
+          configurations:
+            - name: engine
+              description: |
+                multiple engines can be defined in the k/v data structure. Each
+                engine has its own settings that can be tailored to different
+                needs.
+            - name: engine.*.model
+              description: one of the Gemini supported models, e.g. :code:`gemini-2.0-flash`, etc.
+            - name: engine.*.temperature
+              description: the temperature setting to be used with the model, a floating number.
+            - name: engine.*.system_prompt
+              description: the system prompt to be used with the model.
+            - name: tools
+              description: the tools provided to the model.
+            - name: tools.*.tool
+              description: the :code:`Tool` struct defined in genai golang API.
+            - name: tools.*.workflow
+              description: the workflow to be executed the the tool is called by the model.
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  gemini:
+                    engine:
+                      default:
+                        model: gemini-2.5-flash
+                        system_prompt: You are an assistant. Keep you answer short and concisive.
+                        temperature: 0.01
+                    tools:
+                      test:
+                        tool:
+                          functionDeclarations:
+                            - name: test
+                              description: >
+                                testing the AI model tool call capability.
+                              parameters:
+                                type: object
+                                properties:
+                                  foo:
+                                    type: string
+                                    description: the parameter foo
+                                required:
+                                  - foo
+                        workflow:
+                          call_workflow: ai_hello_world
+
+
+  gemini:
+    engine:
+      default:
+        model: gemini-2.0-flash
+        temperature: 0.01
+    tools: {}
+
+systems:
+  gemini:
+    data:
+      engine: default
+
+    description: The system enables Honeydipper to chat with Gemini AI.
+    meta:
+      configurations:
+        - name: engine
+          description: the name of the engine defined in the driver configurations.
+        - name: temperature
+          description: optional, the temperature used for the AI model.
+
+    functions:
+      chat:
+        driver: gemini
+        rawAction: chat
+        parameters:
+          engine: $?ctx.engine,sysData.engine
+          convID: $ctx.convID
+          prompt: $ctx.prompt
+          temperature: $?ctx.temperature,sysData.temperature
+          user: $ctx.user
+        export_on_success:
+          counter: $?data.counter
+          convID: $?ctx.convID
+          busy: $?data.busy
+
+        description: send a chat prompt to AI and start a process to relay model reponse messages.
+        meta:
+          inputs:
+            - name: engine
+              description: optional, select the engine defined in the driver, or use :code:`default`
+            - name: temperature
+              description: optional, the temperature setting for the AI model
+            - name: convID
+              description: a unique identifier for this conversation
+            - name: user
+              description: a unique identifier for the chat user
+            - name: prompt
+              description: the chat message that will be sent to the AI model
+          exports:
+            - name: counter
+              description: the counter indicates the number of turns in this conversation
+            - name: convID
+              description: echoing the unique identifier for the conversation
+            - name: busy
+              descripotion: indicates that the message was NOT sent to the model because the previous turn wasn't finished
+
+      chatContinue:
+        driver: gemini
+        rawAction: chatContinue
+        parameters:
+          convID: $ctx.convID
+          counter: $ctx.counter
+          timeout: $?ctx.ai_timeout
+        export_on_success:
+          content: $data.content
+          done: $data.done
+          msgType: $data.type
+
+        description: receive the chat messages from the AI model.
+        meta:
+          inputs:
+            - name: convID
+              description: a unique identifier for this conversation
+            - name: counter
+              description: the counter indicates the number of turns in this conversation
+            - name: timeout
+              description: the seconds to wait for the further messages
+          exports:
+            - name: content
+              description: the response message from the AI model
+            - name: done
+              description: boolean, if false, meaning more messages are available
+            - name: msgType
+              descripotion: indicates if the output is the thinking process or actual response, :code:`think` or empty
+
+      chatStop:
+        driver: gemini
+        rawAction: chatStop
+        parameters:
+          convID: $ctx.convID
+          counter: $?ctx.counter
+
+        description: cancel the current turn so AI can stop generating response.
+        meta:
+          inputs:
+            - name: convID
+              description: a unique identifier for this conversation
+            - name: counter
+              description: the counter indicates the number of turns in this conversation
+
+      chatListen:
+        driver: gemini
+        rawAction: chatListen
+        parameters:
+          convID: $ctx.convID
+          user: $ctx.user
+          prompt: $ctx.prompt
+
+        description: record the message in the chat history, but do NOT send to the AI model.
+        meta:
+          inputs:
+            - name: convID
+              description: a unique identifier for this conversation
+            - name: user
+              description: a unique identifier for the chat user
+            - name: prompt
+              description: the chat message that will be recorded in the chat history
