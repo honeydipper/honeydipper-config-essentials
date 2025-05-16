@@ -1,0 +1,200 @@
+---
+workflows:
+  ai/chat:
+    steps:
+      - call_function: '{{ .ctx.ai_system }}.chat'
+        with:
+          convID: $ctx.convID,`{{ now | date "2006-01-02T15:04:05Z07:00" }}`
+      - call_workflow: notify
+        with:
+          blocks:
+            - type: section
+              text:
+                text: '{{ if .ctx.busy }}busy, try again later.{{ else }}thinking... :thinking_face:{{ end }}'
+                type: mrkdwn
+        export:
+          update_in_channel: $data.json.channel
+      - until:
+          - $?ctx.done
+          - $?ctx.busy
+        steps:
+          - call_function: '{{ .ctx.ai_system }}.chatContinue'
+            with:
+              timeout: "30"
+          - if: [ "$?ctx.content" ]
+            call_workflow: ai/chunk_notify
+          - on_error: continue
+            steps:
+              - if:
+                  - $?ctx.content
+                  - '{{ empty .ctx.done }}'
+                call_workflow: notify
+                with:
+                  blocks:
+                    - type: section
+                      text:
+                        text: '... :thinking_face:'
+                        type: mrkdwn
+              - {}
+          - if:
+              - '{{ empty .ctx.content }}'
+              - '$?ctx.done'
+            call_workflow: notify
+            with:
+              notify*:
+                - $ctx.update_in_channel
+              blocks:
+                - type: section
+                  text:
+                    text: 'stopped :disappointed:'
+                    type: mrkdwn
+              update: true
+
+  ai/chunk_notify:
+    steps:
+      - call_workflow: markdown_to_mrkdwn
+        with:
+          markdown: $ctx.content
+      - call_workflow: ai/chunk_notify_mrkdwn
+        with:
+          content: $ctx.mrkdwn_content
+
+  ai/chunk_notify_mrkdwn:
+    with:
+      is_code: false
+      slack_update: true
+    iterate: '{{ splitList "```" .ctx.content | return }}'
+    iterate_as: block
+    steps:
+      - if: [ '{{ len .ctx.block | lt 2990 }}' ]
+        steps:
+          - if: [ '$?ctx.is_code' ]
+            steps:
+              - with:
+                  resource_path: files.getUploadURLExternal
+                function:
+                  target:
+                    system: '{{ .ctx.chat_system }}'
+                    function: api
+                  parameters:
+                    form:
+                      filename: code.txt
+                      length: '{{ len .ctx.block }}'
+                export_on_success:
+                  file_id: $data.json.file_id
+                  upload_url: $data.json.upload_url
+              - function:
+                  driver: web
+                  rawAction: request
+                  parameters:
+                    URL: $ctx.upload_url
+                    method: POST
+                    header:
+                      Content-Type: text/plain; charset=utf-8
+                    content: $ctx.block
+              - with:
+                  resource_path: files.completeUploadExternal
+                function:
+                  target:
+                    system: '{{ .ctx.chat_system }}'
+                    function: api
+                  parameters:
+                    method: POST
+                    header:
+                      Content-Type: application/json; charset=utf-8
+                    content:
+                      files:
+                        - id: $ctx.file_id
+                          title: code.txt
+                      channel_id: $ctx.update_in_channel
+                      thread_ts: $ctx.thread_ts
+              - if: [ '$?ctx.slack_update' ]
+                call_workflow: notify
+                with:
+                  notify*:
+                    - $ctx.update_in_channel
+                  blocks:
+                    - type: section
+                      text:
+                        text: 'received a file :wave:'
+                        type: mrkdwn
+                  update: true
+                export:
+                  slack_update: $?nil
+            else:
+              with:
+                buffer: ""
+              iterate: '{{ cat .ctx.block "\n```" | splitList "\n" | return }}'
+              iterate_as: line
+              steps:
+                - if_any:
+                    - '{{ len .ctx.buffer | add (len .ctx.line) 1 | lt 3000 }}'
+                    - '{{ eq .ctx.line "```" }}'
+                  iterate: |
+                    {{ $chunks := (list) }}{{ $buffer := .ctx.buffer }}
+                    {{ range len .ctx.buffer }}
+                    {{   if gt (len $buffer) 3000 }}
+                    {{     $chunks = append $chunks (slice $buffer 0 3000) }}
+                    {{     $buffer = slice $buffer 3000 }}
+                    {{   else }}
+                    {{     $chunks = append $chunks $buffer }}
+                    {{     break }}
+                    {{   end }}
+                    {{ end }}
+                    {{ compact $chunks | return }}
+                  iterate_as: chunk
+                  steps:
+                    - call_workflow: notify
+                      with:
+                        notify*:
+                          - $ctx.update_in_channel
+                        blocks:
+                          - type: section
+                            text:
+                              text: '{{if eq .ctx.msgType "think" }}>{{ end }}{{ .ctx.chunk }}'
+                              type: mrkdwn
+                        update: $?ctx.slack_update
+                      export:
+                        slack_update: $?nil
+                  export:
+                    buffer: $ctx.line
+                  else:
+                    export:
+                      buffer+: '{{ "\n" }}{{ .ctx.line }}'
+        else:
+          unless: [ '{{ empty .ctx.block }}' ]
+          call_workflow: notify
+          with:
+            notify*:
+              - $ctx.update_in_channel
+            blocks:
+              - type: section
+                text:
+                  text: >
+                    {{if eq .ctx.msgType "think" }}>{{ end }}
+                    {{ with .ctx.is_code }}{{ "\n" }}```{{ "\n" }}{{ end }}
+                    {{ .ctx.block }}
+                    {{ with .ctx.is_code }}{{ "\n" }}```{{ end }}
+                  type: mrkdwn
+            update: $?ctx.slack_update
+          export:
+            slack_update: $?nil
+      - export:
+          is_code: '{{ not .ctx.is_code | return }}'
+
+  markdown_to_mrkdwn:
+    export:
+      mrkdwn_content: >
+        {{ $ret := .ctx.markdown }}
+        {{ $ret = regexReplaceAll "(^|\\s)~~(.+?)~~(\\s|$)" $ret "${1}~${2}~${3}" }}
+        {{ $ret = regexReplaceAll "(^|\\n)(---|\\*\\*\\*|___)" $ret "${1}──────────" }}
+        {{ $ret = regexReplaceAll "(^|\\n)(\\s*)- \\[ \\] (.+)(\\n|$)" $ret "${1}${2}• ☐ ${3}${4}" }}
+        {{ $ret = regexReplaceAll "(^|\\n)(\\s*)- \\[[xX]\\] (.+)(\\n|$)" $ret "${1}${2}• ☑ ${3}${4}" }}
+        {{ $ret = regexReplaceAll "(^|\\n)(\\s*)- (.+)(\\n|$)" $ret "${1}${2}• ${3}${4}" }}
+        {{ $ret = regexReplaceAll "(^|\\n)#{1,6} (.+)(\\n|$)" $ret "${1}~~${2}~~${3}" }}
+        {{ $ret = regexReplaceAll "(^|\\s)\\*\\*(.+?)\\*\\*(\\s|$)" $ret "${1}~~${2}~~${3}" }}
+        {{ $ret = regexReplaceAll "(^|\\s)__(.+?)__(\\s|$)" $ret "${1}~~${2}~~${3}" }}
+        {{ $ret = regexReplaceAll "(^|\\s)\\*(.+?)\\*(\\s|$)" $ret "${1}_${2}_${3}" }}
+        {{ $ret = regexReplaceAll "\\[.+?\\]\\(.+?\\)" $ret "<${2}|${1}>" }}
+        {{ $ret = regexReplaceAll "(^|\\s)~~(.+?)~~(\\s|$)" $ret "${1}*${2}*${3}" }}
+        {{ return $ret }}
