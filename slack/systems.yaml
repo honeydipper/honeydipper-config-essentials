@@ -379,7 +379,7 @@ systems:
                 - user: $sysData.slack_user_id
                 - text: $sysData._slack_user_id_regex
         export:
-          slack_paylaod: $?event.json
+          slack_payload: $?event.json
           slack_user_id: $sysData.slack_user_id
           notify:
             - '{{ with .event.json.event }}{{ eq .channel_type "im" | ternary .user .channel }}{{ end }}'
@@ -408,7 +408,7 @@ systems:
             event:
               type: app_mention
         export:
-          slack_paylaod: $?event.json
+          slack_payload: $?event.json
           slack_user_id: $sysData.slack_user_id
           notify:
             - '{{ with .event.json.event }}{{ eq .channel_type "im" | ternary .user .channel }}{{ end }}'
