@@ -152,7 +152,7 @@ workflows:
                           - type: section
                             text:
                               text: '{{if eq .ctx.msgType "think" }}>{{ end }}{{ .ctx.chunk }}'
-                              type: mrkdwn 
+                              type: mrkdwn
                         update: $?ctx.slack_update
                       export:
                         slack_update: $?nil
