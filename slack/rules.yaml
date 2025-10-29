@@ -6,9 +6,10 @@ rules:
         trigger: interact
     do:
       with:
-        resume_token: $ctx.slack_payload.callback_id,ctx.slack_payload.actions.0.block_id
-        labels_status: success
-        resume_payload: $ctx.slack_payload
+        - resume_token_src: $ctx.slack_payload.callback_id,ctx.slack_payload.actions.0.block_id
+        - resume_token: '{{ splitList "," .ctx.resume_token_src | first }}'
+          labels_status: success
+          resume_payload: $ctx.slack_payload
       if:
         - '{{ hasPrefix "/" .ctx.resume_token }}'
       call_workflow: resume_workflow
