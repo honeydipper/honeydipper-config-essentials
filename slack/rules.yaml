@@ -11,7 +11,7 @@ rules:
           labels_status: success
           resume_payload: $ctx.slack_payload
       if:
-        - '{{ hasPrefix "/" .ctx.resume_token }}'
+        - '{{ contains "/" .ctx.resume_token }}'
       call_workflow: resume_workflow
       context: mute
 
