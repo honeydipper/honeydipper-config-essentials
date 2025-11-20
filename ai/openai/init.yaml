@@ -1,0 +1,182 @@
+---
+drivers:
+  daemon:
+    features:
+      operator:
+        - name: "driver:openai"
+
+    drivers:
+      openai:
+        name: openai
+        type: builtin
+        handlerData:
+          shortName: hd-driver-openai
+
+        description: |
+          the openai driver integrates OpenAI models into Honeydipper,
+          providing the standard set of AI chat functions.
+        meta:
+          configurations:
+            - name: engine
+              description: |
+                multiple engines can be defined in the k/v data structure. Each
+                engine has its own settings that can be tailored to different
+                needs.
+            - name: engine.*.model
+              description: one of the openAI supported models, e.g. :code:`gpt-4.1`, etc.
+            - name: engine.*.temperature
+              description: the temperature setting to be used with the model, a floating number.
+            - name: engine.*.system_prompt
+              description: the system prompt to be used with the model.
+            - name: tools
+              description: the tools provided to the model.
+            - name: tools.*.tool
+              description: the :code:`ChatCompletionToolUnionParam` struct `defined in openAI golang API <https://pkg.go.dev/github.com/openai/openai-go/v3@v3.8.1#ChatCompletionToolUnionParam>`_.
+            - name: tools.*.workflow
+              description: the workflow to be executed when the tool is called by the model.
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  openai:
+                    engine:
+                      default:
+                        model: gpt-5
+                        system_prompt: You are an assistant. Keep you answer short and concisive.
+                        temperature: 0.01
+                    tools:
+                      test:
+                        tool:
+                          ofFunction:
+                            function:
+                              name: greet
+                              description: send a greeting message
+                              parameters:
+                                type: object
+                                properties:
+                                  user:
+                                    type: string
+                                    description: the user to greet
+                                required:
+                                  - user
+                        workflow:
+                          call_workflow: ai_hello_world
+
+  openai:
+    engine:
+      default:
+        model: gpt-5
+        temperature: 0.01
+    tools: {}
+
+systems:
+  openai:
+    data:
+      engine: default
+
+    description: The system enables Honeydipper to chat with openAI.
+    meta:
+      configurations:
+        - name: engine
+          description: the name of the engine defined in the driver configurations.
+        - name: temperature
+          description: optional, the temperature used for the AI model.
+
+    functions:
+      chat:
+        driver: openai
+        rawAction: chat
+        parameters:
+          engine: $?ctx.engine,sysData.engine
+          convID: $ctx.convID
+          prompt: $ctx.prompt
+          temperature: $?ctx.temperature,sysData.temperature
+          user: $ctx.user
+        export_on_success:
+          counter: $?data.counter
+          convID: $?ctx.convID
+          busy: $?data.busy
+
+        description: send a chat prompt to AI and start a process to relay model reponse messages.
+        meta:
+          inputs:
+            - name: engine
+              description: optional, select the engine defined in the driver, or use :code:`default`
+            - name: temperature
+              description: optional, the temperature setting for the AI model
+            - name: convID
+              description: a unique identifier for this conversation
+            - name: user
+              description: a unique identifier for the chat user
+            - name: prompt
+              description: the chat message that will be sent to the AI model
+          exports:
+            - name: counter
+              description: the counter indicates the number of turns in this conversation
+            - name: convID
+              description: echoing the unique identifier for the conversation
+            - name: busy
+              descripotion: indicates that the message was NOT sent to the model because the previous turn wasn't finished
+
+      chatContinue:
+        driver: openai
+        rawAction: chatContinue
+        parameters:
+          convID: $ctx.convID
+          counter: $ctx.counter
+          timeout: $?ctx.ai_timeout
+        export_on_success:
+          content: $data.content
+          done: $data.done
+          msgType: $data.type
+
+        description: receive the chat messages from the AI model.
+        meta:
+          inputs:
+            - name: convID
+              description: a unique identifier for this conversation
+            - name: counter
+              description: the counter indicates the number of turns in this conversation
+            - name: timeout
+              description: the seconds to wait for the further messages
+          exports:
+            - name: content
+              description: the response message from the AI model
+            - name: done
+              description: boolean, if false, meaning more messages are available
+            - name: msgType
+              descripotion: indicates if the output is the thinking process or actual response, :code:`think` or empty
+
+      chatStop:
+        driver: openai
+        rawAction: chatStop
+        parameters:
+          convID: $ctx.convID
+          counter: $?ctx.counter
+
+        description: cancel the current turn so AI can stop generating response.
+        meta:
+          inputs:
+            - name: convID
+              description: a unique identifier for this conversation
+            - name: counter
+              description: the counter indicates the number of turns in this conversation
+
+      chatListen:
+        driver: openai
+        rawAction: chatListen
+        parameters:
+          convID: $ctx.convID
+          user: $ctx.user
+          prompt: $ctx.prompt
+
+        description: record the message in the chat history, but do NOT send to the AI model.
+        meta:
+          inputs:
+            - name: convID
+              description: a unique identifier for this conversation
+            - name: user
+              description: a unique identifier for the chat user
+            - name: prompt
+              description: the chat message that will be recorded in the chat history
