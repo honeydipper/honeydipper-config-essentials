@@ -141,7 +141,11 @@ workflows:
         {{- end }}
         {{- end }}
         {{ if ne .labels.status "success" }}
-        {{   printf "\nwhile performing `%s`\n" .labels.performing }}
+        while performing:
+        ```
+        {{ .labels.performing }}
+        ```
+        Reason:
         ```{{   if (gt (len .labels.reason) 512) }}
         {{     printf "%s\n...skipped...\n%s" (trunc 256 .labels.reason) (substr (int (sub (len .labels.reason) 256)) -1 .labels.reason) }}
         {{   else }}
