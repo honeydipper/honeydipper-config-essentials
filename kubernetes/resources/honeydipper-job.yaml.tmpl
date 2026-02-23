@@ -106,12 +106,18 @@ metadata:
   labels:
     creator: {{ default "honeydipper" $.ctx.job_creator }}
     honeydipper-unique-identifier: "{{ $uniqueID }}"
+    {{- range $k, $v := (default dict $.ctx.extra_labels) }}
+    {{ $k }}: "{{ $v }}"
+    {{- end }}
 spec:
   template:
     metadata:
       labels:
         creator: {{ default "honeydipper" $.ctx.job_creator }}
         honeydipper-unique-identifier: "{{ $uniqueID }}"
+        {{- range $k, $v := (default dict $.ctx.extra_labels) }}
+        {{ $k }}: "{{ $v }}"
+        {{- end }}
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
