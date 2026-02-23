@@ -74,6 +74,7 @@ systems:
             unfurl_links: $?ctx.unfurl_links
             unfurl_media: $?ctx.unfurl_media
             username: $?ctx.username
+            thread_ts: $?ctx.thread_ts
         export:
           slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | fail }}{{ end }}{{ end }}'
 
@@ -164,7 +165,7 @@ systems:
           content:
             channel: $ctx.channel_id
         export:
-          ts: '{{ with .data.json.ts }}{{ dict $.ctx.channel_id . | return }}{{ else }}{{ dict | return }}{{ end }}'
+          ts: '{{ with .data.json.ts }}{{ dict $.data.json.channel . | return }}{{ else }}{{ dict | return }}{{ end }}'
 
         description: >
           This function send a message to a slack channel slack incoming webhook. It is recommended to use
@@ -300,6 +301,12 @@ systems:
           description: The path portion of the webhook url for receiving slash command requests, by default :code:`/slack/slashcommand`
         - name: interact_path
           description: The path portion of the webhook url for receiving interactive component requests, by default :code:`/slack/interact`
+        - name: events_path
+          description: The path for the webhook that receives slack events calls, by default :code:`/slack/events`
+        - name: _slack_user_id_regex
+          description: A regex expression representation of slack app's user id, used for detecting mentioning, for example :code:`regex:U08M6UDCPGG`
+        - name: slack_user_id
+          description: The slack app's user id, for example :code:`U08M6UDCPGG`
 
       notes:
         - For example
@@ -339,10 +346,100 @@ systems:
       token: _place_holder_
       interact_token: _place_holder_
       interact_path: /slack/interact
+      events_path: /slack/events
+      _slack_user_id_regex: hiDEme
+      slack_user_id: hiDEme
     extends:
       - slack
 
     triggers:
+      events:
+        driver: webhook
+        if_match:
+          method: POST
+          url: $sysData.events_path
+          ":except:":
+            json:
+              type: url_verification
+
+        description:
+          This is a catch all trigger for all slack events.
+
+      message_event:
+        driver: webhook
+        if_match:
+          method: POST
+          url: $sysData.events_path
+          json:
+            event:
+              type: message
+              ":absent:":
+                - subtype
+              ":except:":
+                - user: $sysData.slack_user_id
+                - text: $sysData._slack_user_id_regex
+        export:
+          slack_payload: $?event.json
+          slack_user_id: $sysData.slack_user_id
+          notify:
+            - '{{ with .event.json.event }}{{ eq .channel_type "im" | ternary .user .channel }}{{ end }}'
+
+        description: |
+          This trigger receives slack events when chat messages are posted in a
+          chat or IM where the slack bot is a member. The slack bot's own
+          messages will be ignored. Messages that Mention the app is not
+          included, there is a separate trigger for that.
+
+        meta:
+          exports:
+            - name: slack_payload
+              description: The payload of the message event
+            - name: slack_user_id
+              description: The user ID of the slack app
+            - name: notify
+              description: pre-sets the channel ID of IM ID for reply messages
+
+      app_mention_event:
+        driver: webhook
+        if_match:
+          method: POST
+          url: $sysData.events_path
+          json:
+            event:
+              type: app_mention
+        export:
+          slack_payload: $?event.json
+          slack_user_id: $sysData.slack_user_id
+          notify:
+            - '{{ with .event.json.event }}{{ eq .channel_type "im" | ternary .user .channel }}{{ end }}'
+
+        description: |
+          This trigger receives slack events when the slack app is mentioned.
+
+        meta:
+          exports:
+            - name: slack_payload
+              description: The payload of the message event
+            - name: slack_user_id
+              description: The user ID of the slack app
+            - name: notify
+              description: pre-sets the channel ID of IM ID for reply messages
+
+      event_verification:
+        driver: webhook
+        if_match:
+          method: POST
+          url: $sysData.events_path
+          json:
+            type: url_verification
+        parameters:
+          response_payload: '\$event.json.challenge'
+          response_content_type: 'text/plain'
+
+        description: |
+          The trigger is used for responding to the slack events webhook
+          verification.
+
       interact:
         driver: webhook
         if_match:
@@ -364,6 +461,19 @@ systems:
               description: The payload of the interactive response
 
     functions:
+      api:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: https://slack.com/api/{{ .ctx.resource_path }}
+          header:
+            Authorization: 'Bearer {{ .sysData.token }}'
+            Content-Type: application/x-www-form-urlencoded; charset=utf-8
+            Accept: application/json
+          method: $ctx.request_method,"GET"
+        export:
+          assert: '{{ if not .data.json.ok }}{{ fail .data.body }}{{ end }}'
+
       send_message:
         parameters:
           header:

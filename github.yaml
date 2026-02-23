@@ -70,7 +70,7 @@ systems:
           method: POST
           content: $ctx.PR_content
         export:
-          PR: '{{ .data.json }}'
+          PR: '{{ return .data.json }}'
 
         description: >
           This function will create a pull request with given infomation
@@ -545,7 +545,7 @@ systems:
         if_match:
           method: POST
           form:
-            token: '{{ .sysData.token }}'
+            token: $?sysData.token
           url: '{{ .sysData.path }}'
         description: >
           This is a catch all event for github webhook requests. It is not to be used
