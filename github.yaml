@@ -914,6 +914,8 @@ rules:
       source:
         system: github
         trigger: push
+
+    do:
       contexts:
         - mute
         - loaded_repos
