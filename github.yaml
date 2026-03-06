@@ -912,4 +912,4 @@ rules:
         - loaded_repos
       if_match: $?ctx.loaded_repos
       call_workflow: reload
-      description: reload honeydipper  
+      description: reload on change {{ .git_repo }} ref {{ .git_ref }}
