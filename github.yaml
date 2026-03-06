@@ -921,4 +921,4 @@ rules:
         - _loaded
       if_match: $?ctx.repo_matcher
       call_workflow: reload
-      description: reload on change {{ .ctx.git_repo }} ref {{ .ctx.git_ref }} checking {{ .ctx.repo_matcher }}
+      description: reload on change {{ .ctx.git_repo }} {{ .ctx.git_ref }}
