@@ -180,8 +180,8 @@ workflows:
 
     call_driver: redispubsub.send
     with:
-      broadcastSubject: reload
-      data:
+      subject: reload
+      payload:
         force: $?ctx.force
 
   resume_workflow:
