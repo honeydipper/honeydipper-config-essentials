@@ -918,7 +918,7 @@ rules:
     do:
       contexts:
         - mute
-        - loaded_repos
-      if_match: $?ctx.loaded_repos
+        - _loaded
+      if_match: $?ctx.repo_matcher
       call_workflow: reload
-      description: reload on change {{ .ctx.git_repo }} ref {{ .ctx.git_ref }} checking {{ .ctx.loaded_repos }}
+      description: reload on change {{ .ctx.git_repo }} ref {{ .ctx.git_ref }} checking {{ .ctx.repo_matcher }}
