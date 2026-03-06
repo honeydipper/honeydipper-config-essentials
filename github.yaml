@@ -907,5 +907,9 @@ rules:
         system: github
         trigger: hit
     do:
-      context: mute
-      description: no op
+      contexts:
+        - mute
+        - loaded_repos
+      if_match: $?ctx.loaded_repos
+      call_workflow: reload
+      description: reload honeydipper  
