@@ -907,9 +907,16 @@ rules:
         system: github
         trigger: hit
     do:
+      context: mute
+      description: no op
+
+  - when:
+      source:
+        system: github
+        trigger: push
       contexts:
         - mute
         - loaded_repos
       if_match: $?ctx.loaded_repos
       call_workflow: reload
-      description: reload on change {{ .git_repo }} ref {{ .git_ref }}
+      description: reload on change {{ .ctx.git_repo }} ref {{ .ctx.git_ref }} checking {{ .ctx.loaded_repos }}
