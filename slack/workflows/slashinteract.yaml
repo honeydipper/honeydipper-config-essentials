@@ -5,15 +5,13 @@ workflows:
       - slack_blocks
       - slack_buttons
     with:
-      resume-key: 'hd-slack-{{ .labels.sessionID }}-{{ .labels.cursor }}-{{ now | unixEpoch }}'
+      resume_key: 'hd-slack-{{ .labels.sessionID }}-{{ .labels.cursor }}-{{ now | unixEpoch }}'
       slack_buttons: []
       slack_blocks: []
     steps:
       - call_workflow: slack_interact/build_message
       - call_workflow: slack_interact/notify
       - wait: $ctx.timeout,"5m"
-        with:
-          resume_key: $ctx.resume-key
       - call_workflow: slack_interact/update_message
       - call_workflow: slack_interact/send_feedback
           
