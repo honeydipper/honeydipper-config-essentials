@@ -57,7 +57,7 @@ workflows:
       - blocks+:
           - type: actions
             block_id: $ctx.resume_key
-            elements: $slack_buttons
+            elements: $ctx.slack_buttons
 
   slack_interact/update_message:
     steps:
