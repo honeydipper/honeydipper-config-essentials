@@ -1,0 +1,81 @@
+---
+workflows:
+  slack_ask:
+    no_export:
+      - slack_blocks
+      - slack_buttons
+    with:
+      resume-key: 'hd-slack-{{ .labels.sessionID }}-{{ .labels.cursor }}-{{ now | unixEpoch }}'
+      slack_buttons: []
+    steps:
+      - call_workflow: slack_interact/build_message
+      - call_workflow: slack_interact/notify
+      - wait: $ctx.timeout,"5m"
+        with:
+          resume_key: $ctx.resume-key
+      - call_workflow: slack_interact/update_message
+      - call_workflow: slack_interact/send_feedback
+          
+  slack_interact/build_message:
+    with:
+      default_buttons:
+        - text: Ok
+          style: primary
+          value: ok
+          id: ok
+        - text: Cancel
+          style: danger
+          value: cancel
+          id: cancel
+    steps:
+      - iterate: $ctx.buttons,ctx.default_buttons
+        export:
+          slack_buttons+:
+            - type: button
+              text:
+                type: plain_text
+                emoji: true
+                text: $ctx.current.text
+              stype: $ctx.current.style
+              value: $ctx.current.value
+              action_id: $ctx.current.id
+      - if:
+          - $?ctx.question
+        export:
+          slack_blocks+:
+            - type: section
+              text:
+                type: mrkdwn
+                text: $ctx.question
+
+
+  slack_interact/notify:
+    call_workflow: notify
+    with:
+      - blocks+: $ctx.slack_blocks
+      - blocks+:
+          - type: actions
+            block_id: $ctx.resume_key
+            elements: $slack_buttons
+
+  slack_interact/update_message:
+    steps:
+      - unless:
+          - $?ctx.remove_question
+        export:
+          blocks+: $ctx.slack_blocks
+      - with:
+          return_value: $ctx.slack_payload.actions.0.value,"timeout"
+          button: $ctx.slack_payload.actions.0.id,"timeout"
+        export:
+          answer: $ctx.return_value
+          blocks+:
+            - type: section
+              text:
+                type: mrkdwn
+                text: $ctx.button_feedback.{{ .ctx.button }},"{{ .ctx.button }} button pressed"
+
+  slack_interact/send_feedback:
+    call_workflow: notify
+    with:
+      update: true

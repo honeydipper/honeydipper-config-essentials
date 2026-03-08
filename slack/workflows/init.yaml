@@ -1,0 +1,4 @@
+---
+includes:
+  - slashcommand.yaml
+  - slashinteract.yaml
