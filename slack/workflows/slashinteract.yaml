@@ -35,7 +35,7 @@ workflows:
                 type: plain_text
                 emoji: true
                 text: $ctx.current.text
-              stype: $ctx.current.style
+              style: $ctx.current.style
               value: $ctx.current.value
               action_id: $ctx.current.id
       - if:
