@@ -28,16 +28,17 @@ workflows:
           id: cancel
     steps:
       - iterate: $ctx.buttons,ctx.default_buttons
-        export:
-          slack_buttons+:
-            - type: button
-              text:
-                type: plain_text
-                emoji: true
-                text: $ctx.current.text
-              style: $ctx.current.style
-              value: $ctx.current.value
-              action_id: $ctx.current.id
+        steps:
+          - export:
+              slack_buttons+:
+                - type: button
+                  text:
+                    type: plain_text
+                    emoji: true
+                    text: $ctx.current.text
+                  style: $ctx.current.style
+                  value: $ctx.current.value
+                  action_id: $ctx.current.id
       - if:
           - $?ctx.question
         export:
