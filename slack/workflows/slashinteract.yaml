@@ -67,14 +67,10 @@ workflows:
         export:
           blocks+: $ctx.slack_blocks
       - with:
-          button: $?ctx.slack_payload.actions.0.id
+          button: $?ctx.slack_payload.actions.0.action_id
         export:
           answer: $?ctx.slack_payload.actions.0.value
           blocks+:
-            - type: section
-              text:
-                type: mrkdwn
-                text: '{{ .data | toYaml }}'
             - type: section
               text:
                 type: mrkdwn
