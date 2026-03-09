@@ -59,6 +59,8 @@ workflows:
             elements: $ctx.slack_buttons
 
   slack_interact/update_message:
+    with:
+      slack_payload: $data.slack_payload
     steps:
       - unless:
           - $?ctx.remove_question
