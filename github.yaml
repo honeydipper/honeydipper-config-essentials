@@ -39,6 +39,7 @@ systems:
       oauth_token: _place_holder_
       token: _place_holder_
       path: "/github/push"
+      signatureHeader: X-Hub-Signature-256
 
     functions:
       api:

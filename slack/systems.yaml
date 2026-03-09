@@ -347,6 +347,7 @@ systems:
       interact_token: _place_holder_
       interact_path: /slack/interact
       events_path: /slack/events
+      signatureHeader: X-Slack-Signature
       _slack_user_id_regex: hiDEme
       slack_user_id: hiDEme
     extends:
