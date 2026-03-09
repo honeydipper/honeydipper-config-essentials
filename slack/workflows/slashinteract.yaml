@@ -60,22 +60,21 @@ workflows:
 
   slack_interact/update_message:
     with:
-      slack_payload: $data.slack_payload
+      slack_payload: $?data.slack_payload
     steps:
       - unless:
           - $?ctx.remove_question
         export:
           blocks+: $ctx.slack_blocks
       - with:
-          return_value: $ctx.slack_payload.actions.0.value,"timeout"
-          button: $ctx.slack_payload.actions.0.id,"timeout"
+          button: $?ctx.slack_payload.actions.0.id
         export:
-          answer: $ctx.return_value
+          answer: $?ctx.slack_payload.actions.0.value
           blocks+:
             - type: section
               text:
                 type: mrkdwn
-                text: $ctx.button_feedback.{{ .ctx.button }},"{{ .ctx.button }} button pressed"
+                text: $ctx.button_feedback.{{ .ctx.button }},"{{ with .ctx.button }}{{ . }} button pressed.{{ else }}Timed out!{{ end }}"
 
   slack_interact/send_feedback:
     call_workflow: notify
