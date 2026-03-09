@@ -74,6 +74,10 @@ workflows:
             - type: section
               text:
                 type: mrkdwn
+                text: '{{ .data | toYaml }}'
+            - type: section
+              text:
+                type: mrkdwn
                 text: $ctx.button_feedback.{{ .ctx.button }},"{{ with .ctx.button }}{{ . }} button pressed.{{ else }}Timed out!{{ end }}"
 
   slack_interact/send_feedback:
