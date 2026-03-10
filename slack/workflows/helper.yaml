@@ -1,0 +1,143 @@
+---
+workflows:
+  get_slack_channelIDs:
+    no_export:
+      - cache-data
+      - channels
+    steps:
+      - cache_key: all-slack-channels
+        with:
+          channels: []
+        until_all:
+          - "{{ empty .ctx.slack_next_cursor }}"
+          - "{{ empty .ctx.channels | not }}"
+        steps:
+          - call_function: slack_bot.channels
+        export:
+          cache-data:
+            channels: '{{ $ret := (dict) }}{{ range .ctx.channels }}{{  $_ := set $ret .name .id }}{{ end }}{{ return $ret }}'
+    export:
+      slack_channelIDs: $?ctx.cache-data.channels
+
+  get_slack_userIDs:
+    no_export:
+      - cache-data
+      - members
+    steps:
+      - cache_key: all-slack-users
+        with:
+          members: []
+        until_all:
+          - "{{ empty .ctx.slack_next_cursor }}"
+          - "{{ empty .ctx.members | not }}"
+        steps:
+          - call_function: slack_bot.users
+        export:
+          cache-data:
+            members: '{{ $ret := (dict) }}{{ range .ctx.members }}{{  $_ := set $ret .name .id }}{{ end }}{{ return $ret }}'
+    export:
+      slack_userIDs: $?ctx.cache-data.members
+
+  channel_translate:
+    description: translate channel_names to channel_ids
+    meta:
+      inputs:
+        - name: channel_names
+          description: a list of channel names to be translated
+      exports:
+        - name: channel_ids
+          description: a list of channel ids corresponding to the input names
+      notes:
+        - By pre-populating a map, we don't have to make API calls to slack everytime we need to convert a channel name to a ID.
+        - This is used by :code:`slashcommand` workflow and :code:`notify` workflow to automatically translate the names.
+        - example: |
+            ---
+            workflows:
+              attention:
+                with:
+                  channel_map:
+                    '#private_channel1': UGKLASE
+                    '#private_channel2': UYTFYJ2
+                    '#private_channel3': UYUJH56
+                    '#private_channel4': UE344HJ
+                    '@private_user':     U78JS2F
+                steps:
+                  - call_workflow: channel_translate
+                    with:
+                      channel_names:
+                        - '#private_channel1'
+                        - '#private_channel3'
+                        - '@private_user'
+                        - '#public_channel1'
+                  - call_workflow: loop_send_slack_message
+                    # with:
+                    #   channel_ids:
+                    #     - UGKLASE
+                    #     - UYUJH56
+                    #     - U78JS2F
+                    #     - '#public_channel1' # remain unchanged if missing from the map
+
+    no_export:
+      - slack_channelIDs
+      - slack_userIDs
+    steps:
+      - call_workflow: get_slack_channelIDs
+      - with:
+          - cache: $?ctx.slack_channelIDs
+            prefix: "#"
+          - cache_search: &cache_search |
+              {{ $ret := (list) }}
+              {{ $miss := 0 }}
+              {{ range .ctx.channel_names }}
+              {{   $val := . }}
+              {{   if hasPrefix $.ctx.prefix . }}
+              {{     $key := trimPrefix $.ctx.prefix . }}
+              {{     if hasKey $.ctx.cache $key }}
+              {{       $val = index $.ctx.cache $key }}
+              {{     else }}
+              {{       $miss = add $miss 1 }}
+              {{     end }}
+              {{   end }}
+              {{   $ret = append $ret $val }}
+              {{ end }}
+              {{ return (dict "channel_ids" (default .nil (uniq $ret)) "cache_miss" $miss) }}
+        if:
+          - '{{ .labels.from_cache }}'
+          - '{{ empty .ctx.cache_search.cache_miss | not }}'
+        steps:
+          - call_workflow: get_slack_channelIDs
+            with:
+              force-cache-refresh: true
+          - with:
+              - cache: $?ctx.slack_channelIDs
+                prefix: "#"
+                channel_names: $?ctx.cache_search.channel_ids
+              - cache_search: *cache_search
+            export:
+              channel_ids: $?ctx.cache_search.channel_ids
+        else:
+          export:
+            channel_ids: $?ctx.cache_search.channel_ids
+      - call_workflow: get_slack_userIDs
+      - with:
+          - cache: $?ctx.slack_userIDs
+            prefix: "@"
+            channel_names: $?ctx.channel_ids
+          - cache_search: *cache_search
+        if:
+          - '{{ .labels.from_cache }}'
+          - '{{ empty .ctx.cache_search.cache_miss | not }}'
+        steps:
+          - call_workflow: get_slack_userIDs
+            with:
+              force-cache-refresh: true
+          - with:
+              - cache: $?ctx.slack_userIDs
+                prefix: "@"
+                channel_names: $?ctx.cache_search.channel_ids
+              - cache_search: *cache_search
+            export:
+              channel_ids: $?ctx.cache_search.channel_ids
+        else:
+          export:
+            channel_ids: $?ctx.cache_search.channel_ids

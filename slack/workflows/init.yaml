@@ -2,3 +2,4 @@
 includes:
   - slashcommand.yaml
   - slashinteract.yaml
+  - helper.yaml

@@ -513,7 +513,8 @@ systems:
           form:
             cursor: $ctx.slack_next_cursor,""
         export:
-          members+: $data.json.members
+          slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | fail }}{{ end }}{{ end }}'
+          members+: $?data.json.members
           slack_next_cursor: $?data.json.response_metadata.next_cursor
 
         meta:
@@ -534,3 +535,42 @@ systems:
                 workflows:
                   get_all_slack_users:
                     call_function: slack_bot.users
+
+      channels:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: https://slack.com/api/conversations.list
+          header:
+            Authorization: 'Bearer {{ .sysData.token }}'
+            Content-Type: application/json; charset=utf-8
+            Accept: application/json
+          method: GET
+          form:
+            cursor: $ctx.slack_next_cursor,""
+            types: public_channel,private_channel
+            exclude_archived: true
+        export:
+          slack_success: '{{ with .data.json }}{{ with .error }}{{ $.data.json | toJson | fail }}{{ end }}{{ end }}'
+          channels+: $?data.json.channels
+          slack_next_cursor: $?data.json.response_metadata.next_cursor
+
+        meta:
+          description:
+            - This function queries all channels, public or private, in the workspace.
+          inputs:
+            - name: cursor
+              description: Used for pagination, continue fetching from the cursor
+          exports:
+            - name: slack_next_cursor
+              description: Used for pagination, used by next call to continue fetch
+            - name: channels
+              description: A list of data structures containing channel information
+          notes:
+            - See below for example:
+            - example: |
+                ---
+                workflows:
+                  get_all_slack_channels:
+                    call_function: slack_bot.channels
+
