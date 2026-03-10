@@ -5,11 +5,14 @@ rules:
         system: slack_bot
         trigger: interact
     do:
-      resume: $ctx.slack_payload.callback_id,ctx.slack_payload.actions.0.block_id
       with:
         resume_message:
           payload:
             slack_payload: $ctx.slack_payload
+        slack_resume_key: $ctx.slack_payload.callback_id,ctx.slack_payload.actions.0.block_id
+      if_match:
+        slack_resume_key: ':regex:^hd-resume-'
+      resume: $ctx.slack_resume_key
       context: mute
 
   - when:

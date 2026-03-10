@@ -5,7 +5,7 @@ workflows:
       - slack_blocks
       - slack_buttons
     with:
-      resume_key: 'hd-slack-{{ .labels.sessionID }}-{{ .labels.cursor }}-{{ now | unixEpoch }}'
+      resume_key: 'hd-resume-slack-{{ .labels.sessionID }}-{{ .labels.cursor }}-{{ now | unixEpoch }}'
       slack_buttons: []
       slack_blocks: []
     steps:
