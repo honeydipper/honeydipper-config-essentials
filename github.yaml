@@ -365,7 +365,7 @@ systems:
           system: github
           function: api
         parameters:
-          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/contents/{{ .ctx.path }}{{ if .ctx.git_ref }}?ref={{ .ctx.git_ref }}{{ end }}'
+          URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/contents/{{ .ctx.path }}{{ with (coalesce .ctx.git_commit .ctx.git_ref) }}?ref={{ . }}{{ end }}'
           method: GET
         export:
           file_content: '{{ b64dec .data.json.content }}'
@@ -923,3 +923,14 @@ rules:
       if_match: $?ctx.repo_matcher
       call_workflow: reload
       description: reload on change {{ .ctx.git_repo }} {{ .ctx.git_ref }}
+
+workflows:
+  github_getContent:
+    with:
+      - github_system-: github
+        path_repo: '{{ with (.ctx.path | splitn ":" 2) }}{{ if not (empty ._1) }}{{ with (splitn "@" 2 ._0) }}{{ ._0 }}{{ end }}{{ end }}{{ end }}'
+        path_commit: '{{ with (.ctx.path | splitn ":" 2) }}{{ if not (empty ._1) }}{{ with (splitn "@" 2 ._0) }}{{ default "main" ._1 }}{{ end }}{{ end }}{{ end }}'
+        path: '{{ with (.ctx.path | splitn ":" 2) }}{{ default ._0 ._1 }}{{ end }}'
+      - git_repo: $ctx.path_repo,ctx.git_repo
+        git_commit: $?ctx.path_commit,ctx.git_commit
+    call_function: '{{ .ctx.github_system }}.getContent'
