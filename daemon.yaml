@@ -7,6 +7,8 @@ drivers:
         locker: redislock
         api-broadcast: api-broadcast
         cache: redis-cache
+      engine:
+        scheduler: redis-scheduler
     features:
       global:
         - name: "eventbus"
@@ -15,6 +17,8 @@ drivers:
         - name: locker
         - name: api-broadcast
         - name: cache
+      engine:
+        - name: scheduler
     drivers:
       redisqueue:
         name: redisqueue
@@ -277,6 +281,12 @@ drivers:
                           group: machine
                           role: viewer
             - This driver doesn't offer any actions or functions.
+
+      redis-scheduler:
+        name: redis-scheduler
+        type: builtin
+        handlerData:
+          shortName: hd-driver-redis-scheduler
 
   redisqueue:
     connection:
