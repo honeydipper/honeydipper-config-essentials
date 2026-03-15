@@ -46,6 +46,8 @@ workflows:
 
     on_error: exit
     on_failure: exit
+    with:
+        - attachments+: '{{ with .ctx.message }}{{ dict "title" (default "" $.ctx.title) "color" (dig $.ctx.message_type "" $.ctx.chat_colors) "text" . | list | return }}{{ else }}{{ return .nil }}{{ end }}'
     steps:
       - if_match:
           message_type:

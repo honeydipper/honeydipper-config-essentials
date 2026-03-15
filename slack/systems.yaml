@@ -54,15 +54,7 @@ systems:
             Content-Type: application/json; charset=utf-8
           method: POST
           content:
-            attachments: |-
-              :yaml:---
-              {{ if empty .ctx.message }}
-              []
-              {{ else }}
-              - title: '{{ default "" .ctx.chat_title }}'
-                color: '{{ index .ctx.chat_colors .ctx.message_type }}'
-                text: {{ .ctx.message | toJson }}
-              {{ end }}
+            attachments: $?ctx.attachments
             blocks: $?ctx.blocks
             text: $?ctx.text
             mrkdwn: :yaml:{{ default "true" .ctx.mrkdwn }}

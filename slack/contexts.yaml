@@ -1,5 +1,15 @@
 ---
 contexts:
+  slack_colors:
+    "*":
+      chat_colors:
+        success: good
+        error: danger
+        failure: danger
+        normal: ""
+        announcement: ""
+        warning: warning
+
   _slashcommands:
     _events:
       hooks:
