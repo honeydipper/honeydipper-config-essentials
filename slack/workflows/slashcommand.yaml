@@ -148,7 +148,7 @@ workflows:
 
     if_match:
       slashcommands:
-        ":absent:": $ctx.parameters
+        ":absent:": $ctx.parameters,""
     call_workflow: notify
     with:
       notify:
