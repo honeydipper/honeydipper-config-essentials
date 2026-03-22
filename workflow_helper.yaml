@@ -148,8 +148,8 @@ workflows:
         {{ .labels.performing }}
         ```
         Reason:
-        ```{{   if (gt (len .labels.reason) 512) }}
-        {{     printf "%s\n...skipped...\n%s" (trunc 256 .labels.reason) (substr (int (sub (len .labels.reason) 256)) -1 .labels.reason) }}
+        ```{{   if (gt (len .labels.reason) 2000) }}
+        {{     printf "%s\n...skipped...\n%s" (trunc 1000 .labels.reason) (substr (int (sub (len .labels.reason) 1000)) -1 .labels.reason) }}
         {{   else }}
         {{     .labels.reason }}
         {{   end }}```
