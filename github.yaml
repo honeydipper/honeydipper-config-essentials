@@ -932,5 +932,26 @@ workflows:
         path_commit: '{{ with (.ctx.path | splitn ":" 2) }}{{ if not (empty ._1) }}{{ with (splitn "@" 2 ._0) }}{{ default "main" ._1 }}{{ end }}{{ end }}{{ end }}'
         path: '{{ with (.ctx.path | splitn ":" 2) }}{{ default ._0 ._1 }}{{ end }}'
       - git_repo: $ctx.path_repo,ctx.git_repo
-        git_commit: $?ctx.path_commit,ctx.git_commit
+        git_commit: $?ctx.path_commit,ctx.git_commit,ctx.git_ref
+    if:
+      - '{{ hasPrefix "refs/heads/" .ctx.git_commit }}' # skip cache for branch ref, since it's always changing
     call_function: '{{ .ctx.github_system }}.getContent'
+    description: get from github without cache
+    else:
+      no_export:
+        - cache-data
+      steps:
+        - with:
+            - cache_key: 'gh_content_{{ .ctx.git_repo }}_{{ .ctx.path }}_{{ .ctx.git_commit }}'
+            - cache_key: '{{ replace "/" "_" .ctx.cache_key }}'
+          cache_key: $ctx.cache_key
+          call_function: '{{ .ctx.github_system }}.getContent'
+          export:
+            cache-data:
+              file_content: $ctx.file_content
+          no_export:
+            - file_content
+        - export:
+            file_content: $ctx.cache-data.file_content
+          description: return cached github content
+      description: get from cache first
