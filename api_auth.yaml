@@ -58,6 +58,7 @@ drivers:
                 g3, GET, read
                 g3, POST, write
                 g3, PUT, write
+                g3, DELETE, write
 
                 # define basic policy effects
                 p, viewer, everything, read, auth-simple
