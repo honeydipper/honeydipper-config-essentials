@@ -7,7 +7,7 @@ systems:
 
     meta:
       configurations:
-        - name: oauth_token
+        - name: pat
           description: The token or API ID used for making API calls to `github`
         - name: token
           description: >
@@ -25,7 +25,7 @@ systems:
             systems:
               github:
                 data:
-                  oauth_token: ENC[gcloud-kms,...masked...]
+                  pat: ENC[gcloud-kms,...masked...]
                   token: ENC[gcloud-kms,...masked...]
                   path: "/webhook/github"
         - Assuming the domain name for the webhook server is :code:`myhoneydipper.com', you should
@@ -36,7 +36,7 @@ systems:
              https://myhoneydipper.com/webhook/github?token=...masked...
 
     data:
-      oauth_token: _place_holder_
+      pat: _place_holder_
       token: _place_holder_
       path: "/github/push"
       signatureHeader: X-Hub-Signature-256
@@ -48,13 +48,16 @@ systems:
         parameters:
           URL: https://api.github.com/{{ .ctx.resource_path }}
           header:
-            Authorization: Bearer {{ coalesce .ctx.github_oauth_token .sysData.oauth_token }}
+            Authorization: >-
+              Bearer {{ $token := "" }}{{ with .ctx.github_pats }}{{ range (ternary . (list .) (kindIs "slice" .) ) -}}
+              {{- with . }}{{ $token = (decrypt .) }}{{ if (empty $token| not) }}{{ break }}{{ end }}{{ end -}}
+              {{- end }}{{ end }}{{ coalesce $token .sysData.pat }}
             Accept: application/vnd.github.v3+json
             Content-Type: application/json; charset=utf-8
           tokenSource: $?sysData.tokenSource
 
         description: >
-          This is a generic function to make a github API call with the configured oauth_token. This
+          This is a generic function to make a github API call with the configured PAT. This
           function is meant to be used for defining other functions.
 
         meta:
