@@ -69,6 +69,39 @@ drivers:
                 - name: job
                   description: the job object following the kubernetes API schema
 
+                - name: start_immediately
+                  description: >
+                    Optional, defaults to `true`. When set to `false`, the job is created in suspended state and must be
+                    started later with `startJob`.
+
+            - name: startJob
+              description: >
+                Start a kubernetes job that was previously created in suspended state.
+              notes:
+                - See below for a simple example
+                - example: |
+                    ---
+                    workflows:
+                      call_driver: kubernetes.startJob
+                      with:
+                        type: local
+                        namespace: test
+                        job: pi
+              parameters:
+                - name: type
+                  description: >
+                    The type of the kubernetes cluster, see **createJob** rawAction for detail
+
+                - name: source
+                  description: >
+                    A list of k/v pair as parameters used for getting kubeconfig, see **createJob** rawAction for detail
+
+                - name: namespace
+                  description: The namespace for the job
+
+                - name: job
+                  description: The metadata name of the previously suspended kubernetes job
+
             - name: recycleDeployment
               description: recycle a deployment by deleting the replicaset and let it re-spawn.
               notes:
