@@ -52,16 +52,16 @@ drivers:
               parameters:
                 - name: type
                   description: >
-                    The type of the kubernetes cluster, basically a driver that provides a RPC call
-                    for fetching the kubeconfig from.
-                    currently only `gcloud-gke` and `local` is supported, more types to be added in the future.
+                    The source type used to build the kubeconfig.
+                    Currently supported values are `gcloud-gke`, `local`, and `static`.
 
                 - name: source
                   description: >
-                    A list of k/v pair as parameters used for making the RPC call to fetch the kubeconfig.
+                    A list of k/v pair used to fetch or construct kubeconfig.
                     For `local`, no value is required, the driver will try to use in-cluster configurations.
                     For `gcloud-gke` clusters, the k/v pair should have keys including `service_account`,
                     `project`, `zone` and `cluster`.
+                    For `static`, include `name`, which points to `drivers.kubernetes.sources.<name>`.
 
                 - name: namespace
                   description: The namespace for the job

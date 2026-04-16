@@ -11,9 +11,11 @@ systems:
         - name: source
           description: >
             The parameters used for fetching kubeconfig for accessing the cluster, should at least contain
-            a :code:`type` field. Currently, only :code:`local` or :code:`gcloud-gke` are supported.
+            a :code:`type` field. Supported values are :code:`local`, :code:`gcloud-gke`, or :code:`static`.
             For :code:`gcloud-gke` type,
             this should also include :code:`service_account`, :code:`project`, :code:`zone`, and :code:`cluster`.
+            For :code:`static` type, this should include :code:`name` that points to
+            :code:`drivers.kubernetes.sources.<name>` in the daemon driver config.
         - name: namespace
           description: >
             The namespace of the resources when operating on the resources within the cluster,
