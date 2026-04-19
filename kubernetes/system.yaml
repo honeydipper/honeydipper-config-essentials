@@ -223,7 +223,6 @@ systems:
           source: $sysData.source
           namespace: $?sysData.namespace
           job: $ctx.jobid
-          timeout: '{{ default "60" .ctx.timeout }}'
         export:
           job_status: '{{ and (eq .labels.status "success") (eq (int .data.status.failed) 0) | ternary "success" "failure" }}'
 
@@ -311,6 +310,7 @@ systems:
           source: $sysData.source
           namespace: $?sysData.namespace
           pvc: $ctx.pvc
+          ignore_already_exists: '{{ empty .ctx.ignore_already_exists | not | return }}'
         export:
           pvc_name: $?data.metadata.name
           pvc_status: $?data.status

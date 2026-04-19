@@ -938,7 +938,7 @@ workflows:
         path_commit: '{{ with (.ctx.path | splitn ":" 2) }}{{ if not (empty ._1) }}{{ with (splitn "@" 2 ._0) }}{{ default "main" ._1 }}{{ end }}{{ end }}{{ end }}'
         path: '{{ with (.ctx.path | splitn ":" 2) }}{{ default ._0 ._1 }}{{ end }}'
       - git_repo: $ctx.path_repo,ctx.git_repo
-        git_commit: $?ctx.path_commit,ctx.git_commit,ctx.git_ref
+        git_commit: $ctx.path_commit,ctx.git_commit,ctx.git_ref,""
     if:
       - '{{ hasPrefix "refs/heads/" .ctx.git_commit }}' # skip cache for branch ref, since it's always changing
     call_function: '{{ .ctx.github_system }}.getContent'
