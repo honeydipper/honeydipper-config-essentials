@@ -11,9 +11,11 @@ systems:
         - name: source
           description: >
             The parameters used for fetching kubeconfig for accessing the cluster, should at least contain
-            a :code:`type` field. Currently, only :code:`local` or :code:`gcloud-gke` are supported.
+            a :code:`type` field. Supported values are :code:`local`, :code:`gcloud-gke`, or :code:`static`.
             For :code:`gcloud-gke` type,
             this should also include :code:`service_account`, :code:`project`, :code:`zone`, and :code:`cluster`.
+            For :code:`static` type, this should include :code:`name` that points to
+            :code:`drivers.kubernetes.sources.<name>` in the daemon driver config.
         - name: namespace
           description: >
             The namespace of the resources when operating on the resources within the cluster,
@@ -126,6 +128,7 @@ systems:
           namespace: $?sysData.namespace
           job: $ctx.job
           fromCronJob: $?ctx.fromCronJob
+          start_immediately: '{{ default true .ctx.start_immediately }}'
         export:
           jobid: $data.metadata.name
           links: $?sysData.types.{{ .sysData.source.type }}.joblinks
@@ -145,6 +148,11 @@ systems:
               description: >
                 Creating the job based on the definition of a cronjob, in the form of :code:`namespace/cronjob`. If the namespace
                 is omitted, the current namespace where the job is being created will be used for looking up the cronjob.
+
+            - name: start_immediately
+              description: >
+                Optional, defaults to :code:`true`. When set to :code:`false`, the job is created in suspended state and must be
+                started later by calling :code:`startJob`.
 
           exports:
             - name: jobid
@@ -173,6 +181,41 @@ systems:
                               restartPolicy: Never
                           backoffLimit: 4
 
+      startJob:
+        driver: kubernetes
+        rawAction: startJob
+        parameters:
+          source: $sysData.source
+          namespace: $?sysData.namespace
+          job: $ctx.jobid
+
+        description: >
+          This function starts a previously suspended kubernetes job. It is intended to be paired with :code:`createJob`
+          when the job was created with :code:`start_immediately=false`.
+
+        meta:
+          inputs:
+            - name: jobid
+              description: The job ID of the suspended kubernetes job to start.
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflow:
+                  create_then_start_job:
+                    steps:
+                      - call_function: my-k8s-cluster.createJob
+                        with:
+                          start_immediately: false
+                          job: $ctx.job
+                      - call_function: my-k8s-cluster.startJob
+                        with:
+                          jobid: $ctx.jobid
+                      - call_function: my-k8s-cluster.waitForJob
+                        with:
+                          job: $ctx.jobid
+
       waitForJob:
         driver: kubernetes
         rawAction: waitForJob
@@ -180,7 +223,6 @@ systems:
           source: $sysData.source
           namespace: $?sysData.namespace
           job: $ctx.jobid
-          timeout: '{{ default "60" .ctx.timeout }}'
         export:
           job_status: '{{ and (eq .labels.status "success") (eq (int .data.status.failed) 0) | ternary "success" "failure" }}'
 
@@ -268,6 +310,7 @@ systems:
           source: $sysData.source
           namespace: $?sysData.namespace
           pvc: $ctx.pvc
+          ignore_already_exists: '{{ empty .ctx.ignore_already_exists | not | return }}'
         export:
           pvc_name: $?data.metadata.name
           pvc_status: $?data.status
