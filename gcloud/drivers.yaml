@@ -3,17 +3,32 @@ drivers:
   daemon:
     features:
       global:
+{%- if empty .options.without_gcloud_secret %}
         - name: "driver:gcloud-secret"
           required: true
+{%- end %}
+{%- if empty .options.gcloud_kms | not %}
         - name: "driver:gcloud-kms"
           required: true
+{%- end %}
       operator:
+{%- if empty .options.without_gcloud_gke %}
         - name: "driver:gcloud-gke"
+{%- end %}
+{%- if empty .options.without_gcloud_dataflow %}
         - name: "driver:gcloud-dataflow"
+{%- end %}
+{%- if empty .options.without_gcloud_spanner %}
         - name: "driver:gcloud-spanner"
+{%- end %}
+{%- if empty .options.without_gcloud_logging %}
         - name: "driver:gcloud-logging"
+{%- end %}
+{%- if empty .options.without_gcloud_storage %}
         - name: "driver:gcloud-storage"
+{%- end %}
     drivers:
+{%- if empty .options.without_gcloud_spanner %}
       gcloud-spanner:
         name: gcloud-spanner
         type: builtin
@@ -122,7 +137,9 @@ drivers:
                     steps:
                       - call_function: my_spanner_db.start_backup
                       - call_function: my_spanner_db.wait_for_backup
+{%- end %}
 
+{%- if empty .options.without_gcloud_pubsub %}
       gcloud-pubsub:
         name: gcloud-pubsub
         type: builtin
@@ -176,7 +193,9 @@ drivers:
                               datakey: hello
                         do:
                           call_workflow: something
+{%- end %}
 
+{%- if empty .options.without_gcloud_gke %}
       gcloud-gke:
         name: gcloud-gke
         type: builtin
@@ -278,7 +297,9 @@ drivers:
                           source:  # parameters to the RPC here
                             location: us-central1-a
                             cluster: my-gke-cluster
+{%- end %}
 
+{%- if empty .options.gcloud_kms | not %}
       gcloud-kms:
         name: gcloud-kms
         type: builtin
@@ -319,7 +340,9 @@ drivers:
                   .. code:: go
 
                      retbytes, err := driver.RPCCallRaw("driver:gcloud-kms", "decrypt", cipherbytes)
+{%- end %}
 
+{%- if empty .options.without_gcloud_secret %}
       gcloud-secret:
         name: gcloud-secret
         type: builtin
@@ -361,7 +384,9 @@ drivers:
                   .. code:: go
 
                      retbytes, err := driver.RPCCallRaw("driver:gcloud-secret", "lookup", []byte("projects/foo/secrets/bar/versions/latest"))
+{%- end %}
 
+{%- if empty .options.without_gcloud_dataflow %}
       gcloud-dataflow:
         name: gcloud-dataflow
         type: builtin
@@ -609,7 +634,9 @@ drivers:
                           - call_driver: gcloud-dataflow.getJob
                             with:
                               jobID: $data.job.Id
+{%- end %}
 
+{%- if empty .options.without_gcloud_logging %}
       gcloud-logging:
         name: gcloud-logging
         type: builtin
@@ -664,7 +691,9 @@ drivers:
                             state: CA
                             city: Los Angeles
                             sales: 12000
+{%- end %}
 
+{%- if empty .options.without_gcloud_storage %}
       gcloud-storage:
         name: gcloud-storage
         type: builtin
@@ -789,9 +818,14 @@ drivers:
                           fileObject: bar/mydata.json
                           content:
                             foo: bar
+{%- end %}
 
+{%- if empty .options.gcloud_kms | not %}
   gcloud-kms:
     keyname: _place_holder_
+{%- end %}
 
+{%- if empty .options.without_gcloud_logging %}
   gcloud-logging:
     _place_holder_: _place_holder_
+{%- end %}

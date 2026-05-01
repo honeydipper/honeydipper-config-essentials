@@ -34,3 +34,18 @@ includes:
 {%- if empty .options.codeclimate | not %}
   - codeclimate/init.yaml
 {%- end %}
+{%- if empty .options.datadog | not %}
+  - datadog/init.yaml
+{%- end %}
+{%- if empty .options.gcloud | not %}
+  - gcloud/init.yaml
+{%- end %}
+{%- if empty .options.vault | not %}
+  - vault/init.yaml
+{%- end %}
+{%- if empty .options.ai | not %}
+  - ai/init.yaml
+{%- end %}
+{%- if empty .options.ai_gemini | not %}
+  - ai/gemini.yaml
+{%- end %}

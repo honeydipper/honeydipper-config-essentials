@@ -1,8 +1,12 @@
 ---
 includes:
   - drivers.yaml
+
+{%- if empty .options.without_gcloud_gke %}
+  - gke.yaml
   - contexts.yaml
   - workflows.yaml
-
-  - gke.yaml
+{%- end %}
+{%- if empty .options.without_gcloud_dataflow %}
   - dataflow.yaml
+{%- end %}
