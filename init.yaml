@@ -3,14 +3,34 @@ includes:
   - daemon.yaml
   - web.yaml
   - webhook.yaml
-  - github.yaml
-  - opsgenie.yaml
-  - slack/init.yaml
-  - kubernetes/init.yaml
-  - workflow_helper.yaml
-  - jira.yaml
   - contexts.yaml
   - api_auth.yaml
+  - workflow_helper.yaml
+
+# following are loaded by default
+{%- if empty .options.without_github %}
+  - github.yaml
+{%- end %}
+{%- if empty .options.without_slack %}
+  - slack/init.yaml
+{%- end %}
+{%- if empty .options.without_kubernetes %}
+  - kubernetes/init.yaml
+{%- end %}
+
+# following can be loaded optionally
+{%- if empty .options.opsgenie | not %}
+  - opsgenie.yaml
+{%- end %}
+{%- if empty .options.jira | not %}
+  - jira.yaml
+{%- end %}
+{%- if empty .options.circleci | not %}
   - circleci.yaml
+{%- end %}
+{%- if empty .options.pagerduty | not %}
   - pagerduty.yaml
+{%- end %}
+{%- if empty .options.codeclimate | not %}
   - codeclimate/init.yaml
+{%- end %}

@@ -1,5 +1,6 @@
 ---
 workflows:
+{%- if empty .options.without_slack %}
   notify:
     description: send chat message through chat system
     meta:
@@ -155,15 +156,14 @@ workflows:
         {{   end }}```
         {{ end }}
       message+: $?ctx.status_detail
-
-
+{%- end %}
   reload:
     description: reload honeydipper config
     meta:
       inputs:
         - name: force
           description: >
-            If force is truy, Honeydipper will simply quit, expecting to be re-started by deployment manager.
+            If force is truthy, Honeydipper will simply quit, expecting to be re-started by deployment manager.
       notes:
         - For example
         - example: |
@@ -228,6 +228,7 @@ workflows:
         payload: $?ctx.resume_payload
         key: $ctx.resume_token
 
+{%- if empty .options.opsgenie | not %}
   snooze_alert:
     description: snooze an alert
     meta:
@@ -286,3 +287,4 @@ workflows:
       notes:
         - >
           This workflow is just a wraper around the :code:`opsgenie.heartbeat` function.
+{%- end %}
