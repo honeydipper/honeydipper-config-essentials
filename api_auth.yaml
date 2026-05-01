@@ -4,12 +4,15 @@ drivers:
       api:
         auth-providers:
           - auth-simple
+{%- if empty .options.auth_saml | not %}
+          - auth-saml
+{%- end %}
         auth:
           casbin:
             models:
               - |
                 [request_definition]
-                r = sub, obj, act, provider
+                r = sub, principal, obj, act, provider
 
                 [policy_definition]
                 p = sub, obj, act, provider
@@ -50,7 +53,7 @@ drivers:
                   || (p.sub == 'everyone' && p.obj == 'everything' && r.act == p.act && (r.provider == p.provider || p.provider == 'everywhere')) \
                   || (p.sub == 'everyone' && p.obj == 'everything' && g3(r.act, p.act) && (r.provider == p.provider || p.provider == 'everywhere')) \
                   || (p.sub == 'everyone' && p.obj == 'everything' && g3(r.act, 'read') && p.act == 'write' && (r.provider == p.provider || p.provider == 'everywhere')) \
-                  || (r.sub == 'admin')
+                  || (r.sub == '@admin')
 
             policies:
               - |
@@ -66,3 +69,15 @@ drivers:
                 p, everyone, everything, write, auth-gcp-iap
 
                 p, everyone, user/profile, read, everywhere
+
+{%- if empty .options.auth_saml | not %}
+  auth-saml:
+    acs_url: "http://localhost:9000/api/auth/saml/callback"
+    idp_metadata_url: "http://localhost:8280/realms/master/protocol/saml/descriptor"
+    jwt_signing_key: "your-secret-key-for-signing-jwt"
+    entity_id: "honeydipper"  # must match client ID in Keycloak
+    token_expiration: 3600
+    name_id_format: "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"
+    sp_key: placeholder-for-sp-private-key
+    sp_cert: placeholder-for-sp-certificate
+{%- end %}

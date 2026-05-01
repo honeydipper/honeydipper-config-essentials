@@ -282,6 +282,110 @@ drivers:
                           role: viewer
             - This driver doesn't offer any actions or functions.
 
+{%- if empty .options.auth_saml | not %}
+      auth-saml:
+        name: auth-saml
+        type: builtin
+        handlerData:
+          shortName: auth-saml
+        description: |
+          This driver enables SAML 2.0 Service Provider (SP) authentication for the Honeydipper
+          API service. It handles SP-initiated login, ACS callback validation, session token
+          issuance via JWT, and SP metadata serving for IdP configuration.
+
+          When SAML login is complete the API authorization still uses Casbin, so SSO identity
+          and access policy remain separate. SAML assertion attributes are available in the
+          principal object (`r.principal.Data`) for claim-based Casbin rules.
+
+          The following API endpoints are provided by the API service when this driver is active:
+
+          - `GET /api/auth/saml/login` — returns a redirect URL for SP-initiated login
+          - `GET /api/auth/saml/metadata` — returns SP metadata XML for IdP registration
+          - `POST /api/auth/saml/callback` — ACS endpoint, validates SAMLResponse and returns a JWT
+          - `GET /api/auth/saml/callback` — same as POST, for IdP-initiated flows (when enabled)
+        meta:
+          configurations:
+            - name: acs_url
+              description: |
+                The Assertion Consumer Service (ACS) URL that the IdP will post the SAMLResponse
+                to. This must be registered with your IdP and match the URL exposed by the
+                Honeydipper API service (e.g. `https://hd.example.com/api/auth/saml/callback`).
+            - name: idp_metadata_url
+              description: |
+                The URL from which the driver fetches the IdP metadata XML at startup. Must be
+                reachable from the daemon runtime.
+            - name: entity_id
+              description: |
+                The SP entity ID advertised in SP metadata. Optional; defaults to `acs_url`.
+            - name: allow_idp_initiated
+              description: |
+                Accept true/false. Allow IdP-initiated login flows. Optional; defaults to `false`.
+                Keep disabled unless your SSO flow explicitly requires it.
+            - name: token_expiration
+              description: |
+                How long (in seconds) an issued Honeydipper JWT session token remains valid.
+                Optional; defaults to `86400` (24 hours).
+            - name: request_ttl
+              description: |
+                How long (in seconds) a pending SAML relay-state entry is kept before it expires.
+                Optional; defaults to `600` (10 minutes). Keep this short to reduce the replay
+                window for stale relay states.
+            - name: jwt_signing_key
+              description: |
+                The secret used to sign and verify Honeydipper JWT session tokens. Use a strong
+                random value. In production, prefer the `AUTH_SAML_JWT_SIGNING_KEY` environment
+                variable over storing the key in config files.
+          notes:
+            - See below for a minimal driver configuration example
+            - example: |
+                ---
+                drivers:
+                  auth-saml:
+                    acs_url: https://hd.example.com/api/auth/saml/callback
+                    idp_metadata_url: https://idp.example.com/metadata
+                    entity_id: https://hd.example.com/saml/sp
+                    allow_idp_initiated: false
+                    token_expiration: 86400
+                    request_ttl: 600
+                    jwt_signing_key: ENC[gcloud-kms,...masked]
+            - |
+              To enable the driver, add it to the API auth-providers list and configure a
+              Casbin policy. See below for a daemon-level snippet.
+            - example: |
+                ---
+                drivers:
+                  daemon:
+                    services:
+                      api:
+                        auth-providers:
+                          - auth-saml
+                        auth:
+                          casbin:
+                            models:
+                              - |
+                                [request_definition]
+                                r = sub, principal, obj, act, provider
+
+                                [policy_definition]
+                                p = sub, obj, act, provider
+
+                                [role_definition]
+                                g = _, _
+
+                                [policy_effect]
+                                e = some(where (p.eft == allow))
+
+                                [matchers]
+                                m = (r.sub == p.sub && r.obj == p.obj && r.act == p.act && r.provider == p.provider) \
+                                  || (g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act && r.provider == p.provider)
+
+                            policies:
+                              - |
+                                p, everyone, user/profile, read, auth-saml
+                                g, alice@example.com, everyone
+            - This driver doesn't offer any rawActions or rawEvents for workflow composing.
+{%- end %}
+
       redis-scheduler:
         name: redis-scheduler
         type: builtin
