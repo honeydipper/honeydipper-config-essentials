@@ -911,7 +911,7 @@ systems:
 rules:
   - when:
       source:
-        system: github
+        system: {% default "github_app" .options.github_system %}
         trigger: hit
     do:
       context: mute
@@ -919,7 +919,7 @@ rules:
 
   - when:
       source:
-        system: github
+        system: {% default "github_app" .options.github_system %}
         trigger: push
 
     do:
@@ -933,7 +933,7 @@ rules:
 workflows:
   github_getContent:
     with:
-      - github_system-: github
+      - github_system: '{% default "github_app" .options.github_system %}'
         path_repo: '{{ with (.ctx.path | splitn ":" 2) }}{{ if not (empty ._1) }}{{ with (splitn "@" 2 ._0) }}{{ ._0 }}{{ end }}{{ end }}{{ end }}'
         path_commit: '{{ with (.ctx.path | splitn ":" 2) }}{{ if not (empty ._1) }}{{ with (splitn "@" 2 ._0) }}{{ default "main" ._1 }}{{ end }}{{ end }}{{ end }}'
         path: '{{ with (.ctx.path | splitn ":" 2) }}{{ default ._0 ._1 }}{{ end }}'
