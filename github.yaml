@@ -939,8 +939,10 @@ workflows:
         path: '{{ with (.ctx.path | splitn ":" 2) }}{{ default ._0 ._1 }}{{ end }}'
       - git_repo: $ctx.path_repo,ctx.git_repo
         git_commit: $ctx.path_commit,ctx.git_commit,ctx.git_ref,""
-    if:
-      - '{{ hasPrefix "refs/heads/" .ctx.git_commit }}' # skip cache for branch ref, since it's always changing
+    if_any:
+      - '{{ empty .ctx.git_commit }}'
+      - '{{ eq .ctx.git_commit "HEAD" }}'
+      - '{{ hasPrefix "refs/" .ctx.git_commit }}' # skip cache for branch and tag ref, since they are mutable.
     call_function: '{{ .ctx.github_system }}.getContent'
     description: get from github without cache
     else:
