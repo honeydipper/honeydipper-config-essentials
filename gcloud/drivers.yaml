@@ -27,6 +27,9 @@ drivers:
 {%- if empty .options.without_gcloud_storage %}
         - name: "driver:gcloud-storage"
 {%- end %}
+{%- if empty .options.without_gcloud_pubsub %}
+        - name: "driver:gcloud-pubsub"
+{%- end %}
     drivers:
 {%- if empty .options.without_gcloud_spanner %}
       gcloud-spanner:
@@ -149,13 +152,14 @@ drivers:
         meta:
           description:
             - >
-              This driver enables Honeydipper to receive and consume gcloud pubsub events
+              This driver enables Honeydipper to receive and consume gcloud pubsub events,
+              and to publish messages to gcloud pubsub topics.
 
           configurations:
             - name: service_account
               description: >
                 The gcloud service account key (json) in bytes. This service account needs to have
-                proper permissions to subscribe to the topics.
+                proper permissions to subscribe to or publish to the topics.
 
           notes:
             - For example
@@ -193,6 +197,47 @@ drivers:
                               datakey: hello
                         do:
                           call_workflow: something
+
+          rawActions:
+            - name: publish
+              description: publish a message to a gcloud pubsub topic
+              parameters:
+                - name: service_account
+                  description: >
+                    Optional, a gcloud service account key (json) stored as byte array.
+                    If not specified, the driver-level service account is used.
+                - name: project
+                  description: The name of the gcloud project where the pubsub topic belongs
+                - name: topic
+                  description: The name of the pubsub topic to publish to
+                - name: data
+                  description: >
+                    The message payload. Can be a string or a structured object.
+                    Structured objects will be JSON encoded automatically.
+                - name: attributes
+                  description: >
+                    Optional, a map of string key-value pairs to attach as
+                    message attributes.
+              returns:
+                - name: messageID
+                  description: The ID of the published message
+              notes:
+                - See below for a simple example
+                - example: |
+                    ---
+                    workflows:
+                      publish_to_pubsub:
+                        call_driver: gcloud-pubsub.publish
+                        with:
+                          service_account: ...masked...
+                          project: foo
+                          topic: my-topic
+                          data:
+                            key: value
+                          attributes:
+                            source: honeydipper
+                        export_on_success:
+                          messageID: $data.messageID
 {%- end %}
 
 {%- if empty .options.without_gcloud_gke %}
