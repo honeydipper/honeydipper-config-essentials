@@ -46,7 +46,7 @@ systems:
         driver: web
         rawAction: request
         parameters:
-          URL: https://api.github.com/{{ .ctx.resource_path }}
+          URL: https://api.github.com/{{ trimPrefix "/" .ctx.resource_path }}
           header:
             Authorization: >-
               Bearer {{ $token := "" }}{{ with .ctx.github_pats }}{{ range (ternary . (list .) (kindIs "slice" .) ) -}}
@@ -62,11 +62,44 @@ systems:
           function is meant to be used for defining other functions.
 
         meta:
+          skip_agent: true
           inputs:
             - name: resource_path
               description: This field is used as the path portion of the API call url
             - name: tokenSourceParams
               description: Optional token source parameters forwarded to the web driver, e.g. installation_id for GitHub App token sources
+
+      raw_api:
+        driver: web
+        rawAction: request
+        parameters:
+          URL: https://api.github.com/{{ trimPrefix "/" .ctx.resource_path }}
+          header:
+            Authorization: >-
+              Bearer {{ $token := "" }}{{ with .ctx.github_pats }}{{ range (ternary . (list .) (kindIs "slice" .) ) -}}
+              {{- with . }}{{ $token = (decrypt .) }}{{ if (empty $token| not) }}{{ break }}{{ end }}{{ end -}}
+              {{- end }}{{ end }}{{ coalesce $token .sysData.pat }}
+            Accept: application/vnd.github.v3+json
+            Content-Type: application/json; charset=utf-8
+          tokenSource: $?sysData.tokenSource
+          method: $ctx.gh_api_method,"GET"
+          content: $?ctx.gh_api_content
+          tokenSourceParams: $?ctx.tokenSourceParams,sysData.tokenSourceParams
+        export:
+          response: $?data.json
+
+        description: >
+          This is a generic function to make a github API call with the configured PAT. This
+          function is meant to be used for defining other functions.
+
+        meta:
+          inputs:
+            - name: resource_path
+              description: This field is used as the path portion of the API call url
+            - name: gh_api_method
+              description: The HTTP method to use for the API call, e.g. GET, POST, etc.
+            - name: gh_api_content
+              description: The content to be sent as the body of the API call, for POST, PUT, etc.
 
       createPR:
         target:
@@ -374,7 +407,8 @@ systems:
           URL: 'https://api.github.com/repos/{{ .ctx.git_repo }}/contents/{{ .ctx.path }}{{ with (coalesce .ctx.git_commit .ctx.git_ref) }}?ref={{ . }}{{ end }}'
           method: GET
         export:
-          file_content: '{{ b64dec .data.json.content }}'
+          file_content: '{{ if (kindIs "map" .data.json) }}{{ if eq .data.json.encoding "base64" }}{{ b64dec .data.json.content }}{{ end }}{{ end }}'
+          file_info: $data.json
 
         description: >
           This function will fetch a file from the specified repo and branch.
@@ -391,7 +425,8 @@ systems:
           exports:
             - name: file_content
               description: The file content as a string
-
+            - name: file_info
+              description: The whole response from github, which contains file metadata like size, encoding, download url etc.
           notes:
             - See below for example
             - example: |
