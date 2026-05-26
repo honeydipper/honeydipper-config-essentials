@@ -299,6 +299,8 @@ systems:
           description: A regex expression representation of slack app's user id, used for detecting mentioning, for example :code:`regex:U08M6UDCPGG`
         - name: slack_user_id
           description: The slack app's user id, for example :code:`U08M6UDCPGG`
+        - name: slack_app_name
+          description: The slack app's name, used for ignoring messages from the bot itself, for example :code:`my-slack-app`
 
       notes:
         - For example
@@ -369,8 +371,8 @@ systems:
               ":absent:":
                 - subtype
               ":except:":
-                - user: $sysData.slack_user_id
-                - text: $sysData._slack_user_id_regex
+                bot_profile:
+                  name: $?sysData.slack_app_name
         export:
           slack_payload: $?event.json
           slack_user_id: $sysData.slack_user_id
