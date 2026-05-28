@@ -19,6 +19,11 @@ drivers:
         - name: cache
       engine:
         - name: scheduler
+{%- if empty .options.with_mcp | not %}
+      agent:
+        - name: "driver:mcp"
+{%- end %}
+
     drivers:
       redisqueue:
         name: redisqueue
@@ -391,6 +396,45 @@ drivers:
         type: builtin
         handlerData:
           shortName: hd-driver-redis-scheduler
+
+      mcp:
+        name: mcp
+        type: builtin
+        handlerData:
+          shortName: hd-driver-mcp
+        description: |
+          mcp driver is an implementation of the MCP (Mesh Configuration Protocol) for Honeydipper.
+          It enables the agents to inovoke actions on integrated systems through the MPC protocol.
+          It is intended to be used by agent services, not directly by the workflow, and doesn't
+          offer `rawActions` or `rawEvents` for workflow composing.
+        meta:
+          configurations:
+            - servers:
+                description: |
+                  A list of MCP servers to connect to. Each server should include the necessary
+                  connection parameters such as address, port, and authentication credentials.
+              type: object
+            - servers.*.url:
+                description: The URL of the MCP server, including the protocol (e.g., `https://`), host, and port.
+                type: string
+            - servers.*.transport:
+                description: '"streamable" or "sse", defaults to "streamable".'
+                type: string
+            - servers.*.headers:
+                description: Optional additional headers to include in MCP requests, such as authentication tokens.
+                type: object
+          notes:
+            - See below for an example
+            - example: |
+                ---
+                drivers:
+                  mcp:
+                    servers:
+                      my-mcp-server:
+                        url: https://mcp.example.com:8443
+                        transport: streamable
+                        headers:
+                          Authorization: Bearer abcdef123456
 
   redisqueue:
     connection:
