@@ -27,7 +27,7 @@ drivers:
                     ---
                     workflows:
                       call_driver: kubernetes.createJob
-                      with:
+                      parameters:
                         type: local
                         namespace: test
                         job:
@@ -83,7 +83,7 @@ drivers:
                     ---
                     workflows:
                       call_driver: kubernetes.startJob
-                      with:
+                      parameters:
                         type: local
                         namespace: test
                         job: pi
@@ -115,7 +115,7 @@ drivers:
                             trigger: fired
                         do:
                           call_driver: kubernetes.recycleDeployment
-                          with:
+                          parameters:
                             type: gcloud-gke
                             source:
                               service_account: ENC[gcloud-kms, ...masked... ]
@@ -151,7 +151,7 @@ drivers:
                       run_job:
                         steps:
                           - call_driver: kubernetes.createJob
-                            with:
+                            parameters:
                               type: local
                               job:
                                 apiVersion: batch/v1
@@ -168,11 +168,11 @@ drivers:
                                       restartPolicy: Never
                                   backoffLimit: 4
                           - call_driver: kubernetes.waitForJob
-                            with:
+                            parameters:
                               type: local
                               job: $data.metadta.name
                           - call_driver: kubernetes.getJobLog
-                            with:
+                            parameters:
                               type: local
                               job: $data.metadta.name
               parameters:
@@ -211,7 +211,7 @@ drivers:
                       run_job:
                         steps:
                           - call_driver: kubernetes.createJob
-                            with:
+                            parameters:
                               type: local
                               job:
                                 apiVersion: batch/v1
@@ -228,7 +228,7 @@ drivers:
                                       restartPolicy: Never
                                   backoffLimit: 4
                           - call_driver: kubernetes.waitForJob
-                            with:
+                            parameters:
                               type: local
                               job: $data.metadta.name
               parameters:

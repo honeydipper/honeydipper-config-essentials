@@ -70,7 +70,7 @@ drivers:
                     workflows:
                       start_spanner_native_backup:
                         call_driver: gcloud-spanner.backup
-                        with:
+                        parameters:
                           service_account: ...masked...
                           project: foo
                           instance: dbinstance
@@ -98,7 +98,7 @@ drivers:
                     workflows:
                       wait_spanner_native_backup:
                         call_driver: gcloud-spanner.waitForbackup
-                        with:
+                        parameters:
                           backupOpID: $ctx.backupOpID
 
           notes:
@@ -228,7 +228,7 @@ drivers:
                     workflows:
                       publish_to_pubsub:
                         call_driver: gcloud-pubsub.publish
-                        with:
+                        parameters:
                           service_account: ...masked...
                           project: foo
                           topic: my-topic
@@ -468,7 +468,7 @@ drivers:
                     workflows:
                       start_dataflow_job:
                         call_driver: gcloud-dataflow.createJob
-                        with:
+                        parameters:
                           service_account: ...masked...
                           project: foo
                           location: us-west1
@@ -510,15 +510,15 @@ drivers:
                           location: us-west1
                         steps:
                           - call_driver: gcloud-dataflow.findJobByName
-                            with:
+                            parameters:
                               name: bar
                           - call_driver: gcloud-dataflow.updateJob
-                            with:
+                            parameters:
                               jobID: $data.job.Id
                               jobSpec:
                                 currentState: JOB_STATE_DRAINING
                           - call_driver: gcloud-dataflow.waitForJob
-                            with:
+                            parameters:
                               jobID: $data.job.Id
 
             - name: waitForJob
@@ -554,12 +554,12 @@ drivers:
                           location: us-west1
                         steps:
                           - call_driver: gcloud-dataflow.createJob
-                            with:
+                            parameters:
                               job:
                                 gcsPath: ...
                                 ...
                           - call_driver: gcloud-dataflow.waitForJob
-                            with:
+                            parameters:
                               interval: 60
                               timeout: 600
                               jobID: $data.job.Id
@@ -594,10 +594,10 @@ drivers:
                           location: us-west1
                         steps:
                           - call_driver: gcloud-dataflow.findJobByName
-                            with:
+                            parameters:
                               name: bar
                           - call_driver: gcloud-dataflow.waitForJob
-                            with:
+                            parameters:
                               jobID: $data.job.Id
 
             - name: waitForJob
@@ -633,12 +633,12 @@ drivers:
                           location: us-west1
                         steps:
                           - call_driver: gcloud-dataflow.createJob
-                            with:
+                            parameters:
                               job:
                                 gcsPath: ...
                                 ...
                           - call_driver: gcloud-dataflow.waitForJob
-                            with:
+                            parameters:
                               interval: 60
                               timeout: 600
                               jobID: $data.job.Id
@@ -672,12 +672,12 @@ drivers:
                           location: us-west1
                         steps:
                           - call_driver: gcloud-dataflow.createJob
-                            with:
+                            parameters:
                               job:
                                 gcsPath: ...
                                 ...
                           - call_driver: gcloud-dataflow.getJob
-                            with:
+                            parameters:
                               jobID: $data.job.Id
 {%- end %}
 
@@ -728,7 +728,7 @@ drivers:
                 - example: |
                       ...
                         call_driver: gcloud-logging.log
-                        with:
+                        parameters:
                           severity: info
                           logger: my_log
                           payload:
@@ -771,7 +771,7 @@ drivers:
                 - example: |
                       ...
                         call_driver: gcloud-storage.fetchFile
-                        with:
+                        parameters:
                           bucket: foo
                           fileObject: bar
 
@@ -811,7 +811,7 @@ drivers:
                 - example: |
                       ...
                         call_driver: gcloud-storage.listFiles
-                        with:
+                        parameters:
                           bucket: bar
                           prefix: foo
 
@@ -836,7 +836,7 @@ drivers:
                 - example: |
                       ...
                         call_driver: gcloud-storage.getAttrs
-                        with:
+                        parameters:
                           bucket: foo
                           fileObject: bar/mydata
 
@@ -858,7 +858,7 @@ drivers:
                 - example: |
                       ...
                         call_driver: gcloud-storage.writeFile
-                        with:
+                        parameters:
                           bucket: foo
                           fileObject: bar/mydata.json
                           content:

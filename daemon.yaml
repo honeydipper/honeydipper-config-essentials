@@ -117,7 +117,7 @@ drivers:
                     workflows:
                       reload:
                         call_driver: redispubsub.send
-                        with:
+                        parameters:
                           broadcastSubject: reload
                           force: $?ctx.force
                 - Below is another example of using the driver to wake up a suspended workflow
@@ -126,7 +126,7 @@ drivers:
                     workflows:
                       resume_workflow:
                         call_driver: redispubsub.send
-                        with:
+                        parameters:
                           broadcastSubject: resume_session
                           key: $ctx.resume_token
                           labels:

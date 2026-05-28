@@ -42,7 +42,7 @@ drivers:
                     workflows:
                       sending_request:
                         call_driver: web.request
-                        with:
+                        parameters:
                           URL: https://ifconfig.co
                 - Below is an example of specifying header for the outbound request defined through a system function
                 - example:

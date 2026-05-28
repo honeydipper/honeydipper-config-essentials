@@ -181,7 +181,7 @@ workflows:
                     force: $?ctx.parameters
 
     call_driver: redispubsub.send
-    with:
+    parameters:
       subject: reload
       payload:
         force: $?ctx.force
@@ -219,7 +219,7 @@ workflows:
                     resume_payload: $ctx.slack_payload
 
     call_driver: redispubsub.send
-    with:
+    parameters:
       broadcastSubject: resume_session
       labels:
         status: $ctx.labels_status
