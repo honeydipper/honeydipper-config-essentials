@@ -43,9 +43,89 @@ systems:
         namespace: default
 
     functions:
+      exec:
+        driver: kubernetes
+        rawAction: exec
+        parameters:
+          source: $sysData.source
+          namespace: $?sysData.namespace
+          pod: $ctx.pod
+          container: $ctx.container
+          shell: $?ctx.shell
+          script: $?ctx.script
+          command: $?ctx.command
+        export:
+          output: '{{ .data.output }}'
+          exit_code: '{{ .data.exit_code }}'
+
+        description: >
+          This function executes a command in a container in the kubernetes cluster. It is a wrapper for the kubernetes driver exec rawAction.
+          It leverages the pre-configured system data to access the kubernetes cluster.
+
+        meta:
+          inputs:
+            - name: pod
+              description: The pod name to execute the command in
+
+            - name: container
+              description: The container name to execute the command in
+
+            - name: shell
+              description: The shell to use for executing the command, e.g. :code:`/bin/sh` or :code:`/bin/bash`
+
+            - name: script
+              description: The actual command/script to execute in the specified shell
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflow:
+                  run_script_in_k8s:
+                    steps:
+                      - call_function: my-k8s-cluster.exec
+                        with:
+                          pod: mypod
+                          container: mycontainer
+                          shell: /bin/bash
+                          script: |
+                            echo "Hello from Kubernetes!" > /tmp/hello.txt
+      waitForJobPods:
+        driver: kubernetes
+        rawAction: waitForJobPods
+        parameters:
+          source: $sysData.source
+          namespace: $?sysData.namespace
+          job: $ctx.jobid
+        export:
+          pod_names: $?data.pod_names
+          pod_ips: $?data.pod_ips
+
+        description: >
+          This function is a wrapper to the kubernetes driver waitForJobPods rawAction.
+          It leverages the pre-configured system data to access the kubernetes cluster.
+
+        meta:
+          inputs:
+            - name: jobid
+              description: The job ID to wait for its pods to be ready
+
+          notes:
+            - See below for example
+            - example: |
+                ---
+                workflow:
+                  run_simple_job:
+                    steps:
+                      - call_function: my-k8s-cluster.createJob
+                        with:
+                          job: $ctx.job
+                      - call_function: my-k8s-cluster.waitForJobPods
+                        with:
+                          jobid: $ctx.jobid
       recycleDeployment:
         driver: kubernetes
-        rawaction: recycleDeployment
+        rawAction: recycleDeployment
         parameters:
           source: $sysData.source
           namespace: $?sysData.namespace
