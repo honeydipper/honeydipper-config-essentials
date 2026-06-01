@@ -306,6 +306,11 @@ workflows:
             If specified, a workflow specified by :code:`on_job_start` will be executed once the job is created. This is useful for
             sending notifications with job name, links to the log etc.
 
+        - name: no_wait
+          description: >
+            By default, the workflow will wait for the job to complete and then fetch the logs. Setting this context variable to a
+            truthy value will skip waiting and log fetching.
+
       exports:
         - name: log
           description: The logs of the job organized in map by container and by pod
@@ -380,7 +385,9 @@ workflows:
     on_failure: exit
     steps:
       - call_workflow: start_kube_job
-      - on_failure: continue
+      - unless:
+          - '{{ .ctx.no_wait }}'
+        on_failure: continue
         steps:
           - if:
               - $?ctx.on_job_start
