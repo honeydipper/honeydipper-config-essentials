@@ -96,10 +96,10 @@ systems:
         parameters:
           source: $sysData.source
           namespace: $?sysData.namespace
+          target_phase: '{{ default "running" .ctx.target_phase }}'
           job: $ctx.jobid
         export:
-          pod_names: $?data.pod_names
-          pod_ips: $?data.pod_ips
+          pod_info: $?data.pod_info
 
         description: >
           This function is a wrapper to the kubernetes driver waitForJobPods rawAction.
@@ -109,6 +109,11 @@ systems:
           inputs:
             - name: jobid
               description: The job ID to wait for its pods to be ready
+
+            - name: target_phase
+              description: >
+                The target phase to wait for the pods to reach either "done"
+                or "running" (default: "running")
 
           notes:
             - See below for example
