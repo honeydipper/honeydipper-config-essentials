@@ -56,7 +56,7 @@ workflows:
             - "failure"
         export:
           notify+: $?ctx.notify_on_error
-      - call_workflow: channel_translate
+      - call_workflow: $?ctx.channel_translate_tool,"channel_translate"
         with:
           channel_names: $?ctx.notify
       - if:
@@ -287,4 +287,57 @@ workflows:
       notes:
         - >
           This workflow is just a wraper around the :code:`opsgenie.heartbeat` function.
-{%- end %}
+
+  local_channel_translate:
+    description: translate channel_names to channel_ids
+    meta:
+      inputs:
+        - name: channel_names
+          description: a list of channel names to be translated
+        - name: channel_maps
+          description: a map from channel names to ids
+      exports:
+        - name: channel_ids
+          description: a list of channel ids corresponding to the input names
+      notes:
+        - By pre-populating a map, we don't have to make API calls to slack everytime we need to convert a channel name to a ID.
+        - This is used by :code:`slashcommand` workflow and :code:`notify` workflow to automatically translate the names.
+        - example: |
+            ---
+            workflows:
+              attention:
+                with:
+                  channel_map:
+                    '#private_channel1': UGKLASE
+                    '#private_channel2': UYTFYJ2
+                    '#private_channel3': UYUJH56
+                    '#private_channel4': UE344HJ
+                    '@private_user':     U78JS2F
+                steps:
+                  - call_workflow: channel_translate
+                    with:
+                      channel_names:
+                        - '#private_channel1'
+                        - '#private_channel3'
+                        - '@private_user'
+                        - '#public_channel1'
+                  - call_workflow: loop_send_slack_message
+                    # with:
+                    #   channel_ids:
+                    #     - UGKLASE
+                    #     - UYUJH56
+                    #     - U78JS2F
+                    #     - '#public_channel1' # remain unchanged if missing from the map
+
+    with:
+      translated: |-
+        :yaml:---
+        {{- range default (list) .ctx.channel_names | uniq }}
+        - "{{ if or (empty $.ctx.channel_map) (hasKey $.ctx.channel_map . | not) }}{{ . }}{{ else }}{{ index $.ctx.channel_map . }}{{ end }}"
+        {{- end }}
+    export:
+      channel_ids: |-
+        :yaml:---
+        {{- range default (list) .ctx.translated | uniq }}
+        - "{{ . }}"
+        {{- end }}
