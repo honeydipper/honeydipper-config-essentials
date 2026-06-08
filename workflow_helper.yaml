@@ -56,7 +56,7 @@ workflows:
             - "failure"
         export:
           notify+: $?ctx.notify_on_error
-      - call_workflow: $?ctx.channel_translate_tool,"channel_translate"
+      - call_workflow: $ctx.channel_translate_tool,"channel_translate"
         with:
           channel_names: $?ctx.notify
       - if:
@@ -287,6 +287,7 @@ workflows:
       notes:
         - >
           This workflow is just a wraper around the :code:`opsgenie.heartbeat` function.
+{%- end %}
 
   local_channel_translate:
     description: translate channel_names to channel_ids
