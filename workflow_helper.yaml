@@ -315,7 +315,7 @@ workflows:
                     '#private_channel4': UE344HJ
                     '@private_user':     U78JS2F
                 steps:
-                  - call_workflow: channel_translate
+                  - call_workflow: local_channel_translate
                     with:
                       channel_names:
                         - '#private_channel1'

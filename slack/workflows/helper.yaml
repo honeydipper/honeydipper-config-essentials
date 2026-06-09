@@ -48,19 +48,12 @@ workflows:
         - name: channel_ids
           description: a list of channel ids corresponding to the input names
       notes:
-        - By pre-populating a map, we don't have to make API calls to slack everytime we need to convert a channel name to a ID.
+        - This workflow will query slack to get a complete map of channel IDs and user IDs to build a map in cache and use that for translate.
         - This is used by :code:`slashcommand` workflow and :code:`notify` workflow to automatically translate the names.
         - example: |
             ---
             workflows:
               attention:
-                with:
-                  channel_map:
-                    '#private_channel1': UGKLASE
-                    '#private_channel2': UYTFYJ2
-                    '#private_channel3': UYUJH56
-                    '#private_channel4': UE344HJ
-                    '@private_user':     U78JS2F
                 steps:
                   - call_workflow: channel_translate
                     with:

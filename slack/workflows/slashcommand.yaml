@@ -73,7 +73,7 @@ workflows:
             steps:
               - export:
                   known_command: "true"
-              - call_workflow: channel_translate
+              - call_workflow: $ctx.channel_translate_tool,"channel_translate"
                 with:
                   channel_names: $?ctx.invoked.allowed_channels
                 export:
@@ -242,7 +242,7 @@ workflows:
           This workflow constructs the notification list using :code:`slash_notify`. If the command is NOT issued from one of
           the listed channels.
 
-    call_workflow: channel_translate
+    call_workflow: $ctx.channel_translate_tool,"channel_translate"
     with:
       channel_names: $?ctx.slash_notify
     export:
