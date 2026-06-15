@@ -1,0 +1,17 @@
+---
+contexts:
+  # this context will be loaded automatically for every agent tool call
+  _agent_tool_call:
+    '_events':
+      hooks: # silence error reporting
+        on_first_action*: $?nil
+        on_exit*: $?nil
+        on_error*: $?nil
+        on_failure*: $?nil
+
+  ## Example context for testing getting files from workflow context.
+  # can be loaded with ctx:my_context:my_name using pre_context.
+  my_context:
+    '*':
+      agent_contexts:
+        my_name: If asked, your name is HAI bot, short for Honeydipper AI bot.

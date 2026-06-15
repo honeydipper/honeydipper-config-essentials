@@ -1,3 +1,7 @@
 ---
+# This file contains shared assets for Honeydipper AI agents.
 includes:
-  - workflows.yaml
+  - contexts.yaml
+  - engines.yaml
+  - mcp.yaml
+  - tools/*.yaml

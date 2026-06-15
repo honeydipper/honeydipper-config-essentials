@@ -1,0 +1,134 @@
+---
+workflows:
+  run_script_k8s:
+    meta:
+      description: |-
+        Execute a script locally with temporarily persisted storage. Your
+        script will be executed with `/bin/bash -c`, you do not have to specify
+        that in your command. Your commands will be executed in
+        /local/honeydipper/workspace folder. Do NOT change anything outside of
+        this folder. You will get the output and exit code as a result.
+      inputs:
+        - name: script
+          description: The commands or script to execute in the script container.
+    with:
+      system-: $ctx.run_script_k8s_system,"k8s_default"
+    steps:
+      - call_workflow: start_exec_k8s_container
+      - call_workflow: wait_for_k8s_exec_container
+      - call_function: '{{ .ctx.system}}.exec'
+        with:
+          timeout: 3600s
+          system-: k8s_default
+          pod: $ctx.exec_pod_id
+          container: exec-container
+          shell: "/bin/bash"
+          script: |
+            HD_EXEC_DIR=`pwd`
+            while [ ! -f ./.hd-exec/initialized ]; do
+              sleep 1
+            done > /dev/null 2>/dev/null
+            . ./.hd-exec/env.list >/dev/null 2>/dev/null
+            rm -f ./.hd-exec/counter >/dev/null 2>/dev/null
+            if [ -f ./.hd-exec/exec_path ]; then
+              cd "$(cat ./.hd-exec/exec_path)"
+            else
+              cd workspace
+            fi 2>/dev/null
+
+            cleanup() {
+              exit_code="$?"
+              
+              rm -f $HD_EXEC_DIR/.hd-exec/counter >/dev/null 2>/dev/null || true
+              exit $exit_code
+            }
+            trap cleanup EXIT
+
+            {{ .ctx.script }}
+
+    export:
+      _output:
+        output: '{{ .ctx.output }}'
+        exit_code: '{{ .ctx.exit_code }}'
+
+  start_exec_k8s_container:
+    no_export:
+      - '*'
+    cache_key: '{{ .ctx.unified_convo_id}}-k8s'
+    with:
+      - cleanupAfter: '{{ default 3600 .ctx.cleanupAfter | return }}'
+        serviceAccountName: hdci-daemon
+        agent_script:
+          identity:
+            sec_driver_image: docker.io/honeydipper/honeydipper:{{ .ctx.run_script_k8s_secure_driver_tag | default "4.0.0-alpha4" }}
+            sec_driver: $ctx.run_script_k8s_secret_driver,"hd-driver-vault"
+            work_dir: /local/honeydipper
+            env+:
+              - name: HD_SECURE_LOADER
+                value: /local/honeydipper/{{ .ctx.run_script_secret_driver | default "hd-driver-vault" }}
+      - job:
+          apiversion: batch/v1
+          kind: Job
+          metadata:
+            generateName: hd-dev-exec-
+          spec:
+            template:
+              spec:
+                restartPolicy: Never
+                serviceAccountName: '{{ .ctx.serviceAccountName }}'
+                TTLSecondsAfterFinished: $ctx.cleanupAfter
+                volumes:
+                  - name: local-storage
+                    emptyDir: {}
+                  - name: kube-api-access
+                    projected:
+                      sources:
+                        - serviceAccountToken:
+                            path: token
+                            expirationSeconds: 3600
+                            audience: vault
+                initContainers:
+                  - name: sec-driver-setup
+                    image: $ctx.agent_script.identity.sec_driver_image
+                    command: ["/bin/sh", "-c"]
+                    workingDir: $ctx.agent_script.identity.work_dir
+                    args:
+                      - >-
+                        cp "$HD_BINRARY_PATH/$SEC_DRIVER" "$HD_BINRARY_PATH/docker-entrypoint.sh" "$HD_BINRARY_PATH/web" .
+                        && echo sec driver copied.
+                    env:
+                      - name: SEC_DRIVER
+                        value: $ctx.agent_script.identity.sec_driver
+                      - name: HD_BINRARY_PATH
+                        value: /opt/honeydipper/drivers/builtin
+                    volumeMounts:
+                      - name: local-storage
+                        mountPath: $ctx.agent_script.identity.work_dir
+                containers:
+                  - image: $ctx.run_script_k8s_image,"charleshoney/agent-exec:latest"
+                    imagePullPolicy: Always
+                    name: exec-container
+                    workingDir: $ctx.agent_script.identity.work_dir
+                    command:
+                      - '{{ .ctx.agent_script.identity.work_dir }}/docker-entrypoint.sh'
+                      - /bin/bash
+                    args:
+                      - -c
+                      - '@:resources/run_script_k8s_entrypoint.sh'
+                    env: $?ctx.agent_script.identity.env
+                    volumeMounts:
+                      - name: local-storage
+                        mountPath: $ctx.agent_script.identity.work_dir
+    call_function: '{{ .ctx.system}}.createJob'
+    export:
+      fresh: "true"
+      cache-data:
+        jobid: $ctx.jobid
+
+  wait_for_k8s_exec_container:
+    call_function: '{{ .ctx.system}}.waitForJobPods'
+    with:
+      jobid: $ctx.cache-data.jobid
+      target_phase: running
+    export:
+      exec_pod_id: '{{ range .ctx.pod_info }}{{ if eq .phase "Running" }}{{ return .name }}{{ end }}{{ end }}'

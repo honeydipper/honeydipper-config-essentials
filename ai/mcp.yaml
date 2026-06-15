@@ -1,0 +1,18 @@
+---
+# define mcp servers that can be used for agent loading.
+# example:
+#  ---
+#  agents:
+#    my_agent:
+#      ...
+#    tools:
+#      name: github
+#      type: mcp
+drivers:
+  mcp:
+    servers:
+      github:
+        url: https://api.githubcopilot.com/mcp/
+        transport: streamable
+        # headers:
+        #   Authorization: "LOOKUP[vault,/secrets/data/hd-home/daemon#github_pat]:Bearer %s"

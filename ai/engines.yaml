@@ -1,0 +1,10 @@
+---
+# This file defines the AI engines and their configurations for the Honeydipper system.
+# Below is an example.
+# drivers:
+#   openai:
+#     engines:
+#       default:
+#         api_key: {% with .env.OPENAI_API_KEY %}{% . %}{% else %}LOOKUP[vault,/secrets/data/hd-home/daemon#openrouter_api_key]{% end %}
+#         base_url: https://openrouter.ai/api/v1
+#         model: qwen/qwen3.5-9b

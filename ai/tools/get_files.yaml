@@ -1,0 +1,69 @@
+---
+workflows:
+  get_files:
+    meta:
+      description: >-
+        Get file content from various sources. The input is a list of file specifications, and the
+        output is a dictionary of file specifications to file content. You can use this
+        workflow to get the content of files that are relevant to the user's
+        request, and then use the content as part of the context for the agent to
+        generate a response.
+      inputs:
+        - name: file_specs
+          description: |-
+            A list of file specifications to get content from. Acceptable formats include:
+            - `gh:<owner/repo>@<ref>:<path/to/file_or_dir>` for GitHub files, e.g.
+              `gh:readthedocs/skills@refs/heads/main:skills/readthedocs-api.md` or
+              `gh:readthedocs/skills@refs/heads/main:skills/*/SKILL.md` for wildcard.
+            - `ctx:<context name>:<context_key>` for files stored in the Honeydipper's workflow context, e.g.
+              `ctx:my_context:my_notes`.
+    iterate: $ctx.file_specs
+    iterate_as: file_spec
+    steps:
+      - switch: '{{ splitList ":" .ctx.file_spec | first}}'
+        cases:
+          gh:
+            call_workflow: get_github_wildcard_files
+            with:
+              github_system-: github_pat
+          ctx:
+            context: '{{ splitList ":" .ctx.file_spec | rest | first}}'
+            with:
+              context_key: '{{ splitList ":" .ctx.file_spec | last}}'
+            export:
+              files+:
+                - file_spec: $ctx.file_spec
+                  file_content: '{{ dig "agent_contexts" .ctx.context_key "" .ctx }}'
+    export:
+      _output:
+        files: $ctx.files
+
+  get_github_wildcard_files:
+    if: [ '{{ contains "*" .ctx.file_spec }}' ]
+    steps:
+      - call_workflow: github_getContent
+        with:
+          path: '{{ index (trimPrefix "gh:" .ctx.file_spec | splitn "*" 2) "_0" }}'
+      - iterate: $?ctx.file_info
+        on_error: continue
+        steps:
+          - if_match:
+              current:
+                type: dir
+            call_workflow: github_getContent
+            with:
+              - current_spec: '{{ replace "*" .ctx.current.name .ctx.file_spec }}'
+              - path: '{{ trimPrefix "gh:" .ctx.current_spec }}'
+            export_on_success:
+              files+:
+                - file_spec: $ctx.current_spec
+                  file_content: $ctx.file_content
+      - {}
+    else:
+      call_workflow: github_getContent
+      with:
+        path: '{{ trimPrefix "gh:" .ctx.file_spec }}'
+      export_on_success:
+        files+:
+          - file_spec: $ctx.file_spec
+            file_content: $ctx.file_content

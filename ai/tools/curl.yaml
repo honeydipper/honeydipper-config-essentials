@@ -1,0 +1,32 @@
+---
+workflows:
+  curl:
+    call_driver: web.request
+    parameters:
+      URL: $ctx.url
+      method: $?ctx.method
+      header: $?ctx.headers
+      content: $?ctx.content
+      form: $?ctx.form
+    export:
+      _output:
+        status_code: $data.status_code
+        response_body: '{{ with .data.json }}see parsed json.{{ else }}{{ .data.body }}{{ end }}'
+        response_headers: $?data.headers
+        cookies: $?data.cookies
+        json: $?data.json
+    meta:
+      description: A utility to access internet. If the response is in JSON format, it will be parsed and available in the output as 'data.json'.
+      inputs:
+        - name: url
+          description: The URL to access.
+        - name: method
+          description: The HTTP method to use (e.g., GET, POST, defaults to GET).
+        - name: headers
+          type: object
+          description: Optional HTTP headers in K/V pair format to include in the request, do not quote or use special characters in the keys.
+        - name: content
+          description: Optional content to include in the request body (for POST, PUT, etc.).
+        - name: form
+          type: object
+          description: Optional form data in K/V pair format. Can accept array as values for the keys. Do not quote or use special characters in the keys.
