@@ -66,6 +66,14 @@ workflows:
             env+:
               - name: HD_SECURE_LOADER
                 value: /local/honeydipper/{{ .ctx.run_script_secret_driver | default "hd-driver-vault" }}
+            volumes+:
+              - name: local-storage
+                emptyDir: {}
+      - agent_script:
+          identity:
+            volumeMounts+:
+              - name: local-storage
+                mountPath: $ctx.agent_script.identity.work_dir
       - job:
           apiversion: batch/v1
           kind: Job
@@ -77,16 +85,7 @@ workflows:
                 restartPolicy: Never
                 serviceAccountName: '{{ .ctx.serviceAccountName }}'
                 TTLSecondsAfterFinished: $ctx.cleanupAfter
-                volumes:
-                  - name: local-storage
-                    emptyDir: {}
-                  - name: kube-api-access
-                    projected:
-                      sources:
-                        - serviceAccountToken:
-                            path: token
-                            expirationSeconds: 3600
-                            audience: vault
+                volumes: $ctx.agent_script.identity.volumes
                 initContainers:
                   - name: sec-driver-setup
                     image: $ctx.agent_script.identity.sec_driver_image
@@ -101,9 +100,7 @@ workflows:
                         value: $ctx.agent_script.identity.sec_driver
                       - name: HD_BINRARY_PATH
                         value: /opt/honeydipper/drivers/builtin
-                    volumeMounts:
-                      - name: local-storage
-                        mountPath: $ctx.agent_script.identity.work_dir
+                    volumeMounts: $ctx.agent_script.identity.volumeMounts
                 containers:
                   - image: $ctx.run_script_k8s_image,"charleshoney/agent-exec:latest"
                     imagePullPolicy: Always
@@ -116,9 +113,7 @@ workflows:
                       - -c
                       - '@:resources/run_script_k8s_entrypoint.sh'
                     env: $?ctx.agent_script.identity.env
-                    volumeMounts:
-                      - name: local-storage
-                        mountPath: $ctx.agent_script.identity.work_dir
+                    volumeMounts: $ctx.agent_script.identity.volumeMounts
     call_function: '{{ .ctx.system}}.createJob'
     export:
       fresh: "true"
