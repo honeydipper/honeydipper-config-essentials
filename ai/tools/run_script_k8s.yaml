@@ -8,6 +8,47 @@ workflows:
         that in your command. Your commands will be executed in
         /local/honeydipper/workspace folder. Do NOT change anything outside of
         this folder. You will get the output and exit code as a result.
+      notes:
+        - |
+          For agent developers, below context variables are needed to make your scripts work
+
+          * run_script_k8s_image: The Docker image to use for the script execution container.
+          * run_script_k8s_system: The system to use for the script execution, typically a Kubernetes system.
+          * run_script_k8s_secret_driver_tag: The tag for the secret driver Docker image (honeydipper/honeydipper).
+          * run_script_k8s_secret_driver: The secret driver to use for managing secrets within the script execution environment.
+          * agent_script.identity.env: The environment variables to set in the script execution container. Use hd-lookup for retrieving secrets from the secret driver.
+          * agent_script.identity.volumes: The volumes to mount in the script execution container.
+          * agent_script.identity.volumeMounts: The volume mounts for the script execution container.
+
+          Set them in _agent_tool_call context or use a wrapper workflow.
+        - |
+          example:
+            _agent_tool_call:
+              run_script_k8s:
+                run_script_k8s_image: charleshoney/agent-exec:latest
+                run_script_k8s_system: k8s_default
+                run_script_k8s_secret_driver_tag: 4.0.0-alpha4
+                run_script_k8s_secret_driver: hd-driver-vault
+                agent_script:
+                  identity:
+                    env:
+                      - name: GH_TOKEN
+                        value: hd-lookup:secrets/data/hd-home/daemon#github_pat
+                      - name: VAULT_ADDR
+                        value: http://192.168.1.21:8200
+                      - name: VAULT_K8S_ROLE
+                        value: hdci-daemon
+                    volumes:
+                      - name: kube-api-access
+                        projected:
+                          sources:
+                            - serviceAccountToken:
+                                path: token
+                                expirationSeconds: 3600
+                                audience: vault
+                    volumeMounts:
+                      - name: kube-api-access
+                        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
       inputs:
         - name: script
           description: The commands or script to execute in the script container.
