@@ -121,11 +121,11 @@ workflows:
           metadata:
             generateName: hd-dev-exec-
           spec:
+            TTLSecondsAfterFinished: $ctx.cleanupAfter
             template:
               spec:
                 restartPolicy: Never
                 serviceAccountName: '{{ .ctx.serviceAccountName }}'
-                TTLSecondsAfterFinished: $ctx.cleanupAfter
                 volumes: $ctx.agent_script.identity.volumes
                 initContainers:
                   - name: sec-driver-setup
