@@ -14,6 +14,7 @@ rules:
         slack_resume_key: ':regex:^hd-resume-'
       resume: $ctx.slack_resume_key
       context: mute
+{%- if empty .options.skip_slack_webhooks %}
 
   - when:
       source:
@@ -38,3 +39,4 @@ rules:
         trigger: event_verification
     do:
       context: mute
+{%- end %}

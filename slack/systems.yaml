@@ -404,7 +404,7 @@ systems:
               type: app_mention
         export:
           slack_payload: $?event.json
-          slack_user_id: $sysData.slack_user_id
+          slack_user_id: $?sysData.slack_user_id
           notify:
             - '{{ with .event.json.event }}{{ eq .channel_type "im" | ternary .user .channel }}{{ end }}'
 
