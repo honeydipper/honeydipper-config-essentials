@@ -46,7 +46,7 @@ systems:
         rawaction: recycleDeployment
         parameters:
           source: $sysData.source
-          namespace: $?sysData.namespace
+          namespace: $?ctx.namespace,sysData.namespace
           deployment: $ctx.deployment
 
         description: >
@@ -85,7 +85,7 @@ systems:
         rawAction: deleteJob
         parameters:
           source: $sysData.source
-          namespace: $?sysData.namespace
+          namespace: $?ctx.namespace,sysData.namespace
           job: $ctx.jobid
         export:
           links:
@@ -123,7 +123,7 @@ systems:
         rawAction: createJob
         parameters:
           source: $sysData.source
-          namespace: $?sysData.namespace
+          namespace: $?ctx.namespace,sysData.namespace
           job: $ctx.job
           fromCronJob: $?ctx.fromCronJob
         export:
@@ -178,7 +178,7 @@ systems:
         rawAction: waitForJob
         parameters:
           source: $sysData.source
-          namespace: $?sysData.namespace
+          namespace: $?ctx.namespace,sysData.namespace
           job: $ctx.jobid
           timeout: '{{ default "60" .ctx.timeout }}'
         export:
@@ -221,7 +221,7 @@ systems:
         rawAction: getJobLog
         parameters:
           source: $sysData.source
-          namespace: $?sysData.namespace
+          namespace: $?ctx.namespace,sysData.namespace
           job: $ctx.jobid
         export:
           log: $?data.log
@@ -266,7 +266,7 @@ systems:
         rawAction: createPVC
         parameters:
           source: $sysData.source
-          namespace: $?sysData.namespace
+          namespace: $?ctx.namespace,sysData.namespace
           pvc: $ctx.pvc
         export:
           pvc_name: $?data.metadata.name
@@ -313,7 +313,7 @@ systems:
         rawAction: deletePVC
         parameters:
           source: $sysData.source
-          namespace: $?sysData.namespace
+          namespace: $?ctx.namespace,sysData.namespace
           pvc: $ctx.pvc_name
 
         description: >
