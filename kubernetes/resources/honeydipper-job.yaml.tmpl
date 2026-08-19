@@ -109,6 +109,9 @@ metadata:
     {{- range $k, $v := (default dict $.ctx.extra_labels) }}
     {{ $k }}: "{{ $v }}"
     {{- end }}
+    {{- with .ctx.namespace }}
+    namespace: "{{ . }}"
+    {{- end }}
 spec:
   template:
     metadata:
