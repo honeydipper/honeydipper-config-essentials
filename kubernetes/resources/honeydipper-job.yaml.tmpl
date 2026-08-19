@@ -103,14 +103,14 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   generateName: {{ default "honeydipper-job-" $.ctx.generateName }}
+  {{- with .ctx.namespace }}
+  namespace: "{{ . }}"
+  {{- end }}
   labels:
     creator: {{ default "honeydipper" $.ctx.job_creator }}
     honeydipper-unique-identifier: "{{ $uniqueID }}"
     {{- range $k, $v := (default dict $.ctx.extra_labels) }}
     {{ $k }}: "{{ $v }}"
-    {{- end }}
-    {{- with .ctx.namespace }}
-    namespace: "{{ . }}"
     {{- end }}
 spec:
   template:
