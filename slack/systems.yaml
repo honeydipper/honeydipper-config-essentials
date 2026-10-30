@@ -371,8 +371,9 @@ systems:
               ":absent:":
                 - subtype
               ":except:":
-                bot_profile:
-                  name: $?sysData.slack_app_name
+                - bot_profile:
+                    name: $?sysData.slack_app_name
+                - text: $sysData._slack_user_id_regex
         export:
           slack_payload: $?event.json
           slack_user_id: $sysData.slack_user_id
